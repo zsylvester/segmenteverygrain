@@ -1,3 +1,4 @@
+# Segment Every Grain
 
 <img src="https://github.com/zsylvester/segmenteverygrain/blob/main/gravel_example_mask.jpg" width="600">
 
