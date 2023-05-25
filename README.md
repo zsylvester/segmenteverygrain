@@ -20,11 +20,17 @@
 - segment-anything
 - tqdm
 
+## Installation
+
+<code>pip install segmenteverything</code>
+
 ## Getting started
 
-See the 'Segment_every_grain.ipynb' notebook for an example of how the models can be loaded and used for segmenting an image and QC-ing the result.
+See the [Segment_every_grain.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb) notebook for an example of how the models can be loaded and used for segmenting an image and QC-ing the result.
 
-The 'Train_seg_unet_model.ipynb' notebook goes through the steps needed to create, train, and test the Unet model.
+The [Train_seg_unet_model.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Train_seg_unet_model.ipynb) notebook goes through the steps needed to create, train, and test the Unet model.
+
+The [Segment_every_grain_colab.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
 
 ## Acknowledgements
 
@@ -32,4 +38,4 @@ Thanks to Danny Stockli, Nick Howes, Jake Covault, Matt Malkowski, Raymond Luong
 
 ## License
 
-segment_every_grain is licensed under the [Apache License 2.0](https://github.com/zsylvester/meanderpy/blob/master/LICENSE.txt).
+segmenteverygrain is licensed under the [Apache License 2.0](https://github.com/zsylvester/segmenteverygrain/blob/master/LICENSE.txt).
