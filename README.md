@@ -1,5 +1,5 @@
 
-<img src="https://github.com/zsylvester/segmenteverygrain/blob/main/gravel_example_mask.jpg" width="300">
+<img src="https://github.com/zsylvester/segmenteverygrain/blob/main/gravel_example_mask.jpg" width="600">
 
 ## Description
 
