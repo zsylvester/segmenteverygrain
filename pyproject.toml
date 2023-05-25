@@ -3,7 +3,7 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "segment_every_grain"
+name = "segmenteverygrain"
 version = "0.0.1"
 authors = [
   { name="Zoltan Sylvester", email="zoltan.sylvester@beg.utexas.edu" },
@@ -18,5 +18,5 @@ classifiers = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/zsylvester/segment_every_grain"
-"Bug Tracker" = "https://github.com/zsylvester/segment_every_grain/issues"
+"Homepage" = "https://github.com/zsylvester/segmenteverygrain"
+"Bug Tracker" = "https://github.com/zsylvester/segmenteverygrain/issues"
