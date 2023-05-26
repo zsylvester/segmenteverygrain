@@ -28,7 +28,7 @@ This is *work in progress*.
 
 ## Installation
 
-<code>pip install segmenteverything</code>
+<code>pip install segmenteverygrain</code>
 
 ## Getting started
 
