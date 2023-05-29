@@ -373,6 +373,46 @@ def one_point_prompt(x, y, ax, image, predictor):
     if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
+    if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
+        for j in range(1, len(contours)):
+            sx = np.hstack((sx, contours[j][:,1]))
+            sy = np.hstack((sy, contours[j][:,0]))
+    color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+    ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
+    return sx, sy, masks[ind]
+
+def multi_point_prompt(x, y, ax, image, predictor):
+    input_point = np.array([[x, y]])
+    input_label = np.array([1])
+    masks, scores, logits = predictor.predict(
+        point_coords=input_point,
+        point_labels=input_label,
+        multimask_output=True,
+    )
+    ind = np.argmax(scores)
+    if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) > 0.1:
+        scores = np.delete(scores, ind)
+        ind = np.argmax(scores)
+    contours = measure.find_contours(masks[ind], 0.5)
+    sx = contours[0][:,1]
+    sy = contours[0][:,0]
+    r, c = np.shape(masks[ind])
+    if masks[ind][0,0]: # if the mask contains the upper left corner of the image
+        sx = np.hstack((-0.5, sx, -0.5))
+        sy = np.hstack((-0.5, sy, -0.5))
+    if masks[ind][0,-1]: # if the mask contains the upper right corner of the image
+        sx = np.hstack((c-0.5, sx, c-0.5))
+        sy = np.hstack((-0.5, sy, -0.5))
+    if masks[ind][-1,0]: # if the mask contains the lower left corner of the image
+        sx = np.hstack((-0.5, sx, -0.5))
+        sy = np.hstack((r-0.5, sy, r-0.5))
+    if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
+        sx = np.hstack((c-0.5, sx, c-0.5))
+        sy = np.hstack((r-0.5, sy, r-0.5))
+    if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
+        for j in range(1, len(contours)):
+            sx = np.hstack((sx, contours[j][:,1]))
+            sy = np.hstack((sy, contours[j][:,0]))
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, masks[ind]
@@ -513,7 +553,7 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
         y = grain_data['centroid-0'].iloc[i]
         sx, sy, mask = one_point_prompt(x, y, ax, big_im, predictor)
         if np.mean(big_im_pred[:,:,0][mask]) < 0.3: # skip masks that are mostly background
-        # skip masks that hvae too much background:
+        # skip masks that have too much background:
         # if np.sum(big_im_pred[:,:,0][mask])/(np.sum(big_im_pred[:,:,1][mask]) + \
         #                                      np.sum(big_im_pred[:,:,2][mask])) < 0.3:
             all_grains.append(Polygon(np.vstack((sx, sy)).T))
@@ -570,6 +610,10 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
                             if new_mask[-1,-1]:
                                 sx = np.hstack((c-0.5, sx, c-0.5))
                                 sy = np.hstack((r-0.5, sy, r-0.5))
+                            if len(contours) > 1: # when a grain touches two edges of the image (but not the corner)
+                                for j in range(1, len(contours)):
+                                    sx = np.hstack((sx, contours[j][:,1]))
+                                    sy = np.hstack((sy, contours[j][:,0]))
                             all_grains.append(Polygon(np.vstack((sx, sy)).T))                       
     all_grains_new = []
     for i in range(len(all_grains)):
