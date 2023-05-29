@@ -16,6 +16,7 @@ This is *work in progress*.
 - numpy
 - matplotlib
 - scipy
+- pandas
 - pillow
 - scikit-image
 - opencv-python
@@ -23,6 +24,7 @@ This is *work in progress*.
 - rasterio
 - shapely
 - tensorflow
+- pytorch
 - segment-anything
 - tqdm
 
