@@ -357,29 +357,39 @@ def one_point_prompt(x, y, ax, image, predictor):
     if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) > 0.1:
         scores = np.delete(scores, ind)
         ind = np.argmax(scores)
-    contours = measure.find_contours(masks[ind], 0.5)
+    temp_labels, n_elems = measure.label(masks[ind], return_num = True, connectivity=1)
+    if n_elems > 1: # if the mask has more than one element, find the largest one and delete the rest
+        mask = masks[ind]
+        # Find the object with the largest area
+        label_counts = np.bincount(temp_labels.ravel())
+        largest_label = np.argmax(label_counts[1:]) + 1
+        mask[temp_labels != largest_label] = 0
+    else:
+        mask = masks[ind]
+    contours = measure.find_contours(mask, 0.5)
     sx = contours[0][:,1]
     sy = contours[0][:,0]
-    r, c = np.shape(masks[ind])
-    if masks[ind][0,0]: # if the mask contains the upper left corner of the image
+    r, c = np.shape(mask)
+    if mask[0,0]: # if the mask contains the upper left corner of the image
         sx = np.hstack((-0.5, sx, -0.5))
         sy = np.hstack((-0.5, sy, -0.5))
-    if masks[ind][0,-1]: # if the mask contains the upper right corner of the image
+    if mask[0,-1]: # if the mask contains the upper right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((-0.5, sy, -0.5))
-    if masks[ind][-1,0]: # if the mask contains the lower left corner of the image
+    if mask[-1,0]: # if the mask contains the lower left corner of the image
         sx = np.hstack((-0.5, sx, -0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
-    if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
+    if mask[-1,-1]: # if the mask contains the lower right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
-    if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
-        for j in range(1, len(contours)):
-            sx = np.hstack((sx, contours[j][:,1]))
-            sy = np.hstack((sy, contours[j][:,0]))
+    # if masks[ind][-1,:] and masks[ind][:,-1]:
+    # if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
+    #     for j in range(1, len(contours)):
+    #         sx = np.hstack((sx, contours[j][:,1]))
+    #         sy = np.hstack((sy, contours[j][:,0]))
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
-    return sx, sy, masks[ind]
+    return sx, sy, mask
 
 def multi_point_prompt(x, y, ax, image, predictor):
     input_point = np.array([[x, y]])
@@ -409,10 +419,10 @@ def multi_point_prompt(x, y, ax, image, predictor):
     if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
-    if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
-        for j in range(1, len(contours)):
-            sx = np.hstack((sx, contours[j][:,1]))
-            sy = np.hstack((sy, contours[j][:,0]))
+    # if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
+    #     for j in range(1, len(contours)):
+    #         sx = np.hstack((sx, contours[j][:,1]))
+    #         sy = np.hstack((sy, contours[j][:,0]))
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, masks[ind]
@@ -570,7 +580,6 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
     for comp in comps:
         connected_grains.update(comp)
     for j in trange(len(comps)):
-        # j = 0
         comb_masks_all = np.zeros((big_im.shape[0], big_im.shape[1]))
         count = 1
         for i in comps[j]:
@@ -595,6 +604,12 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
                         # Dilate the eroded image using the same structuring element
                         new_mask = morphology.binary_dilation(new_mask, selem)
                         if np.max(new_mask):
+                            temp_labels, n_elems = measure.label(new_mask, return_num = True, connectivity=1)
+                            if n_elems > 1: # if the mask has more than one element, find the largest one and delete the rest
+                                # Find the object with the largest area
+                                label_counts = np.bincount(temp_labels.ravel())
+                                largest_label = np.argmax(label_counts[1:]) + 1
+                                new_mask[temp_labels != largest_label] = 0
                             contours = measure.find_contours(new_mask, 0.5)
                             sx = contours[0][:,1]
                             sy = contours[0][:,0]
@@ -610,10 +625,10 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
                             if new_mask[-1,-1]:
                                 sx = np.hstack((c-0.5, sx, c-0.5))
                                 sy = np.hstack((r-0.5, sy, r-0.5))
-                            if len(contours) > 1: # when a grain touches two edges of the image (but not the corner)
-                                for j in range(1, len(contours)):
-                                    sx = np.hstack((sx, contours[j][:,1]))
-                                    sy = np.hstack((sy, contours[j][:,0]))
+                            # if len(contours) > 1: # when a grain touches two edges of the image (but not the corner)
+                            #     for j in range(1, len(contours)):
+                            #         sx = np.hstack((sx, contours[j][:,1]))
+                            #         sy = np.hstack((sy, contours[j][:,0]))
                             all_grains.append(Polygon(np.vstack((sx, sy)).T))                       
     all_grains_new = []
     for i in range(len(all_grains)):
@@ -655,6 +670,7 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 facecolor=color, edgecolor='none', linewidth=0.5, alpha=0.4)
+        ax.text(all_grains[i].centroid.x, all_grains[i].centroid.y, str(i))
         # ax.plot(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 'k', linewidth=0.5)
     plt.xticks([])
     plt.yticks([])
@@ -791,7 +807,11 @@ def get_grains_from_patches(ax, image):
         labels[(mask==1) & (labels==0)] = i+1
     plt.figure()
     plt.imshow(labels)
-    plt.figure()
-    plt.imshow(image)
-    plt.imshow(mask_all, alpha=0.5)
-    return all_grains, labels, mask_all
+    fig = plt.figure()
+    ax = fig.add_subplot(111)
+    ax.imshow(image)
+    ax.imshow(mask_all, alpha=0.5)
+    for i in range(len(all_grains)):
+        ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
+                facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
+    return all_grains, labels, mask_all, fig, ax
