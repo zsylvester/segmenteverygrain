@@ -252,30 +252,6 @@ def label_and_dilate_grains(big_im, big_im_pred, small_grain_threshold, dilate_s
     props = regionprops_table(new_labels_dilated, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
                                                                                         'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
     grain_data = pd.DataFrame(props)
-
-    # print('plotting...')
-    # create colormap with random colors, first color white (for background)
-    # colors = []
-    # for i in range(n_grains):
-    #     l = list(np.random.random(3))
-    #     l.append(1)
-    #     colors.append(l)
-    # colors[0] = [1,1,1,0]
-    # cmap = ListedColormap(colors)
-
-    # xs, ys = create_grain_outlines(big_im, new_labels_dilated)
-
-    # fig = plt.figure(figsize=(30,20))
-    # plt.imshow(big_im, cmap='gray', interpolation=None)
-    # plt.imshow(new_labels_dilated, cmap=cmap, interpolation=None, alpha=0.4);
-    # for i in range(len(grain_data['label'])):
-    #     plt.plot(xs[i], ys[i],'k', linewidth = 1.0)
-    # plt.xticks([])
-    # plt.yticks([])
-    # plt.xlim([0, np.shape(big_im)[1]])
-    # plt.ylim([np.shape(big_im)[0], 0])
-    # plt.tight_layout()
- 
     return new_labels_dilated, grain_data
 
 def create_grain_outlines(big_im, new_labels_dilated):
@@ -769,6 +745,20 @@ def onpress2(event, all_grains, grain_inds, fig, ax):
                 facecolor=color, edgecolor='k', linewidth=2, alpha=0.5)
         fig.canvas.draw()
 
+def click_for_scale(event, ax):
+    global x1, x2, y1, y2, dist
+    if event.button == 1: # left mouse button for start point of scale
+        x1, y1 = event.xdata, event.ydata
+        ax.plot(x1, y1, 'ro')
+        ax.figure.canvas.draw()
+    if event.button == 3: # right mouse button for end point of scale
+        x2, y2 = event.xdata, event.ydata
+        ax.plot(x2, y2, 'ro')
+        ax.plot([x1, x2], [y1, y2], 'r')
+        ax.figure.canvas.draw()
+        dist = ((x2 - x1)**2 + (y2 - y1)**2)**0.5
+        print('number of pixels: ' + str(np.round(dist, 2)))
+
 def get_grains_from_patches(ax, image):
     all_grains = []
     for i in range(len(ax.patches)):
@@ -815,3 +805,15 @@ def get_grains_from_patches(ax, image):
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
     return all_grains, labels, mask_all, fig, ax
+
+def plot_image_w_colorful_grains(image, all_grains):
+    fig = plt.figure(figsize=(10,10))
+    ax = fig.add_subplot(111)
+    ax.imshow(image)
+    for i in range(len(all_grains)):
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
+                facecolor=color, edgecolor='none', linewidth=0.5, alpha=0.4)
+    ax.set_xticks([])
+    ax.set_yticks([])
+    return fig, ax
