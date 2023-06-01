@@ -458,7 +458,9 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels):
         connected_grains.update(comp)
     new_grains = []
     for i in range(len(all_grains)):
-        if i not in connected_grains and all_grains[i].area > 100: # and i not in polys_to_be_removed:
+        if i not in connected_grains and all_grains[i].area > 100:
+            if not all_grains[i].is_valid:
+                all_grains[i] = all_grains[i].buffer(0)
             new_grains.append(all_grains[i])
     for j in trange(len(comps)): 
         polygons = []
@@ -691,3 +693,16 @@ def plot_image_w_colorful_grains(image, all_grains):
     ax.set_xticks([])
     ax.set_yticks([])
     return fig, ax
+
+def plot_grain_axes_and_centroids(all_grains, labels, ax):
+    regions = regionprops(labels.astype('int'))
+    for ind in range(len(all_grains)):
+        y0, x0 = regions[ind].centroid
+        orientation = regions[ind].orientation
+        x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].minor_axis_length
+        y1 = y0 - np.sin(orientation) * 0.5 * regions[ind].minor_axis_length
+        x2 = x0 - np.sin(orientation) * 0.5 * regions[ind].major_axis_length
+        y2 = y0 - np.cos(orientation) * 0.5 * regions[ind].major_axis_length
+        ax.plot((x0, x1), (y0, y1), '-k', linewidth=1)
+        ax.plot((x0, x2), (y0, y2), '-k', linewidth=1)
+        ax.plot(x0, y0, '.k', markersize=10)
