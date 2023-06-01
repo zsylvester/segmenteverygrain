@@ -7,6 +7,7 @@ import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap
 from PIL import Image
 from tqdm import tqdm, trange
+from itertools import combinations
 import cv2
 import networkx as nx
 import rasterio
@@ -18,11 +19,14 @@ from skimage.morphology import label, binary_dilation, binary_erosion, reconstru
 from skimage.segmentation import watershed
 from skimage.io import imread, imshow, concatenate_images
 from skimage.transform import resize
+from skimage.feature import peak_local_max
 
-from shapely.geometry import Polygon, LineString, Point
+from shapely.geometry import Polygon, MultiPolygon, LineString, Point
 from shapely.affinity import scale
+from shapely.ops import unary_union
 import scipy.ndimage as ndi
 import scipy.interpolate
+from sklearn.cluster import DBSCAN
 
 import tensorflow as tf
 from tensorflow.keras.models import Model, load_model
@@ -37,8 +41,6 @@ from tensorflow.keras.preprocessing.image import load_img
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
-
-#  functions for assembling big image from prediction tiles:
 def predict_image_tile(im_tile,model):
     if len(np.shape(im_tile)) == 2:
         im_tile = np.expand_dims(im_tile, 2)
@@ -105,61 +107,6 @@ def predict_big_image(big_im, model, I):
     big_im_pred = big_im_pred[:-pad_rows, :-pad_cols, :] # get rid of padding
     return big_im_pred
 
-def split_grains(im, selem_size):
-    n_elems = 1
-    eroded = im.copy()
-    while (n_elems<2) & (1 in np.unique(eroded)):
-        selem = np.ones((selem_size,selem_size))
-        eroded = binary_erosion(eroded, footprint = selem)
-        temp_labels, n_elems = measure.label(eroded, return_num = True)
-        obj_features = regionprops(temp_labels)
-        for i in range(len(obj_features)):
-            if obj_features[i]['area'] < 10:
-                eroded[temp_labels==i+1] = 0
-        temp_labels, n_elems = measure.label(eroded, return_num = True)
-        selem_size += 1
-    if np.max(eroded)>0:
-        distance = ndi.distance_transform_edt(eroded)
-        rs = []; cs = []
-        # for i in range(n_elems+1):
-        for i in range(n_elems):
-            dist1 = distance.copy()
-            dist1[temp_labels != i+1] = 0
-            r, c = np.unravel_index(np.argmax(dist1), np.shape(im))
-            rs.append(r)
-            cs.append(c)
-        markers = np.zeros(np.shape(im))
-        # for i in range(n_elems+1):
-        for i in range(n_elems):
-            markers[rs[i],cs[i]] = i+1
-        distance = ndi.distance_transform_edt(im)
-        gr_labels = watershed(-distance, markers, mask=im)
-    else:
-        gr_labels = im.copy()
-    return gr_labels, eroded
-
-def split_all_grains(ind, object_features, filled, labels, selem_size):
-    minrow, mincol, maxrow, maxcol = object_features[ind]["bbox"]
-    im = filled[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2].copy()
-    im[labels[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2] != ind+1] = 0
-    if maxcol >= filled.shape[1]:
-        im = np.hstack((im, np.zeros((im.shape[0],2))))
-    result, eroded = split_grains(im, selem_size)
-    im[result==2] = 2
-    start = time.time()
-    while np.max(result)>1:
-        if len(result[result==2]) > len(result[result==1]):
-            result[result==1] = 0
-            result[result==2] = 1
-        else:
-            result[result==1] = 1
-            result[result==2] = 0
-        result, eroded = split_grains(result, selem_size)
-        im[result==2] = np.max(im)+1
-        if time.time() - start > 1.0: # There are objects where this loop gets stuck. We don't want that.
-            break
-    return im
-
 def compute_curvature(x,y):
     """function for computing first derivatives and curvature of a curve (centerline)
     x,y are cartesian coodinates of the curve
@@ -191,135 +138,66 @@ def get_grain_axes(poly):
         mrb = None
     return minor_axis, major_axis, mrb
 
-def label_and_dilate_grains(big_im, big_im_pred, small_grain_threshold, dilate_size, selem_size, splitting):
-    # separate objects through labeling image regions
-    boundary = (big_im_pred[:,:,2] > 0.5).astype(np.uint8) # set this to 0.95 to minimize false positives
-    boundary[big_im_pred[:,:,0] > 0.5] = 1 # set this to 0.05 to minimize false positives
+def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
+    grains = big_im_pred[:,:,1].copy() # grain prediction
+    grains[grains >= 0.5] = 1
+    grains[grains < 0.5] = 0
+    grains = grains.astype('bool')
+    labels_simple, n_elems = measure.label(grains, return_num = True, connectivity=1)
+    props = regionprops_table(labels_simple, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+                                                                                    'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
+    grain_data_simple = pd.DataFrame(props)
+    coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T
+    coords_simple = coords_simple.astype('int32')
+    background_probs = big_im_pred[:,:,0][coords_simple[:,1], coords_simple[:,0]]
+    inds = np.where(background_probs < 0.05)[0]
+    coords_simple = coords_simple[inds, :]
 
-    labels, n_labels = label(boundary, background=1, return_num=True) # object labeling
-    object_features = regionprops(labels)
-    object_areas = [objf["area"] for objf in object_features]
-    # find the indices of small objects:
-    small_obj_inds = np.where(np.array(object_areas)<small_grain_threshold)[0]+1
-    count = 0
-    for ind in tqdm(small_obj_inds):  # this can take a long time for a large image!
-        labels[labels == ind] = 0
-        count += 1
-
-    # fill holes:
-    labels[labels>0] = 1
-    seed = np.copy(labels)
-    seed[1:-1, 1:-1] = labels.max()
-    filled = reconstruction(seed, labels, method='erosion')
-
-    labels, n_labels = label(filled, return_num = True) # re-label image
-    object_features = regionprops(labels)
-
-    n_grains = n_labels
-    new_labels = labels.copy() # new labels for split grain clusters
-    if splitting == True:
-        for ind in trange(n_labels):
-            minrow, mincol, maxrow, maxcol = object_features[ind]["bbox"]
-            im = filled[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2].copy()
-            im[labels[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2] != ind+1] = 0
-            if maxcol >= filled.shape[1]:
-              im = np.hstack((im, np.zeros((im.shape[0],2))))
-
-            im = split_all_grains(ind, object_features, filled, labels, selem_size)
-            if np.max(im)>1:
-              for i in range(2,int(np.max(im)+1)):
-                if maxcol >= filled.shape[1]:
-                  im = im[:,:-2]
-                new_labels[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2][im == i] = n_grains+1
-                n_grains += 1
-
-    object_features = regionprops(new_labels)
-
-    new_labels_dilated = new_labels.copy()
-    for ind in trange(len(object_features)):
-        minrow, mincol, maxrow, maxcol = object_features[ind]["bbox"]
-        pad = 20
-        im = new_labels[max(0,minrow-pad):maxrow+pad,max(0,mincol-pad):maxcol+pad].copy()
-        im[new_labels[max(0,minrow-pad):maxrow+pad,max(0,mincol-pad):maxcol+pad] != object_features[ind]["label"]] = 0
-        im[im>0] = 1
-        grain_dist = ndi.distance_transform_edt(1 - im)
-        temp = np.ones(np.shape(im))
-        temp[grain_dist > dilate_size] = 0
-        im = temp
-        im[im==1] = ind+1
-        new_labels_dilated[max(0,minrow-pad):maxrow+pad,max(0,mincol-pad):maxcol+pad][im==ind+1] = im[im==ind+1]
-
-    props = regionprops_table(new_labels_dilated, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
-                                                                                        'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
+    bounds = big_im_pred[:,:,2].copy() # grain boundary prediction
+    bounds[bounds >= 0.5] = 1
+    bounds[bounds < 0.5] = 0
+    bounds = bounds.astype('bool')
+    temp_labels, n_elems = measure.label(bounds, return_num = True, connectivity=1)
+    # Find the object with the largest area
+    label_counts = np.bincount(temp_labels.ravel())
+    labels = np.where(label_counts > 100)[0][1:]
+    largest_label = np.argmax(label_counts[1:]) + 1
+    for label in labels:
+        temp_labels[temp_labels == label] = largest_label
+    bounds[temp_labels != largest_label] = 0
+    bounds = bounds-1
+    bounds[bounds < 0] = 1
+    bounds = bounds.astype('bool')
+    distance = ndi.distance_transform_edt(bounds)
+    coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=bounds.astype('bool'))
+    background_probs = big_im_pred[:,:,0][coords[:,0], coords[:,1]]
+    inds = np.where(background_probs < 0.05)[0]
+    coords = coords[inds, :]
+    mask = np.zeros(distance.shape, dtype=bool)
+    mask[tuple(coords.T)] = True
+    markers, _ = ndi.label(mask)
+    labels = watershed(-distance, markers, mask=bounds)
+    props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+                                                                                    'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
     grain_data = pd.DataFrame(props)
-    return new_labels_dilated, grain_data
+    coords = np.vstack((grain_data['centroid-1'].values, grain_data['centroid-0'].values)).T
+    # Create a DBSCAN clustering object
+    dbscan = DBSCAN(eps=dbs_max_dist, min_samples=2)
+    # Fit the data to the DBSCAN object
+    dbscan.fit(np.vstack((grain_data['centroid-1'], grain_data['centroid-0'])).T)
+    # Get the cluster labels for each point (-1 represents noise/outliers)
+    db_labels = dbscan.labels_
+    coords_ws = coords[np.where(db_labels == -1)[0]]
+    for i in np.unique(db_labels):
+        xy = np.mean(coords[np.where(db_labels == i)[0]], axis=0)
+        coords_ws = np.vstack((coords_ws, xy))
+    coords_ws = coords_ws.astype('int32')
+    background_probs = big_im_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
+    inds = np.where(background_probs < 0.05)[0]
+    coords_ws = coords_ws[inds, :]
 
-def create_grain_outlines(big_im, new_labels_dilated):
-    object_features = regionprops(new_labels_dilated)
-    filled = new_labels_dilated.copy()
-    filled[filled>0] = 1
-    n_grains = len(object_features)
-    xs = []
-    ys = []
-    for ind in range(n_grains):
-        minrow, mincol, maxrow, maxcol = object_features[ind]["bbox"]
-        im = filled[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2].copy()
-        im[new_labels_dilated[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2] != object_features[ind]["label"]] = 0
-        if maxcol >= filled.shape[1]:
-            im = np.hstack((im, np.zeros((im.shape[0],2))))
-        contours = measure.find_contours(im, 0.5)
-        sx = contours[0][:,1]
-        sy = contours[0][:,0]
-        xs.append(sx + mincol - 2 + 0.5)
-        ys.append(sy + minrow - 2 + 0.5)
-    return xs, ys
-
-def compute_s_coordinates(x, y):
-    dx = np.gradient(x) # first derivatives
-    dy = np.gradient(y)   
-    ds = np.sqrt(dx**2+dy**2)
-    s = np.hstack((0,np.cumsum(ds[1:])))
-    return s
-
-def get_grain_curvature(big_im, labels, regions, ind):
-    filled = labels.copy()
-    filled[filled>0] = 1
-    minrow, mincol, maxrow, maxcol = regions[ind].bbox
-    im = filled[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2].copy()
-    im[labels[max(0,minrow-2):maxrow+2,max(0,mincol-2):maxcol+2] != regions[ind]["label"]] = 0
-    if maxcol >= filled.shape[1]:
-        im = np.hstack((im, np.zeros((im.shape[0],2))))
-    contours = measure.find_contours(im, 0.5)
-    x = contours[0][:,1] + mincol - 2 + 0.5
-    y = contours[0][:,0] + minrow - 2 + 0.5
-    s = compute_s_coordinates(x, y)
-    deltas = 1.0
-    tck, u = scipy.interpolate.splprep([x,y],s=20, per=True) 
-    unew = np.linspace(0,1,1+int(np.round(s[-1]/deltas))) # vector for resampling
-    out = scipy.interpolate.splev(unew,tck) # resampling
-    sx, sy = out[0], out[1]
-    curv = compute_curvature(sx,sy)
-    s = compute_s_coordinates(sx, sy)
-    y0, x0 = regions[ind].centroid
-    orientation = regions[ind].orientation
-    x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].minor_axis_length
-    y1 = y0 - np.sin(orientation) * 0.5 * regions[ind].minor_axis_length
-    x2 = x0 - np.sin(orientation) * 0.5 * regions[ind].major_axis_length
-    y2 = y0 - np.cos(orientation) * 0.5 * regions[ind].major_axis_length
-    fig = plt.figure(figsize = (10, 10))
-    ax = fig.add_subplot(111)
-    ax.imshow(big_im[max(0,minrow-10):maxrow+10, max(0,mincol-10):maxcol+10], cmap='gray', extent = [max(0,mincol-10), maxcol+10, maxrow+10, max(0,minrow-10)])
-    # plt.scatter(sx, sy, s=60, c=curv, cmap='bwr_r', vmin = -0.1, vmax = 0.1)
-    plt.plot(sx, sy, 'r', linewidth=2)
-    ax.plot((x0, x1), (y0, y1), '-r', linewidth=1)
-    ax.plot((x0, x2), (y0, y2), '-r', linewidth=1)
-    ax.plot(x0, y0, '.g', markersize=15)
-    plt.xticks([])
-    plt.yticks([])
-    plt.xlim(max(0,mincol-10), maxcol+10)
-    plt.ylim(maxrow+10, max(0,minrow-10))
-    # plt.colorbar();
-    return curv, sx, sy
+    all_coords = np.vstack((coords_ws, coords_simple))
+    return labels_simple, grains, all_coords
 
 def one_point_prompt(x, y, ax, image, predictor):
     input_point = np.array([[x, y]])
@@ -330,7 +208,7 @@ def one_point_prompt(x, y, ax, image, predictor):
         multimask_output=True,
     )
     ind = np.argmax(scores)
-    if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) > 0.1:
+    if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) > 0.1: # if mask is very large compared to size of the image
         scores = np.delete(scores, ind)
         ind = np.argmax(scores)
     temp_labels, n_elems = measure.label(masks[ind], return_num = True, connectivity=1)
@@ -425,7 +303,7 @@ def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
 def find_overlapping_polygons(polygons, min_overlap_area):
     overlapping_polygons = []
     overlap_areas = []
-    polys_to_be_removed = []
+    # polys_to_be_removed = []
     for i, poly1 in tqdm(enumerate(polygons)):
         for j, poly2 in enumerate(polygons):
             if not poly1.is_valid:
@@ -433,14 +311,14 @@ def find_overlapping_polygons(polygons, min_overlap_area):
             if not poly2.is_valid:
                 poly2 = poly2.buffer(0)
             if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > min_overlap_area:
-                if poly1.contains(poly2):
-                    polys_to_be_removed.append(j)
-                elif poly2.contains(poly1):
-                    polys_to_be_removed.append(i)
-                else:
-                    overlapping_polygons.append((i, j))
-                    overlap_areas.append(poly1.intersection(poly2).area)
-    return overlapping_polygons, overlap_areas, polys_to_be_removed
+                # if poly1.contains(poly2):
+                #     polys_to_be_removed.append(j)
+                # elif poly2.contains(poly1):
+                #     polys_to_be_removed.append(i)
+                # else:
+                overlapping_polygons.append((i, j))
+                overlap_areas.append(poly1.intersection(poly2).area)
+    return overlapping_polygons, overlap_areas #, polys_to_be_removed
 
 def Unet():
     tf.keras.backend.clear_session()
@@ -527,18 +405,41 @@ def plot_images_and_labels(img, label):
     ax3.set_xticks([])
     ax3.set_yticks([])
 
-def sam_segmentation(sam, big_im, big_im_pred, grain_data):
+def calculate_iou(poly1, poly2):
+    intersection_area = poly1.intersection(poly2).area
+    union_area = poly1.union(poly2).area
+    iou = intersection_area / union_area
+    return iou
+
+def pick_most_similar_polygon(polygons):
+    # Calculate the average IoU for each polygon
+    avg_iou_scores = []
+    for i, poly1 in enumerate(polygons):
+        iou_scores = []
+        for j, poly2 in enumerate(polygons):
+            if i != j:
+                iou_scores.append(calculate_iou(poly1, poly2))
+        avg_iou_scores.append(sum(iou_scores) / len(iou_scores))
+    # Find the polygon with the highest average IoU score
+    most_similar_index = avg_iou_scores.index(max(avg_iou_scores))
+    most_similar_polygon = polygons[most_similar_index]
+    return most_similar_polygon
+
+def sam_segmentation(sam, big_im, big_im_pred, coords, labels):
     predictor = SamPredictor(sam)
     predictor.set_image(big_im)
     fig, ax = plt.subplots(figsize=(15,10))
     ax.imshow(big_im) #, alpha=0.5)
     all_grains = []
     masks = []
-    for i in trange(len(grain_data['centroid-1'])):
-        x = grain_data['centroid-1'].iloc[i]
-        y = grain_data['centroid-0'].iloc[i]
+    for i in trange(len(coords[:,0])):
+        # x = grain_data['centroid-1'].iloc[i]
+        # y = grain_data['centroid-0'].iloc[i]
+        x = coords[i,0]
+        y = coords[i,1]
         sx, sy, mask = one_point_prompt(x, y, ax, big_im, predictor)
-        if np.mean(big_im_pred[:,:,0][mask]) < 0.3: # skip masks that are mostly background
+        labels_per_mask = len(np.unique(labels[mask]))
+        if (labels_per_mask < 10) and (np.mean(big_im_pred[:,:,0][mask]) < 0.3): # skip masks that are mostly background
         # skip masks that have too much background:
         # if np.sum(big_im_pred[:,:,0][mask])/(np.sum(big_im_pred[:,:,1][mask]) + \
         #                                      np.sum(big_im_pred[:,:,2][mask])) < 0.3:
@@ -549,68 +450,36 @@ def sam_segmentation(sam, big_im, big_im_pred, grain_data):
     min_area = 20
     r = big_im.shape[0]
     c = big_im.shape[1]
-    overlapping_polygons, overlap_areas, polys_to_be_removed = find_overlapping_polygons(all_grains, overlap_threshold)
+    overlapping_polygons, overlap_areas = find_overlapping_polygons(all_grains, overlap_threshold)
     g = nx.Graph(overlapping_polygons)
     comps = list(nx.connected_components(g))
     connected_grains = set()
     for comp in comps:
         connected_grains.update(comp)
-    for j in trange(len(comps)):
-        comb_masks_all = np.zeros((big_im.shape[0], big_im.shape[1]))
-        count = 1
-        for i in comps[j]:
-            comb_masks_all += masks[i]*count
-            count += 1
-        if len(np.unique(comb_masks_all)) < 100:
-            for i in np.unique(comb_masks_all):
-                if i != 0:
-                    if len(comb_masks_all[comb_masks_all == i]) > overlap_threshold:
-                        new_mask = np.zeros(np.shape(comb_masks_all))
-                        new_mask[comb_masks_all == i] = 1
-                        # Label the objects in the binary image
-                        labeled_image, num_labels = measure.label(new_mask, return_num=True)
-                        # Find the object with the largest area
-                        label_counts = np.bincount(labeled_image.ravel())
-                        largest_label = np.argmax(label_counts[1:]) + 1
-                        new_mask[labeled_image != largest_label] = 0
-                        # Define a disk-shaped structuring element with radius 3
-                        selem = morphology.disk(3)
-                        # Erode the image using the structuring element
-                        new_mask = morphology.binary_erosion(new_mask, selem)
-                        # Dilate the eroded image using the same structuring element
-                        new_mask = morphology.binary_dilation(new_mask, selem)
-                        if np.max(new_mask):
-                            temp_labels, n_elems = measure.label(new_mask, return_num = True, connectivity=1)
-                            if n_elems > 1: # if the mask has more than one element, find the largest one and delete the rest
-                                # Find the object with the largest area
-                                label_counts = np.bincount(temp_labels.ravel())
-                                largest_label = np.argmax(label_counts[1:]) + 1
-                                new_mask[temp_labels != largest_label] = 0
-                            contours = measure.find_contours(new_mask, 0.5)
-                            sx = contours[0][:,1]
-                            sy = contours[0][:,0]
-                            if new_mask[0,0]:
-                                sx = np.hstack((-0.5, sx, -0.5))
-                                sy = np.hstack((-0.5, sy, -0.5))
-                            if new_mask[0,-1]:
-                                sx = np.hstack((c-0.5, sx, c-0.5))
-                                sy = np.hstack((-0.5, sy, -0.5))
-                            if new_mask[-1,0]:
-                                sx = np.hstack((-0.5, sx, -0.5))
-                                sy = np.hstack((r-0.5, sy, r-0.5))
-                            if new_mask[-1,-1]:
-                                sx = np.hstack((c-0.5, sx, c-0.5))
-                                sy = np.hstack((r-0.5, sy, r-0.5))
-                            # if len(contours) > 1: # when a grain touches two edges of the image (but not the corner)
-                            #     for j in range(1, len(contours)):
-                            #         sx = np.hstack((sx, contours[j][:,1]))
-                            #         sy = np.hstack((sy, contours[j][:,0]))
-                            all_grains.append(Polygon(np.vstack((sx, sy)).T))                       
-    all_grains_new = []
+    new_grains = []
     for i in range(len(all_grains)):
-        if i not in connected_grains and all_grains[i].area > min_area and i not in polys_to_be_removed:
-            all_grains_new.append(all_grains[i])
-    all_grains = all_grains_new
+        if i not in connected_grains and all_grains[i].area > 100: # and i not in polys_to_be_removed:
+            new_grains.append(all_grains[i])
+    for j in trange(len(comps)): 
+        polygons = []
+        for i in comps[j]:
+            polygons.append(all_grains[i])
+        most_similar_polygon = pick_most_similar_polygon(polygons)
+        if most_similar_polygon.area > 100:
+            new_grains.append(most_similar_polygon)
+        poly_union = unary_union(polygons)
+        remaining_polys = poly_union.difference(most_similar_polygon)
+        poly_areas = []
+        if type(remaining_polys) == MultiPolygon:
+            for geom in remaining_polys.geoms:
+                poly_areas.append(geom.area)
+            inds = np.where(np.array(poly_areas) > 100)[0]
+            for ind in inds:
+                new_grains.append(remaining_polys.geoms[ind])
+        if type(remaining_polys) == Polygon:
+            if remaining_polys.area > 100:
+                new_grains.append(remaining_polys)
+    all_grains = new_grains
     ax.imshow(big_im)
     # create labeled image
     labels = np.zeros(big_im.shape[:-1])
@@ -675,6 +544,11 @@ def load_and_preprocess(image_path, mask_path):
     image = tf.image.stateless_random_flip_up_down(image, seed=seed)
     mask = tf.image.stateless_random_flip_left_right(mask, seed=seed)
     mask = tf.image.stateless_random_flip_up_down(mask, seed=seed)
+    if np.random.random() > 0.5: # only do this half the time
+        image = tf.image.stateless_random_crop(image, (128, 128, 3), seed=seed)
+        image = tf.image.resize(image, (256, 256))
+        mask = tf.image.stateless_random_crop(mask, (128, 128, 3), seed=seed)
+        mask = tf.image.resize(mask, (256, 256), method='nearest')
     return image, mask
 
 def onclick(event, ax, coords, image, predictor):
