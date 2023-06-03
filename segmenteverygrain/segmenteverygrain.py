@@ -147,10 +147,10 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
     props = regionprops_table(labels_simple, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
                                                                                     'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
     grain_data_simple = pd.DataFrame(props)
-    coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T
+    coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T # use the centroids of the unet grains as 'simple' prompts'
     coords_simple = coords_simple.astype('int32')
     background_probs = big_im_pred[:,:,0][coords_simple[:,1], coords_simple[:,0]]
-    inds = np.where(background_probs < 0.05)[0]
+    inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
     coords_simple = coords_simple[inds, :]
 
     bounds = big_im_pred[:,:,2].copy() # grain boundary prediction
@@ -158,7 +158,7 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
     bounds[bounds < 0.5] = 0
     bounds = bounds.astype('bool')
     temp_labels, n_elems = measure.label(bounds, return_num = True, connectivity=1)
-    # Find the object with the largest area
+    # Find the object with the largest area:
     label_counts = np.bincount(temp_labels.ravel())
     labels = np.where(label_counts > 100)[0][1:]
     largest_label = np.argmax(label_counts[1:]) + 1
@@ -171,7 +171,7 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
     distance = ndi.distance_transform_edt(bounds)
     coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=bounds.astype('bool'))
     background_probs = big_im_pred[:,:,0][coords[:,0], coords[:,1]]
-    inds = np.where(background_probs < 0.05)[0]
+    inds = np.where(background_probs < 0.3)[0]
     coords = coords[inds, :]
     mask = np.zeros(distance.shape, dtype=bool)
     mask[tuple(coords.T)] = True
@@ -236,11 +236,12 @@ def one_point_prompt(x, y, ax, image, predictor):
     if mask[-1,-1]: # if the mask contains the lower right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
-    # if masks[ind][-1,:] and masks[ind][:,-1]:
-    # if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
-    #     for j in range(1, len(contours)):
-    #         sx = np.hstack((sx, contours[j][:,1]))
-    #         sy = np.hstack((sy, contours[j][:,0]))
+    if np.any(mask[0, :]) and np.any(mask[:, -1]) and not mask[0, -1] \
+        or np.any(mask[0, :]) and np.any(mask[:, 0]) and not mask[0, 0] \
+        or np.any(mask[-1, :]) and np.any(mask[:, 0]) and not mask[-1, 0] \
+        or np.any(mask[-1, :]) and np.any(mask[:, -1]) and not mask[-1, -1]:
+        sx = np.hstack((contours[0][:,1], contours[1][:,1]))
+        sy = np.hstack((contours[0][:,0], contours[1][:,0]))
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, mask
@@ -273,10 +274,12 @@ def multi_point_prompt(x, y, ax, image, predictor):
     if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
         sx = np.hstack((c-0.5, sx, c-0.5))
         sy = np.hstack((r-0.5, sy, r-0.5))
-    # if len(contours) > 1:  # when a grain touches two edges of the image (but not the corner)
-    #     for j in range(1, len(contours)):
-    #         sx = np.hstack((sx, contours[j][:,1]))
-    #         sy = np.hstack((sy, contours[j][:,0]))
+    if np.any(mask[0, :]) and np.any(mask[:, -1]) and not mask[0, -1] \
+        or np.any(mask[0, :]) and np.any(mask[:, 0]) and not mask[0, 0] \
+        or np.any(mask[-1, :]) and np.any(mask[:, 0]) and not mask[-1, 0] \
+        or np.any(mask[-1, :]) and np.any(mask[:, -1]) and not mask[-1, -1]:
+        sx = np.hstack((contours[0][:,1], contours[1][:,1]))
+        sy = np.hstack((contours[0][:,0], contours[1][:,0]))
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, masks[ind]
@@ -311,11 +314,6 @@ def find_overlapping_polygons(polygons, min_overlap_area):
             if not poly2.is_valid:
                 poly2 = poly2.buffer(0)
             if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > min_overlap_area:
-                # if poly1.contains(poly2):
-                #     polys_to_be_removed.append(j)
-                # elif poly2.contains(poly1):
-                #     polys_to_be_removed.append(i)
-                # else:
                 overlapping_polygons.append((i, j))
                 overlap_areas.append(poly1.intersection(poly2).area)
     return overlapping_polygons, overlap_areas #, polys_to_be_removed
@@ -425,7 +423,7 @@ def pick_most_similar_polygon(polygons):
     most_similar_polygon = polygons[most_similar_index]
     return most_similar_polygon
 
-def sam_segmentation(sam, big_im, big_im_pred, coords, labels):
+def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
     predictor = SamPredictor(sam)
     predictor.set_image(big_im)
     fig, ax = plt.subplots(figsize=(15,10))
@@ -433,57 +431,52 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels):
     all_grains = []
     masks = []
     for i in trange(len(coords[:,0])):
-        # x = grain_data['centroid-1'].iloc[i]
-        # y = grain_data['centroid-0'].iloc[i]
         x = coords[i,0]
         y = coords[i,1]
         sx, sy, mask = one_point_prompt(x, y, ax, big_im, predictor)
         labels_per_mask = len(np.unique(labels[mask]))
-        if (labels_per_mask < 10) and (np.mean(big_im_pred[:,:,0][mask]) < 0.3): # skip masks that are mostly background
-        # skip masks that have too much background:
-        # if np.sum(big_im_pred[:,:,0][mask])/(np.sum(big_im_pred[:,:,1][mask]) + \
-        #                                      np.sum(big_im_pred[:,:,2][mask])) < 0.3:
-            all_grains.append(Polygon(np.vstack((sx, sy)).T))
+        if (labels_per_mask < 10) and (np.mean(big_im_pred[:,:,0][mask]) < 0.7): # skip masks that are mostly background
+            poly = Polygon(np.vstack((sx, sy)).T)
+            if not poly.is_valid:
+                poly = poly.buffer(0)
+            all_grains.append(poly)
             masks.append(mask)
     ax.clear()
-    overlap_threshold = 20
-    min_area = 20
     r = big_im.shape[0]
     c = big_im.shape[1]
-    overlapping_polygons, overlap_areas = find_overlapping_polygons(all_grains, overlap_threshold)
+    overlapping_polygons, overlap_areas = find_overlapping_polygons(all_grains, min_overlap_area=min_area)
     g = nx.Graph(overlapping_polygons)
     comps = list(nx.connected_components(g))
     connected_grains = set()
     for comp in comps:
         connected_grains.update(comp)
     new_grains = []
-    for i in range(len(all_grains)):
-        if i not in connected_grains and all_grains[i].area > 100:
+    for i in range(len(all_grains)): # first collect the objects that do not overlap each other
+        if i not in connected_grains and all_grains[i].area > min_area:
             if not all_grains[i].is_valid:
                 all_grains[i] = all_grains[i].buffer(0)
             new_grains.append(all_grains[i])
-    for j in trange(len(comps)): 
-        polygons = []
+    for j in trange(len(comps)): # second deal with the overlapping objects, one connected component at a time
+        polygons = [] # polygons in the connected component
         for i in comps[j]:
             polygons.append(all_grains[i])
         most_similar_polygon = pick_most_similar_polygon(polygons)
-        if most_similar_polygon.area > 100:
+        if most_similar_polygon.area > min_area:
             new_grains.append(most_similar_polygon)
         poly_union = unary_union(polygons)
-        remaining_polys = poly_union.difference(most_similar_polygon)
+        remaining_polys = poly_union.difference(most_similar_polygon) # subtract the most similar polygon from the union of all polygons
         poly_areas = []
         if type(remaining_polys) == MultiPolygon:
             for geom in remaining_polys.geoms:
                 poly_areas.append(geom.area)
-            inds = np.where(np.array(poly_areas) > 100)[0]
+            inds = np.where(np.array(poly_areas) > min_area)[0]
             for ind in inds:
                 new_grains.append(remaining_polys.geoms[ind])
         if type(remaining_polys) == Polygon:
-            if remaining_polys.area > 100:
+            if remaining_polys.area > min_area:
                 new_grains.append(remaining_polys)
-    all_grains = new_grains
-    ax.imshow(big_im)
-    # create labeled image
+    all_grains = new_grains # replace original list of polygons
+    # create labeled image:
     labels = np.zeros(big_im.shape[:-1])
     mask_all = np.zeros(big_im.shape[:-1])
     for i in trange(len(all_grains)):
@@ -512,13 +505,9 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels):
         mask_all[mask == 1] = 1
         mask_all[boundary_mask == 1] = 2
         labels[(mask==1) & (labels==0)] = i+1
-    ax.imshow(mask_all, alpha=0.5)  
-    for i in range(len(all_grains)):
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-        ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
-                facecolor=color, edgecolor='none', linewidth=0.5, alpha=0.4)
-        ax.text(all_grains[i].centroid.x, all_grains[i].centroid.y, str(i))
-        # ax.plot(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 'k', linewidth=0.5)
+    ax.imshow(big_im)
+    plot_image_w_colorful_grains(big_im, all_grains, ax, cmap='Paired')
+    plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10)
     plt.xticks([])
     plt.yticks([])
     plt.xlim([0, np.shape(big_im)[1]])
@@ -546,11 +535,12 @@ def load_and_preprocess(image_path, mask_path):
     image = tf.image.stateless_random_flip_up_down(image, seed=seed)
     mask = tf.image.stateless_random_flip_left_right(mask, seed=seed)
     mask = tf.image.stateless_random_flip_up_down(mask, seed=seed)
-    if np.random.random() > 0.5: # only do this half the time
-        image = tf.image.stateless_random_crop(image, (128, 128, 3), seed=seed)
-        image = tf.image.resize(image, (256, 256))
-        mask = tf.image.stateless_random_crop(mask, (128, 128, 3), seed=seed)
-        mask = tf.image.resize(mask, (256, 256), method='nearest')
+    # this doesn't work for some reason (validation loss is too high)
+    # if np.random.random() > 0.5: # only do this half the time 
+    #     image = tf.image.stateless_random_crop(image, (128, 128, 3), seed=seed)
+    #     image = tf.image.resize(image, (256, 256))
+    #     mask = tf.image.stateless_random_crop(mask, (128, 128, 3), seed=seed)
+    #     mask = tf.image.resize(mask, (256, 256), method='nearest')
     return image, mask
 
 def onclick(event, ax, coords, image, predictor):
@@ -579,8 +569,6 @@ def onpress(event, ax, fig):
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
         ax.fill(poly.exterior.xy[0], poly.exterior.xy[1], facecolor=color, edgecolor='k', alpha=0.5)
         fig.canvas.draw()
-
-# def on_key(event, arg1, arg2, arg3):
 
 def onclick2(event, all_grains, grain_inds, ax):
     x, y = event.xdata, event.ydata
@@ -682,19 +670,29 @@ def get_grains_from_patches(ax, image):
                 facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
     return all_grains, labels, mask_all, fig, ax
 
-def plot_image_w_colorful_grains(image, all_grains):
-    fig = plt.figure(figsize=(10,10))
-    ax = fig.add_subplot(111)
+def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
+    # Choose a colormap
+    colormap = cmap
+    # Get the colormap object
+    cmap = plt.cm.get_cmap(colormap)
+    # Generate random indices for colors
+    num_colors = len(all_grains)  # Number of colors to choose
+    color_indices = np.random.randint(0, cmap.N, num_colors)
+    # Get the individual colors
+    colors = [cmap(i) for i in color_indices]
+    # fig = plt.figure(figsize=(10,10))
+    # ax = fig.add_subplot(111)
     ax.imshow(image)
     for i in range(len(all_grains)):
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        color = colors[i]
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
-                facecolor=color, edgecolor='none', linewidth=0.5, alpha=0.4)
+                facecolor=color, edgecolor='none', linewidth=1, alpha=0.4)
+        ax.plot(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
+                color='k', linewidth=1)
     ax.set_xticks([])
     ax.set_yticks([])
-    return fig, ax
 
-def plot_grain_axes_and_centroids(all_grains, labels, ax):
+def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10):
     regions = regionprops(labels.astype('int'))
     for ind in range(len(all_grains)):
         y0, x0 = regions[ind].centroid
@@ -703,6 +701,6 @@ def plot_grain_axes_and_centroids(all_grains, labels, ax):
         y1 = y0 - np.sin(orientation) * 0.5 * regions[ind].minor_axis_length
         x2 = x0 - np.sin(orientation) * 0.5 * regions[ind].major_axis_length
         y2 = y0 - np.cos(orientation) * 0.5 * regions[ind].major_axis_length
-        ax.plot((x0, x1), (y0, y1), '-k', linewidth=1)
-        ax.plot((x0, x2), (y0, y2), '-k', linewidth=1)
-        ax.plot(x0, y0, '.k', markersize=10)
+        ax.plot((x0, x1), (y0, y1), '-k', linewidth=linewidth)
+        ax.plot((x0, x2), (y0, y2), '-k', linewidth=linewidth)
+        ax.plot(x0, y0, '.k', markersize=markersize)
