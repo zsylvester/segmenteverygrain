@@ -15,7 +15,7 @@ from rasterio.features import rasterize
 
 from skimage import measure, morphology
 from skimage.measure import regionprops, regionprops_table
-from skimage.morphology import label, binary_dilation, binary_erosion, reconstruction
+from skimage.morphology import label, binary_dilation, binary_opening, reconstruction
 from skimage.segmentation import watershed
 from skimage.io import imread, imshow, concatenate_images
 from skimage.transform import resize
@@ -193,7 +193,7 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
         coords_ws = np.vstack((coords_ws, xy))
     coords_ws = coords_ws.astype('int32')
     background_probs = big_im_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
-    inds = np.where(background_probs < 0.05)[0]
+    inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
     coords_ws = coords_ws[inds, :]
 
     all_coords = np.vstack((coords_ws, coords_simple))
@@ -224,24 +224,16 @@ def one_point_prompt(x, y, ax, image, predictor):
     sx = contours[0][:,1]
     sy = contours[0][:,0]
     r, c = np.shape(mask)
-    if mask[0,0]: # if the mask contains the upper left corner of the image
-        sx = np.hstack((-0.5, sx, -0.5))
-        sy = np.hstack((-0.5, sy, -0.5))
-    if mask[0,-1]: # if the mask contains the upper right corner of the image
-        sx = np.hstack((c-0.5, sx, c-0.5))
-        sy = np.hstack((-0.5, sy, -0.5))
-    if mask[-1,0]: # if the mask contains the lower left corner of the image
-        sx = np.hstack((-0.5, sx, -0.5))
-        sy = np.hstack((r-0.5, sy, r-0.5))
-    if mask[-1,-1]: # if the mask contains the lower right corner of the image
-        sx = np.hstack((c-0.5, sx, c-0.5))
-        sy = np.hstack((r-0.5, sy, r-0.5))
-    if np.any(mask[0, :]) and np.any(mask[:, -1]) and not mask[0, -1] \
-        or np.any(mask[0, :]) and np.any(mask[:, 0]) and not mask[0, 0] \
-        or np.any(mask[-1, :]) and np.any(mask[:, 0]) and not mask[-1, 0] \
-        or np.any(mask[-1, :]) and np.any(mask[:, -1]) and not mask[-1, -1]:
-        sx = np.hstack((contours[0][:,1], contours[1][:,1]))
-        sy = np.hstack((contours[0][:,0], contours[1][:,0]))
+    if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
+        mask = np.pad(mask, 1, mode='constant')
+        contours = measure.find_contours(mask, 0.5)
+        sx = contours[0][:,1]
+        sy = contours[0][:,0]
+        if np.any(mask[1, :]):
+            sy = sy-1
+        if np.any(mask[:,1]):
+            sx = sx-1
+        mask = mask[1:-1, 1:-1]
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, mask
@@ -261,25 +253,16 @@ def multi_point_prompt(x, y, ax, image, predictor):
     contours = measure.find_contours(masks[ind], 0.5)
     sx = contours[0][:,1]
     sy = contours[0][:,0]
-    r, c = np.shape(masks[ind])
-    if masks[ind][0,0]: # if the mask contains the upper left corner of the image
-        sx = np.hstack((-0.5, sx, -0.5))
-        sy = np.hstack((-0.5, sy, -0.5))
-    if masks[ind][0,-1]: # if the mask contains the upper right corner of the image
-        sx = np.hstack((c-0.5, sx, c-0.5))
-        sy = np.hstack((-0.5, sy, -0.5))
-    if masks[ind][-1,0]: # if the mask contains the lower left corner of the image
-        sx = np.hstack((-0.5, sx, -0.5))
-        sy = np.hstack((r-0.5, sy, r-0.5))
-    if masks[ind][-1,-1]: # if the mask contains the lower right corner of the image
-        sx = np.hstack((c-0.5, sx, c-0.5))
-        sy = np.hstack((r-0.5, sy, r-0.5))
-    if np.any(mask[0, :]) and np.any(mask[:, -1]) and not mask[0, -1] \
-        or np.any(mask[0, :]) and np.any(mask[:, 0]) and not mask[0, 0] \
-        or np.any(mask[-1, :]) and np.any(mask[:, 0]) and not mask[-1, 0] \
-        or np.any(mask[-1, :]) and np.any(mask[:, -1]) and not mask[-1, -1]:
-        sx = np.hstack((contours[0][:,1], contours[1][:,1]))
-        sy = np.hstack((contours[0][:,0], contours[1][:,0]))
+    if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
+        mask = np.pad(mask, 1, mode='constant')
+        contours = measure.find_contours(mask, 0.5)
+        sx = contours[0][:,1]
+        sy = contours[0][:,0]
+        if np.any(mask[1, :]):
+            sy = sy-1
+        if np.any(mask[:,1]):
+            sx = sx-1
+        mask = mask[1:-1, 1:-1]
     color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
     ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, masks[ind]
@@ -463,20 +446,46 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
         most_similar_polygon = pick_most_similar_polygon(polygons)
         if most_similar_polygon.area > min_area:
             new_grains.append(most_similar_polygon)
-        poly_union = unary_union(polygons)
-        remaining_polys = poly_union.difference(most_similar_polygon) # subtract the most similar polygon from the union of all polygons
-        poly_areas = []
-        if type(remaining_polys) == MultiPolygon:
-            for geom in remaining_polys.geoms:
-                poly_areas.append(geom.area)
-            inds = np.where(np.array(poly_areas) > min_area)[0]
-            for ind in inds:
-                new_grains.append(remaining_polys.geoms[ind])
-        if type(remaining_polys) == Polygon:
-            if remaining_polys.area > min_area:
-                new_grains.append(remaining_polys)
     all_grains = new_grains # replace original list of polygons
     # create labeled image:
+    labels = np.zeros(big_im.shape[:-1])
+    for i in trange(len(all_grains)):
+        mask = rasterize(
+            shapes=[all_grains[i]],
+            out_shape=big_im.shape[:-1],
+            fill=0,
+            out=None,
+            transform=rasterio.Affine(1.0, 0.0, 0.0,
+               0.0, 1.0, 0.0),
+            all_touched=False,
+            default_value=1,
+            dtype=None,
+        )
+        labels[(mask==1) & (labels==0)] = i+1
+    remaining_grains_im = big_im_pred[:,:,1].copy()
+    remaining_grains_im[labels > 0] = 0
+    remaining_grains_im[remaining_grains_im>0.8] = 1
+    remaining_grains_im[remaining_grains_im<1] = 0
+    remaining_grains_im = binary_opening(remaining_grains_im, footprint=np.ones((9, 9)))
+    labels_remaining_grains, n_elems = measure.label(remaining_grains_im, return_num = True, connectivity=1)
+    for i in range(1, n_elems):
+        if np.sum(mask) > min_area:
+            mask = np.zeros(np.shape(labels_remaining_grains))
+            mask[labels_remaining_grains == i] = 1
+            contours = measure.find_contours(mask, 0.5)
+            sx = contours[0][:,1]
+            sy = contours[0][:,0]
+            if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
+                mask = np.pad(mask, 1, mode='constant')
+                contours = measure.find_contours(mask, 0.5)
+                sx = contours[0][:,1]
+                sy = contours[0][:,0]
+                if np.any(mask[1, :]):
+                    sy = sy-1
+                if np.any(mask[:,1]):
+                    sx = sx-1
+                mask = mask[1:-1, 1:-1]
+            all_grains.append(Polygon(np.vstack((sx, sy)).T))
     labels = np.zeros(big_im.shape[:-1])
     mask_all = np.zeros(big_im.shape[:-1])
     for i in trange(len(all_grains)):
