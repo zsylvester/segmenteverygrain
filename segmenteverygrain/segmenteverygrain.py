@@ -15,7 +15,7 @@ from rasterio.features import rasterize
 
 from skimage import measure, morphology
 from skimage.measure import regionprops, regionprops_table
-from skimage.morphology import label, binary_dilation, binary_opening, reconstruction
+from skimage.morphology import label, binary_erosion, binary_dilation, binary_opening, reconstruction
 from skimage.segmentation import watershed
 from skimage.io import imread, imshow, concatenate_images
 from skimage.transform import resize
@@ -466,7 +466,8 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
     remaining_grains_im[labels > 0] = 0
     remaining_grains_im[remaining_grains_im>0.8] = 1
     remaining_grains_im[remaining_grains_im<1] = 0
-    remaining_grains_im = binary_opening(remaining_grains_im, footprint=np.ones((9, 9)))
+    remaining_grains_im = binary_erosion(remaining_grains_im, footprint=np.ones((9, 9)))
+    remaining_grains_im = binary_dilation(remaining_grains_im, footprint=np.ones((12, 12)))
     labels_remaining_grains, n_elems = measure.label(remaining_grains_im, return_num = True, connectivity=1)
     for i in range(1, n_elems):
         if np.sum(mask) > min_area:
