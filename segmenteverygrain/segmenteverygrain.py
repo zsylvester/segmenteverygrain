@@ -412,7 +412,6 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
     fig, ax = plt.subplots(figsize=(15,10))
     ax.imshow(big_im) #, alpha=0.5)
     all_grains = []
-    masks = []
     for i in trange(len(coords[:,0])):
         x = coords[i,0]
         y = coords[i,1]
@@ -423,7 +422,6 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
             if not poly.is_valid:
                 poly = poly.buffer(0)
             all_grains.append(poly)
-            masks.append(mask)
     ax.clear()
     r = big_im.shape[0]
     c = big_im.shape[1]
@@ -515,6 +513,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
         mask_all[mask == 1] = 1
         mask_all[boundary_mask == 1] = 2
         labels[(mask==1) & (labels==0)] = i+1
+    labels = labels.astype('int')
     ax.imshow(big_im)
     plot_image_w_colorful_grains(big_im, all_grains, ax, cmap='Paired')
     plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10)
@@ -523,7 +522,10 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
     plt.xlim([0, np.shape(big_im)[1]])
     plt.ylim([np.shape(big_im)[0], 0])
     plt.tight_layout()
-    return all_grains, labels, mask_all, fig, ax
+    props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+                                                                                    'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
+    grain_data = pd.DataFrame(props)
+    return all_grains, labels, mask_all, grain_data, fig, ax
 
 def load_and_preprocess(image_path, mask_path):
     # Load images
