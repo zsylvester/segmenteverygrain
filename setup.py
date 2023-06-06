@@ -6,7 +6,7 @@ long_description = """\
 
 setuptools.setup(
     name="segmenteverygrain",
-    version="0.0.2",
+    version="0.0.4",
     author="Zoltan Sylvester",
     author_email="zoltan.sylvester@beg.utexas.edu",
     description="a SAM-based model for segmenting grains in images of grains",
