@@ -36,12 +36,28 @@ from tensorflow.keras.layers import Conv2D, Conv2DTranspose
 from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.layers import concatenate, add
 from tensorflow.keras.callbacks import EarlyStopping, ModelCheckpoint, ReduceLROnPlateau
-from tensorflow.keras.optimizers import Adam
+from tensorflow.keras.optimizers.legacy import Adam
 from tensorflow.keras.preprocessing.image import load_img
 
 from segment_anything import sam_model_registry, SamAutomaticMaskGenerator, SamPredictor
 
 def predict_image_tile(im_tile,model):
+    """
+    Predicts one image tile using a Unet model.
+
+    Parameters
+    ----------
+    im_tile : 2D or 3D array
+        The image tile for which the prediction will be done. Can have one or more channels.
+    model :
+        Tensorflow model used for semantic segmentation.
+
+    Returns
+    -------
+    im_tile_pred : 3D array
+        Predicted tile.
+    """
+
     if len(np.shape(im_tile)) == 2:
         im_tile = np.expand_dims(im_tile, 2)
     im_tile = model.predict(np.stack((im_tile, im_tile), axis=0), verbose=0)
@@ -49,6 +65,24 @@ def predict_image_tile(im_tile,model):
     return im_tile_pred
 
 def predict_big_image(big_im, model, I):
+    """
+    Segmantic segmentation of the entire image using a Unet model.
+
+    Parameters
+    ----------
+    big_im : 2D or 3D array
+        The image that is being segmented. Can have one or more channels.
+    model :
+        Tensorflow model used for semantic segmentation.
+    I : int
+        Size of the square-shaped image tiles in pixels.
+
+    Returns
+    -------
+    big_im_pred : 3D array
+        Semantic segmentation result for the input image.
+    """
+
     pad_rows = I - np.mod(big_im.shape[0], I)
     pad_cols = I - np.mod(big_im.shape[1], I)
     if len(np.shape(big_im)) == 2:
@@ -108,14 +142,22 @@ def predict_big_image(big_im, model, I):
     return big_im_pred
 
 def compute_curvature(x,y):
-    """function for computing first derivatives and curvature of a curve (centerline)
-    x,y are cartesian coodinates of the curve
-    outputs:
-    dx - first derivative of x coordinate
-    dy - first derivative of y coordinate
-    ds - distances between consecutive points along the curve
-    s - cumulative distance along the curve
-    curvature - curvature of the curve (in 1/units of x and y)"""
+    """
+    Compute first derivatives and curvature of a curve.
+
+    Parameters
+    ----------
+    x : 1D array
+        x-coordinates of the curve
+    y : 1D array
+        y-coordinates of the curve
+
+    Returns
+    -------
+    curvature : 1D array
+        curvature of the curve (in 1/units of x and y)
+    """
+
     dx = np.gradient(x) # first derivatives
     dy = np.gradient(y)      
     ddx = np.gradient(dx) # second derivatives 
@@ -123,31 +165,34 @@ def compute_curvature(x,y):
     curvature = (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
     return curvature
 
-def get_grain_axes(poly):
-    if (type(poly) == Polygon) and (type(poly.minimum_rotated_rectangle) == Polygon):
-        mbr_points = list(zip(*poly.minimum_rotated_rectangle.exterior.coords.xy))
-        # calculate the length of each side of the minimum bounding rectangle
-        mbr_lengths = [LineString((mbr_points[i], mbr_points[i+1])).length for i in range(len(mbr_points) - 1)]
-        # get major/minor axis measurements
-        minor_axis = min(mbr_lengths)
-        major_axis = max(mbr_lengths)
-        mrb = poly.minimum_rotated_rectangle
-    else:
-        minor_axis = np.nan
-        major_axis = np.nan
-        mrb = None
-    return minor_axis, major_axis, mrb
-
 def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
-    grains = big_im_pred[:,:,1].copy() # grain prediction
+    """
+    Label grains in semantic segmentation result and generate prompts for SAM model.
+
+    Parameters
+    ----------
+    big_im : 2D or 3d array
+        image that was segmented
+    big_im_pred : 3D array
+        semantic segmentation result
+    dbs_max_dist : float
+        DBSCAN distance parameter; decreasing it results in more SAM prompts and longer processing times
+
+    Returns
+    -------
+    labels_simple : 
+    grains : 
+    all_coords : 
+    """
+
+    grains = big_im_pred[:,:,1].copy() # grain prediction from semantic segmentation result
     grains[grains >= 0.5] = 1
     grains[grains < 0.5] = 0
     grains = grains.astype('bool')
     labels_simple, n_elems = measure.label(grains, return_num = True, connectivity=1)
-    props = regionprops_table(labels_simple, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
-                                                                                    'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
+    props = regionprops_table(labels_simple, intensity_image = big_im, properties=('label', 'area', 'centroid'))
     grain_data_simple = pd.DataFrame(props)
-    coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T # use the centroids of the unet grains as 'simple' prompts'
+    coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T # use the centroids of the Unet grains as 'simple' prompts
     coords_simple = coords_simple.astype('int32')
     background_probs = big_im_pred[:,:,0][coords_simple[:,1], coords_simple[:,0]]
     inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
@@ -221,9 +266,12 @@ def one_point_prompt(x, y, ax, image, predictor):
     else:
         mask = masks[ind]
     contours = measure.find_contours(mask, 0.5)
-    sx = contours[0][:,1]
-    sy = contours[0][:,0]
-    r, c = np.shape(mask)
+    if len(contours) > 0:
+        sx = contours[0][:,1]
+        sy = contours[0][:,0]
+        r, c = np.shape(mask)
+    else:
+        sx = []; sy = []
     if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
         mask = np.pad(mask, 1, mode='constant')
         contours = measure.find_contours(mask, 0.5)
@@ -234,8 +282,9 @@ def one_point_prompt(x, y, ax, image, predictor):
         if np.any(mask[:,1]):
             sx = sx-1
         mask = mask[1:-1, 1:-1]
-    color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-    ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
+    if len(sx) > 0:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy, mask
 
 def multi_point_prompt(x, y, ax, image, predictor):
@@ -437,7 +486,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
             if not all_grains[i].is_valid:
                 all_grains[i] = all_grains[i].buffer(0)
             new_grains.append(all_grains[i])
-    for j in trange(len(comps)): # second deal with the overlapping objects, one connected component at a time
+    for j in trange(len(comps)): # second: deal with the overlapping objects, one connected component at a time
         polygons = [] # polygons in the connected component
         for i in comps[j]:
             polygons.append(all_grains[i])
@@ -581,6 +630,10 @@ def onpress(event, ax, fig):
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
         ax.fill(poly.exterior.xy[0], poly.exterior.xy[1], facecolor=color, edgecolor='k', alpha=0.5)
         fig.canvas.draw()
+    if event.key == 'g':
+        for patch in ax.patches:
+            patch.set_visible(not patch.get_visible())
+        fig.canvas.draw()
 
 def onclick2(event, all_grains, grain_inds, ax):
     x, y = event.xdata, event.ydata
@@ -619,6 +672,10 @@ def onpress2(event, all_grains, grain_inds, fig, ax):
         color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
         ax.fill(poly.exterior.xy[0], poly.exterior.xy[1], 
                 facecolor=color, edgecolor='k', linewidth=2, alpha=0.5)
+        fig.canvas.draw()
+    if event.key == 'g':
+        for patch in ax.patches:
+            patch.set_visible(not patch.get_visible())
         fig.canvas.draw()
 
 def click_for_scale(event, ax):
