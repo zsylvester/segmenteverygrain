@@ -17,7 +17,6 @@ dependencies:
   - tqdm
   - networkx
   - shapely
-  - pytorch
   - torchvision
   - pip
   - pip:
@@ -25,5 +24,6 @@ dependencies:
     - rasterio
     - opencv-python
     - tensorflow==2.13.0
+    - torch
     - segment-anything
     - segmenteverygrain
