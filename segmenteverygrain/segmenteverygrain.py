@@ -576,8 +576,8 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area):
     grain_data = pd.DataFrame(props)
     return all_grains, labels, mask_all, grain_data, fig, ax
 
-def load_and_preprocess(image_path, mask_path):
-    # Load images
+def load_and_preprocess(image_path, mask_path, augmentations = False):
+    # Load image
     image = tf.io.read_file(image_path)
     image = tf.image.decode_png(image, channels=3)
     # Load mask and one-hot encode it
@@ -589,19 +589,16 @@ def load_and_preprocess(image_path, mask_path):
     # Normalize images
     image = tf.cast(image, tf.float32) / 255.0
     # Apply augmentations
-    seed = tf.random.experimental.stateless_split(tf.zeros([2], dtype=tf.int32), num=2)[0]
-    image = tf.image.stateless_random_brightness(image, max_delta=0.1, seed=seed)
-    image = tf.image.stateless_random_contrast(image, lower=0.9, upper=1.1, seed=seed)
-    image = tf.image.stateless_random_flip_left_right(image, seed=seed)
-    image = tf.image.stateless_random_flip_up_down(image, seed=seed)
-    mask = tf.image.stateless_random_flip_left_right(mask, seed=seed)
-    mask = tf.image.stateless_random_flip_up_down(mask, seed=seed)
-    # this doesn't work for some reason (validation loss is too high)
-    # if np.random.random() > 0.5: # only do this half the time 
-    #     image = tf.image.stateless_random_crop(image, (128, 128, 3), seed=seed)
-    #     image = tf.image.resize(image, (256, 256))
-    #     mask = tf.image.stateless_random_crop(mask, (128, 128, 3), seed=seed)
-    #     mask = tf.image.resize(mask, (256, 256), method='nearest')
+    if augmentations:
+        image = tf.image.random_brightness(image, max_delta=0.3)
+        image = tf.image.random_contrast(image, lower=0.7, upper=1.3)
+        image = tf.where(image < 0, tf.zeros_like(image), image)
+        image = tf.where(image > 1, tf.ones_like(image), image)
+        seed = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(seed < 0.5, lambda: tf.image.flip_left_right(image), lambda: image)
+        mask = tf.cond(seed < 0.5, lambda: tf.image.flip_left_right(mask), lambda: mask)
+        image = tf.cond(seed < 0.5, lambda: tf.image.flip_up_down(image), lambda: image)
+        mask = tf.cond(seed < 0.5, lambda: tf.image.flip_up_down(mask), lambda: mask)
     return image, mask
 
 def onclick(event, ax, coords, image, predictor):
@@ -763,7 +760,7 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
 
 def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10):
     regions = regionprops(labels.astype('int'))
-    for ind in range(len(all_grains)):
+    for ind in range(len(all_grains)-1):
         y0, x0 = regions[ind].centroid
         orientation = regions[ind].orientation
         x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].minor_axis_length
