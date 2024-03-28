@@ -42,7 +42,7 @@ The [Segment_every_grain_colab.ipynb](https://github.com/zsylvester/segmentevery
 
 ## Acknowledgements
 
-Thanks to Danny Stockli, Nick Howes, Jake Covault, Matt Malkowski, Raymond Luong, and Sergey Fomel for discussions and/or helping with generating training data. Funding for this work came from the [Quantitative Clastics Laboratory industrial consortium](http://www.beg.utexas.edu/qcl) at the Bureau of Economic Geology, The University of Texas at Austin.
+Thanks to Danny Stockli, Nick Howes, Kalinda Roberts, Jake Covault, Matt Malkowski, Raymond Luong, and Sergey Fomel for discussions and/or helping with generating training data. Funding for this work came from the [Quantitative Clastics Laboratory industrial consortium](http://www.beg.utexas.edu/qcl) at the Bureau of Economic Geology, The University of Texas at Austin.
 
 ## License
 
