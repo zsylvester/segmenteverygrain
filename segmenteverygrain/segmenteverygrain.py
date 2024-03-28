@@ -590,10 +590,11 @@ def load_and_preprocess(image_path, mask_path, augmentations = False):
     image = tf.cast(image, tf.float32) / 255.0
     # Apply augmentations
     if augmentations:
-        image = tf.image.random_brightness(image, max_delta=0.3)
-        image = tf.image.random_contrast(image, lower=0.7, upper=1.3)
-        image = tf.where(image < 0, tf.zeros_like(image), image)
-        image = tf.where(image > 1, tf.ones_like(image), image)
+        image = tf.image.random_brightness(image, max_delta=0.2)
+        image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
+        # image = tf.image.random_saturation(image, lower=0.75, upper=1.25)
+        image = tf.where(image < 0, tf.zeros_like(image), image) # clipping negative values
+        image = tf.where(image > 1, tf.ones_like(image), image) # clipping values larger than 1
         seed = tf.random.uniform(shape=[], minval=0, maxval=1)
         image = tf.cond(seed < 0.5, lambda: tf.image.flip_left_right(image), lambda: image)
         mask = tf.cond(seed < 0.5, lambda: tf.image.flip_left_right(mask), lambda: mask)
