@@ -1,21 +1,34 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=68", "setuptools-scm>=7.0"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "segmenteverygrain"
-version = "0.0.4"
+dynamic = ["version"]
+requires-python = ">=3.8"
 authors = [
   { name="Zoltan Sylvester", email="zoltan.sylvester@beg.utexas.edu" },
 ]
-description = "A SAM-based model for segmenting grains in images of grains"
+description = "A SAM-based model for segmenting grains in images"
+license = {file = "LICENSE.txt"}
 readme = "README.md"
-requires-python = ">=3.8"
+keywords = ["geology", "geoscience", "sedimentology", "geomorphology", "machine learning", "segmentation", "deep learning"]
 classifiers = [
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering",
+    "Development Status :: 4 - Beta",
+    "Natural Language :: English",
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: Apache Software License",
     "Operating System :: OS Independent",
 ]
+
+[tool.setuptools.packages.find]
+where = ["segmenteverygrain"]
+
+[tool.setuptools_scm]
+version_scheme = "no-guess-dev"
+local_scheme = "no-local-version"
 
 [project.urls]
 "Homepage" = "https://github.com/zsylvester/segmenteverygrain"
