@@ -738,6 +738,7 @@ def get_grains_from_patches(ax, image):
     return all_grains, labels, mask_all, fig, ax
 
 def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
+    """Plot image with randomly colored grain masks"""
     # Choose a colormap
     colormap = cmap
     # Get the colormap object
