@@ -23,6 +23,21 @@ classifiers = [
     "Operating System :: OS Independent",
 ]
 
+dependencies = [
+    "numpy",
+    "matplotlib",
+    "scipy",
+    "pillow",
+    "scikit-image",
+    "tqdm",
+    "opencv-python",
+    "networkx",
+    "rasterio",
+    "shapely",
+    "tensorflow",
+    "segment-anything"
+]
+
 [tool.setuptools.packages.find]
 where = ["segmenteverygrain"]
 
