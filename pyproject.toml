@@ -26,15 +26,19 @@ classifiers = [
 dependencies = [
     "numpy",
     "matplotlib",
+    "pandas",
     "scipy",
     "pillow",
     "scikit-image",
+    "scikit-learn",
     "tqdm",
     "opencv-python",
     "networkx",
     "rasterio",
     "shapely",
     "tensorflow",
+    "torch",
+    "torchvision",
     "segment-anything"
 ]
 
