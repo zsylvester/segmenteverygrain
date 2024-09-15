@@ -18,6 +18,7 @@ from shapely.geometry import Polygon, Point
 from shapely.affinity import translate
 import scipy.ndimage as ndi
 from sklearn.cluster import DBSCAN
+import rtree
 from tqdm import trange
 
 import tensorflow as tf
@@ -330,7 +331,7 @@ def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
 
 def find_overlapping_polygons(polygons):
     """
-    Finds and returns a list of overlapping polygons from the given list of polygons.
+    Finds and returns a list of overlapping polygons from the given list of polygons using spatial indexing.
 
     Args:
         polygons (list): A list of polygons.
@@ -340,8 +341,18 @@ def find_overlapping_polygons(polygons):
 
     """
     overlapping_polygons = []
+    # Create an R-tree index
+    idx = rtree.index.Index()
+    # Insert polygons into the index
+    for i, poly in enumerate(polygons):
+        bounds = poly.bounds
+        idx.insert(i, bounds)
+    # Find overlapping polygons using the index
     for i, poly1 in tqdm(enumerate(polygons)):
-        for j, poly2 in enumerate(polygons):
+        bounds1 = poly1.bounds
+        overlapping_indices = list(idx.intersection(bounds1))
+        for j in overlapping_indices:
+            poly2 = polygons[j]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
                 if not poly1.is_valid:
@@ -349,7 +360,6 @@ def find_overlapping_polygons(polygons):
                 if not poly2.is_valid:
                     poly2 = poly2.buffer(0)
                 if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > 0.4*(min(poly1.area, poly2.area)):
-                # if i != j and poly1.intersects(poly2) and calculate_iou(poly1, poly2) > 0.4:
                     overlapping_polygons.append((i, j))
     return overlapping_polygons
 
@@ -676,6 +686,36 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area):
     all_grains = new_grains # replace original list of polygons
     return all_grains
 
+def rasterize_grains(all_grains, big_im):
+    """
+    Rasterizes a list of polygons representing grains into an array of labels.
+
+    Args:
+        all_grains (list): A list of polygons representing grains.
+        big_im (numpy.ndarray): The input image.
+
+    Returns:
+        numpy.ndarray: The rasterized array of labels.
+
+    """
+    labels = np.arange(1, len(all_grains)+1)
+    # Combine polygons and labels into a tuple of (polygon, label) pairs
+    shapes_with_labels = zip(all_grains, labels)
+    # Define the shape and resolution of the rasterized output
+    out_shape = big_im.shape[:2]  # Output array shape (height, width)
+    bounds = (0, big_im.shape[0], big_im.shape[1], 0)  # Left, bottom, right, top of the array (bounding box)
+    # Define the transformation from pixel coordinates to spatial coordinates
+    transform = rasterio.transform.from_bounds(*bounds, out_shape[1], out_shape[0])
+    # Rasterize the polygons into an array of labels
+    rasterized = rasterize(
+        ((poly, label) for poly, label in shapes_with_labels),
+        out_shape=out_shape,
+        transform=transform,
+        fill=0,  # Background value (for pixels outside polygons)
+        dtype='int32'
+    )
+    return rasterized
+
 def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     """
     Create a labeled image based on the provided grains and input images.
@@ -687,82 +727,19 @@ def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     - min_area (int): Minimum area threshold for filtering grains.
 
     Returns:
-    - labels (numpy.ndarray): Labeled image where each grain is assigned a unique label.
+    - rasterized (numpy.ndarray): Labeled image where each grain is assigned a unique label.
     - mask_all (numpy.ndarray): Binary mask indicating the presence of grains and their boundaries.
     """
-    # first rasterization of the grains:
-    labels = np.zeros(big_im.shape[:-1])
-    for i in trange(len(all_grains)):
-        mask = rasterize(
-            shapes=[all_grains[i]],
-            out_shape=big_im.shape[:-1],
-            fill=0,
-            out=None,
-            transform=rasterio.Affine(1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0),
-            all_touched=False,
-            default_value=1,
-            dtype=None,
-        )
-        labels[(mask==1) & (labels==0)] = i+1
-    # try to find the remaining grains:
-    remaining_grains_im = big_im_pred[:,:,1].copy()
-    remaining_grains_im[labels > 0] = 0
-    remaining_grains_im[remaining_grains_im>0.8] = 1
-    remaining_grains_im[remaining_grains_im<1] = 0
-    remaining_grains_im = binary_erosion(remaining_grains_im, footprint=np.ones((9, 9)))
-    remaining_grains_im = binary_dilation(remaining_grains_im, footprint=np.ones((12, 12)))
-    labels_remaining_grains, n_elems = label(remaining_grains_im, return_num=True, connectivity=1)
-    for i in range(1, n_elems):
-        if np.sum(mask) > min_area:
-            mask = np.zeros(np.shape(labels_remaining_grains))
-            mask[labels_remaining_grains == i] = 1
-            if np.sum(np.hstack([mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T])) == 0:
-                contours = find_contours(mask, 0.5)
-                sx = contours[0][:,1]
-                sy = contours[0][:,0]
-                if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
-                    mask = np.pad(mask, 1, mode='constant')
-                    contours = find_contours(mask, 0.5)
-                    sx = contours[0][:,1]
-                    sy = contours[0][:,0]
-                    if np.any(mask[1, :]):
-                        sy = sy-1
-                    if np.any(mask[:,1]):
-                        sx = sx-1
-                    mask = mask[1:-1, 1:-1]
-                all_grains.append(Polygon(np.vstack((sx, sy)).T))
-    # redo the rasterization with the updated set of grains:
-    labels = np.zeros(big_im.shape[:-1])
+    rasterized = rasterize_grains(all_grains, big_im) # rasterize grains
+    boundaries = []
+    for grain in all_grains:
+        boundaries.append(grain.boundary.buffer(2))
+    boundaries_rasterized = rasterize_grains(boundaries, big_im)
     mask_all = np.zeros(big_im.shape[:-1])
-    for i in trange(len(all_grains)):
-        mask = rasterize(
-            shapes=[all_grains[i]],
-            out_shape=big_im.shape[:-1],
-            fill=0,
-            out=None,
-            transform=rasterio.Affine(1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0),
-            all_touched=False,
-            default_value=1,
-            dtype=None,
-        )
-        boundary_mask = rasterize(
-            shapes = [all_grains[i].boundary.buffer(2)],
-            out_shape=big_im.shape[:-1],
-            fill = 0,
-            out = None,
-            transform=rasterio.Affine(1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0),
-            all_touched=False,
-            default_value=1,
-            dtype=None,
-        )
-        mask_all[mask == 1] = 1
-        mask_all[boundary_mask == 1] = 2
-        labels[(mask==1) & (labels==0)] = i+1
-    labels = labels.astype('int')
-    return labels, mask_all
+    mask_all[rasterized > 0] = 1
+    mask_all[boundaries_rasterized >= 1] = 2
+    rasterized = rasterized.astype('int')
+    return rasterized, mask_all
 
 def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=400):
     """
@@ -891,7 +868,7 @@ def onpress(event, ax, fig):
             patch.set_visible(not patch.get_visible())
         fig.canvas.draw()
 
-def onclick2(event, all_grains, grain_inds, ax):
+def onclick2(event, all_grains, grain_inds, ax, select_only=False):
     """
     Event handler function for selecting and highlighting grains in a plot,
     based on mouse click events. The selected grains then are either deleted or merged.
@@ -907,8 +884,9 @@ def onclick2(event, all_grains, grain_inds, ax):
     for i in range(len(all_grains)):
         if all_grains[i].contains(point):
             grain_inds.append(i)
-            ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], color='r', alpha=0.5)
-            ax.figure.canvas.draw()
+            if not select_only:
+                ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], color='r', alpha=0.5)
+                ax.figure.canvas.draw()
 
 def onpress2(event, all_grains, grain_inds, fig, ax):
     """
@@ -999,36 +977,16 @@ def get_grains_from_patches(ax, image):
         all_grains.append(Polygon(np.vstack((x, y)).T))
         
     # create labeled image
-    labels = np.zeros(image.shape[:-1])
+    rasterized = rasterize_grains(all_grains, image)
+    boundaries = []
+    for grain in all_grains:
+        boundaries.append(grain.boundary.buffer(2))
+    boundaries_rasterized = rasterize_grains(boundaries, image)
     mask_all = np.zeros(image.shape[:-1])
-    for i in trange(len(all_grains)):
-        mask = rasterize(
-            shapes=[all_grains[i]],
-            out_shape=image.shape[:-1],
-            fill=0,
-            out=None,
-            transform=rasterio.Affine(1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0),
-            all_touched=False,
-            default_value=1,
-            dtype=None,
-        )
-        boundary_mask = rasterize(
-            shapes = [all_grains[i].boundary.buffer(2)],
-            out_shape=image.shape[:-1],
-            fill = 0,
-            out = None,
-            transform=rasterio.Affine(1.0, 0.0, 0.0,
-               0.0, 1.0, 0.0),
-            all_touched=False,
-            default_value=1,
-            dtype=None,
-        )
-        mask_all[mask == 1] = 1
-        mask_all[boundary_mask == 1] = 2
-        labels[(mask==1) & (labels==0)] = i+1
+    mask_all[rasterized > 0] = 1
+    mask_all[boundaries_rasterized >= 1] = 2
     plt.figure()
-    plt.imshow(labels)
+    plt.imshow(rasterized)
     fig = plt.figure()
     ax = fig.add_subplot(111)
     ax.imshow(image)
@@ -1036,7 +994,7 @@ def get_grains_from_patches(ax, image):
     for i in range(len(all_grains)):
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
-    return all_grains, labels, mask_all, fig, ax
+    return all_grains, rasterized, mask_all, fig, ax
 
 def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', transparency=0.0):
     """

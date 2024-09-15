@@ -24,11 +24,12 @@
 - tensorflow
 - pytorch
 - segment-anything
+- rtree
 - tqdm
 
 ## Installation
 
-'segmenteverygrain' is available through pypi.org, so you can install by running
+'segmenteverygrain' is available through pypi.org, so you can install it by running
 <code>pip install segmenteverygrain</code>
 
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml) file with conda (or mamba).
