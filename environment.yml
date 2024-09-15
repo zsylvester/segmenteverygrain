@@ -22,6 +22,7 @@ dependencies:
     - pillow
     - rasterio
     - opencv-python
+    - rtree
     - tensorflow==2.13.0
     - torch
     - torchvision
