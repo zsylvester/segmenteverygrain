@@ -568,7 +568,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
                 all_grains.append(poly)
 
     print('finding overlapping polygons...')
-    new_grains, comps = find_connected_components(all_grains, min_area)
+    new_grains, comps, g = find_connected_components(all_grains, min_area)
 
     if remove_large_objects:
         N_neighbors_before, N_neighbors_after, Nodes = [], [], []
@@ -654,7 +654,7 @@ def find_connected_components(all_grains, min_area):
             if not all_grains[i].is_valid:
                 all_grains[i] = all_grains[i].buffer(0)
             new_grains.append(all_grains[i])
-    return new_grains, comps
+    return new_grains, comps, g
 
 def merge_overlapping_polygons(all_grains, new_grains, comps, min_area):
     """
@@ -772,7 +772,7 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
                                     min_area=min_area, plot_image=False, remove_edge_grains=True, remove_large_objects=False)
                 for grain in all_grains:
                     All_Grains += [translate(grain, xoff=j, yoff=i)] # translate the grains to the original image coordinates
-    new_grains, comps = find_connected_components(All_Grains, min_area)
+    new_grains, comps, g = find_connected_components(All_Grains, min_area)
     All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area)
     return All_Grains
 
@@ -971,7 +971,7 @@ def get_grains_from_patches(ax, image):
 
     """
     all_grains = []
-    for i in range(len(ax.patches)):
+    for i in trange(len(ax.patches)):
         x = ax.patches[i].get_path().vertices[:,0]
         y = ax.patches[i].get_path().vertices[:,1]
         all_grains.append(Polygon(np.vstack((x, y)).T))
@@ -991,12 +991,12 @@ def get_grains_from_patches(ax, image):
     ax = fig.add_subplot(111)
     ax.imshow(image)
     ax.imshow(mask_all, alpha=0.5)
-    for i in range(len(all_grains)):
+    for i in trange(len(all_grains)):
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
     return all_grains, rasterized, mask_all, fig, ax
 
-def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', transparency=0.0):
+def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
     """
     Plot image with randomly colored grain masks.
 
@@ -1012,17 +1012,15 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', transpar
     - transparency: float, optional
         The transparency level of the image. Default is 0.0 (fully opaque).
     """
-    # Choose a colormap
-    colormap = cmap
     # Get the colormap object
-    cmap = plt.cm.get_cmap(colormap)
+    cmap = plt.cm.get_cmap(cmap)
     # Generate random indices for colors
     num_colors = len(all_grains)  # Number of colors to choose
     color_indices = np.random.randint(0, cmap.N, num_colors)
     # Get the individual colors
     colors = [cmap(i) for i in color_indices]
-    ax.imshow(image, alpha=transparency)
-    for i in range(len(all_grains)):
+    ax.imshow(image)
+    for i in trange(len(all_grains)):
         color = colors[i]
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 facecolor=color, edgecolor='none', linewidth=1, alpha=0.4)
