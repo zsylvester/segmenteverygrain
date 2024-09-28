@@ -54,7 +54,7 @@ def predict_image_tile(im_tile,model):
     im_tile_pred = im_tile[0] 
     return im_tile_pred
 
-def predict_big_image(big_im, model, I):
+def predict_image(big_im, model, I):
     """
     Segmantic segmentation of the entire image using a Unet model.
 
@@ -609,10 +609,13 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         new_grains, comps = find_connected_components(all_grains, min_area)
 
     print('finding best polygons...')
-    all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area)
-
-    print('creating labeled image...')
-    labels, mask_all = create_labeled_image(all_grains, big_im, big_im_pred, min_area)
+    all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred)
+    if len(all_grains) > 0:
+        print('creating labeled image...')
+        labels, mask_all = create_labeled_image(all_grains, big_im, big_im_pred, min_area)
+    else:
+        labels = np.zeros_like(big_im)
+        mask_all = np.zeros_like(big_im)
     if plot_image:
         fig, ax = plt.subplots(figsize=(15,10))
         ax.imshow(big_im)
@@ -656,12 +659,15 @@ def find_connected_components(all_grains, min_area):
             new_grains.append(all_grains[i])
     return new_grains, comps, g
 
-def merge_overlapping_polygons(all_grains, new_grains, comps, min_area):
+import itertools
+from shapely.geometry import MultiPolygon
+
+def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred):
     """
     Merge overlapping polygons in a connected component.
 
     This function takes a list of all polygons, a list of polygons that do not overlap with other polygons, 
-    a list of connected components, and a minimum area threshold.
+    a list of connected components, a minimum area threshold, and the Unet prediction.
     It iterates over each connected component and merges the overlapping polygons within that component.
     The most similar polygon is selected as the representative polygon for the merged region.
     If the area of the representative polygon is greater than the minimum area threshold, it is added to the new polygons list.
@@ -681,8 +687,69 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area):
         for i in comps[j]:
             polygons.append(all_grains[i])
         most_similar_polygon = pick_most_similar_polygon(polygons)
+        # this next section is needed so that grains that are not covered by the 'most similar polygon' are not lost
+        diff_polys = []
+        for polygon in polygons:
+            if polygon != most_similar_polygon:
+                diff_polygon = polygon.difference(most_similar_polygon)
+                if diff_polygon.area > min_area:
+                    diff_raster = rasterize_grains([diff_polygon], big_im_pred)
+                    diff_grain = big_im_pred[diff_raster == 1][:,1]
+                    # if a large fraction of the pixels in the difference polygon are grains:
+                    if len(np.where(diff_grain > 0.5)[0])/len(diff_grain) > 0.1:
+                        diff_polys.append(diff_polygon)
+        # deal with the cases when the difference polygons are MultiPolygons:
+        polys = []
+        for poly in diff_polys:
+            if type(poly) == MultiPolygon:
+                areas = []
+                for geom in poly.geoms:
+                    areas.append(geom.area)
+                poly = poly.geoms[np.argmax(areas)]
+                polys.append(poly)
+            elif type(poly) == Polygon:
+                polys.append(poly)
+        diff_polys = polys
+        # find the polygons that are not overlapping with the most similar polygon among the 
+        # difference polygons and not overlapping too much with each other:
+        selected_polygons = []
+        if len(diff_polys) > 1:
+            most_similar_polygon1 = pick_most_similar_polygon(diff_polys)
+            selected_polygons = [most_similar_polygon1]
+            for poly1, poly2 in itertools.combinations(diff_polys, 2):
+                iou = calculate_iou(poly1, poly2)
+                if iou < 0.1:
+                    iou1 = 0
+                    iou2 = 0
+                    iou1s = []
+                    iou2s = []
+                    for poly in selected_polygons:
+                        iou1s.append(calculate_iou(poly1, poly))
+                        iou2s.append(calculate_iou(poly2, poly))
+                    if len(iou1s)>0:
+                        iou1 = iou1s[np.argmax(iou1s)]
+                    if len(iou2s)>0:
+                        iou2 = iou2s[np.argmax(iou2s)]
+                    if iou1 < 0.1 and poly1.area > min_area:
+                        selected_polygons.append(poly1)
+                    if iou2 < 0.1 and poly2.area > min_area:
+                        selected_polygons.append(poly2)
+        elif len(diff_polys) == 1:
+            if diff_polys[0].area > min_area:
+                selected_polygons = [diff_polys[0]]
+        opened_polygons = [] # get rid of thin grain margins that are not real grains
+        for poly in selected_polygons:
+            erosion_distance = -5  # Negative value for erosion
+            dilation_distance = 5  # Positive value for dilation
+            eroded_polygon = poly.buffer(erosion_distance)
+            opened_polygon = eroded_polygon.buffer(dilation_distance)
+            if opened_polygon.area > min_area and type(opened_polygon) == Polygon:
+                opened_polygons.append(opened_polygon)
+        selected_polygons = opened_polygons
         if most_similar_polygon.area > min_area:
             new_grains.append(most_similar_polygon)
+        if len(selected_polygons) > 0:
+            new_grains += selected_polygons
     all_grains = new_grains # replace original list of polygons
     return all_grains
 
@@ -762,18 +829,21 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
     img_height, img_width = big_im.shape[:2]  # get the height and width of the image 
     # loop over the image and extract patches:
     All_Grains = []
+    total_patches = ((img_height - patch_size + step_size) // step_size + 1) * ((img_width - patch_size + step_size) // step_size + 1)
     for i in range(0, img_height - patch_size + step_size + 1, step_size):
         for j in range(0, img_width - patch_size + step_size + 1, step_size):
             patch = big_im[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)]
-            patch_pred = predict_big_image(patch, model, I=256) # use the Unet model to predict the mask on the patch
+            patch_pred = predict_image(patch, model, I=256) # use the Unet model to predict the mask on the patch
             labels, coords = label_grains(patch, patch_pred, dbs_max_dist=20.0)
             if len(coords) > 0: # run the SAM algorithm only if there are grains in the patch
                 all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(sam, patch, patch_pred, coords, labels, \
                                     min_area=min_area, plot_image=False, remove_edge_grains=True, remove_large_objects=False)
                 for grain in all_grains:
                     All_Grains += [translate(grain, xoff=j, yoff=i)] # translate the grains to the original image coordinates
+            patch_num = i//step_size*((img_width - patch_size + step_size)//step_size + 1) + j//step_size + 1
+            print(f"processed patch #{patch_num} out of {total_patches} patches")
     new_grains, comps, g = find_connected_components(All_Grains, min_area)
-    All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area)
+    All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area, patch_pred)
     return All_Grains
 
 def load_and_preprocess(image_path, mask_path, augmentations=False):
@@ -871,7 +941,8 @@ def onpress(event, ax, fig):
 def onclick2(event, all_grains, grain_inds, ax, select_only=False):
     """
     Event handler function for selecting and highlighting grains in a plot,
-    based on mouse click events. The selected grains then are either deleted or merged.
+    based on mouse click events. The selected grains then are either deleted or merged,
+    using the 'onpress2' function.
 
     Parameters:
     - event: The mouse click event object.
@@ -996,7 +1067,7 @@ def get_grains_from_patches(ax, image):
                 facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
     return all_grains, rasterized, mask_all, fig, ax
 
-def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
+def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_image=True):
     """
     Plot image with randomly colored grain masks.
 
@@ -1019,7 +1090,8 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis'):
     color_indices = np.random.randint(0, cmap.N, num_colors)
     # Get the individual colors
     colors = [cmap(i) for i in color_indices]
-    ax.imshow(image)
+    if plot_image:
+        ax.imshow(image)
     for i in trange(len(all_grains)):
         color = colors[i]
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
