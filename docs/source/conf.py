@@ -12,7 +12,8 @@ from unittest import mock
 MOCK_MODULES = ["numpy", "matplotlib", "matplotlib.pyplot", "pandas", "scipy", "skimage", "scikit-learn", "tqdm", 
     "rtree", "itertools", "networkx", "rasterio", "rasterio.features", "shapely", "tensorflow", "segment-anything",
     "skimage.measure", "skimage.morphology", "skimage.segmentation", "skimage.feature", "shapely.geometry", "shapely.affinity",
-    "scipy.ndimage", "sklearn.cluster", "tensorflow.keras.models", "tensorflow.keras.layers", "tensorflow.keras.preprocessing.image"]
+    "scipy.ndimage", "sklearn.cluster", "tensorflow.keras.models", "tensorflow.keras.layers", 
+    "tensorflow.keras.preprocessing.image", "segment-anything",]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
