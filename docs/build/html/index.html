@@ -1,0 +1,471 @@
+
+
+<!DOCTYPE html>
+
+
+<html lang="en" data-content_root="" >
+
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+
+    <title>segmenteverygrain &#8212; segmenteverygrain 0.1.9 documentation</title>
+  
+  
+  
+  <script data-cfasync="false">
+    document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+  </script>
+  
+  <!-- Loaded before other Sphinx assets -->
+  <link href="_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+
+  
+  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
+<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
+
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
+  
+  <!-- Pre-loaded scripts that we'll load fully later -->
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
+  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/doctools.js"></script>
+    <script src="_static/sphinx_highlight.js"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started" href="getting_started.html" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <meta name="docsearch:language" content="en"/>
+  </head>
+  
+  
+  <body data-bs-spy="scroll" data-bs-target=".bd-toc-nav" data-offset="180" data-bs-root-margin="0px 0px -60%" data-default-mode="">
+
+  
+  
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  
+  <div id="pst-scroll-pixel-helper"></div>
+
+  
+  <button type="button" class="btn rounded-pill" id="pst-back-to-top">
+    <i class="fa-solid fa-arrow-up"></i>
+    Back to top
+  </button>
+
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__primary"
+          id="__primary"/>
+  <label class="overlay overlay-primary" for="__primary"></label>
+  
+  <input type="checkbox"
+          class="sidebar-toggle"
+          name="__secondary"
+          id="__secondary"/>
+  <label class="overlay overlay-secondary" for="__secondary"></label>
+  
+  <div class="search-button__wrapper">
+    <div class="search-button__overlay"></div>
+    <div class="search-button__search-container">
+<form class="bd-search d-flex align-items-center"
+      action="search.html"
+      method="get">
+  <i class="fa-solid fa-magnifying-glass"></i>
+  <input type="search"
+         class="form-control"
+         name="q"
+         id="search-input"
+         placeholder="Search..."
+         aria-label="Search..."
+         autocomplete="off"
+         autocorrect="off"
+         autocapitalize="off"
+         spellcheck="false"/>
+  <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
+</form></div>
+  </div>
+  
+    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
+    </nav>
+  
+  <div class="bd-container">
+    <div class="bd-container__inner bd-page-width">
+      
+      <div class="bd-sidebar-primary bd-sidebar">
+        
+
+  
+  <div class="sidebar-header-items sidebar-primary__section">
+    
+    
+    
+    
+  </div>
+  
+    <div class="sidebar-primary-items__start sidebar-primary__section">
+        <div class="sidebar-primary-item">
+
+  
+
+<a class="navbar-brand logo" href="#">
+  
+  
+  
+  
+  
+  
+    <p class="title logo__title">segmenteverygrain 0.1.9 documentation</p>
+  
+</a></div>
+        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+    <div class="bd-toc-item navbar-nav active">
+        <ul class="nav bd-sidenav">
+<li class="toctree-l1 has-children"><a class="reference internal" href="getting_started.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api_reference.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+</ul>
+</li>
+</ul>
+
+    </div>
+</nav></div>
+    </div>
+  
+  
+  <div class="sidebar-primary-items__end sidebar-primary__section">
+  </div>
+  
+  <div id="rtd-footer-container"></div>
+
+
+      </div>
+      
+      <main id="main-content" class="bd-main">
+        
+        
+
+<div class="sbt-scroll-pixel-helper"></div>
+
+          <div class="bd-content">
+            <div class="bd-article-container">
+              
+              <div class="bd-header-article">
+<div class="header-article-items header-article__inner">
+  
+    <div class="header-article-items__start">
+      
+        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <span class="fa-solid fa-bars"></span>
+</label></div>
+      
+    </div>
+  
+  
+    <div class="header-article-items__end">
+      
+        <div class="header-article-item">
+
+<div class="article-header-buttons">
+
+
+
+
+
+<div class="dropdown dropdown-download-buttons">
+  <button class="btn dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Download this page">
+    <i class="fas fa-download"></i>
+  </button>
+  <ul class="dropdown-menu">
+      
+      
+      
+      <li><a href="_sources/index.rst" target="_blank"
+   class="btn btn-sm btn-download-source-button dropdown-item"
+   title="Download source file"
+   data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file"></i>
+  </span>
+<span class="btn__text-container">.rst</span>
+</a>
+</li>
+      
+      
+      
+      
+      <li>
+<button onclick="window.print()"
+  class="btn btn-sm btn-download-pdf-button dropdown-item"
+  title="Print to PDF"
+  data-bs-placement="left" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-file-pdf"></i>
+  </span>
+<span class="btn__text-container">.pdf</span>
+</button>
+</li>
+      
+  </ul>
+</div>
+
+
+
+
+<button onclick="toggleFullScreen()"
+  class="btn btn-sm btn-fullscreen-button"
+  title="Fullscreen mode"
+  data-bs-placement="bottom" data-bs-toggle="tooltip"
+>
+  
+
+<span class="btn__icon-container">
+  <i class="fas fa-expand"></i>
+  </span>
+
+</button>
+
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
+    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
+  </button>
+`);
+</script>
+
+
+<script>
+document.write(`
+  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <i class="fa-solid fa-magnifying-glass fa-lg"></i>
+  </button>
+`);
+</script>
+<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</label>
+</div></div>
+      
+    </div>
+  
+</div>
+</div>
+              
+              
+
+<div id="jb-print-docs-body" class="onlyprint">
+    <h1>segmenteverygrain</h1>
+    <!-- Table of contents -->
+    <div id="print-main-content">
+        <div id="jb-print-toc">
+            
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contents">Contents</a></li>
+</ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+              
+                
+<div id="searchbox"></div>
+                <article class="bd-article" role="main">
+                  
+  <figure class="align-left">
+<img alt="grains detected in an image" src="_images/gravel_example_mask.png" />
+</figure>
+<section id="segmenteverygrain">
+<h1>segmenteverygrain<a class="headerlink" href="#segmenteverygrain" title="Permalink to this heading">#</a></h1>
+<p><a class="reference external" href="https://github.com/zsylvester/segmenteverygrain">GitHub Repository</a></p>
+<p><code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> is a Python package that aims to detect grains (or grain-like objects) in images.
+The goal is to develop a machine learning model that does a reasonably good job at detecting most of the grains in a photo, so that it is
+useful for determining grain size and grain shape, a common task in geomorphology and sedimentary geology. <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code>
+relies on the <a class="reference external" href="https://github.com/facebookresearch/segment-anything">Segment Anything Model (SAM)</a>, developed by Meta,
+for getting high-quality outlines of the grains. However, SAM requires prompts for every object detected and, when used in
+‘everything’ mode, it tends to be slow and results in many overlapping masks and non-grain (background) objects.
+To deal with these issues, ‘segmenteverygrain’ relies on a Unet-style, patch-based convolutional neural network to create a
+first-pass segmentation which is then used to generate prompts for the SAM-based segmentation. Some of the grains will be missed
+with this approach, but the segmentations that are created tend to be of high quality.</p>
+<p><code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> also includes a set of functions that make it possible to clean up the segmentation results: delete and
+merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and
+added to a dataset of grain images. These images then can be used to improve the Unet model.</p>
+<section id="installation">
+<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+</div>
+<p>To install <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> you can use <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>segmenteverygrain
+</pre></div>
+</div>
+<p>Or you can install it from the source code:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/zsylvester/segmenteverygrain.git
+<span class="nb">cd</span><span class="w"> </span>segmenteverygrain
+pip<span class="w"> </span>install<span class="w"> </span>.
+</pre></div>
+</div>
+<p>The easiest way of creating a Python environment in which ‘segmenteverygrain’ works well is to use
+the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml">environment.yml</a> file with conda (or mamba).</p>
+</section>
+<section id="contents">
+<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a><ul class="simple">
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image"><code class="docutils literal notranslate"><span class="pre">predict_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image_tile"><code class="docutils literal notranslate"><span class="pre">predict_image_tile()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.label_grains"><code class="docutils literal notranslate"><span class="pre">label_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.one_point_prompt"><code class="docutils literal notranslate"><span class="pre">one_point_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.two_point_prompt"><code class="docutils literal notranslate"><span class="pre">two_point_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">find_overlapping_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.weighted_crossentropy"><code class="docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_images_and_labels"><code class="docutils literal notranslate"><span class="pre">plot_images_and_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.calculate_iou"><code class="docutils literal notranslate"><span class="pre">calculate_iou()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.pick_most_similar_polygon"><code class="docutils literal notranslate"><span class="pre">pick_most_similar_polygon()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.sam_segmentation"><code class="docutils literal notranslate"><span class="pre">sam_segmentation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_connected_components"><code class="docutils literal notranslate"><span class="pre">find_connected_components()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.merge_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">merge_overlapping_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.rasterize_grains"><code class="docutils literal notranslate"><span class="pre">rasterize_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_labeled_image"><code class="docutils literal notranslate"><span class="pre">create_labeled_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.load_and_preprocess"><code class="docutils literal notranslate"><span class="pre">load_and_preprocess()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick"><code class="docutils literal notranslate"><span class="pre">onclick()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress"><code class="docutils literal notranslate"><span class="pre">onpress()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick2"><code class="docutils literal notranslate"><span class="pre">onclick2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress2"><code class="docutils literal notranslate"><span class="pre">onpress2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.click_for_scale"><code class="docutils literal notranslate"><span class="pre">click_for_scale()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.get_grains_from_patches"><code class="docutils literal notranslate"><span class="pre">get_grains_from_patches()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_image_w_colorful_grains"><code class="docutils literal notranslate"><span class="pre">plot_image_w_colorful_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</div>
+</section>
+</section>
+
+
+                </article>
+              
+
+              
+              
+              
+              
+                <footer class="prev-next-footer">
+                  
+<div class="prev-next-area">
+    <a class="right-next"
+       href="getting_started.html"
+       title="next page">
+      <div class="prev-next-info">
+        <p class="prev-next-subtitle">next</p>
+        <p class="prev-next-title">Getting started</p>
+      </div>
+      <i class="fa-solid fa-angle-right"></i>
+    </a>
+</div>
+                </footer>
+              
+            </div>
+            
+            
+              
+                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#installation">Installation</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#contents">Contents</a></li>
+</ul>
+  </nav></div>
+
+</div></div>
+              
+            
+          </div>
+          <footer class="bd-footer-content">
+            
+<div class="bd-footer-content__inner container">
+  
+  <div class="footer-item">
+    
+<p class="component-author">
+By Zoltan Sylvester
+</p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+
+  <p class="copyright">
+    
+      © Copyright 2024, Zoltan Sylvester.
+      <br/>
+    
+  </p>
+
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+  <div class="footer-item">
+    
+  </div>
+  
+</div>
+          </footer>
+        
+
+      </main>
+    </div>
+  </div>
+  
+  <!-- Scripts loaded after <body> so the DOM is not blocked -->
+  <script src="_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
+<script src="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+
+  <footer class="bd-footer">
+  </footer>
+  </body>
+</html>
