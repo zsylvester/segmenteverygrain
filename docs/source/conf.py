@@ -17,6 +17,16 @@ MOCK_MODULES = ["numpy", "matplotlib", "matplotlib.pyplot", "pandas", "scipy", "
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
+# Example of setting return values for specific methods that need to be iterable
+mock_numpy = sys.modules['numpy']
+mock_numpy.array.return_value = mock.Mock()
+mock_numpy.array.return_value.__iter__ = lambda x: iter([])
+
+mock_pandas = sys.modules['pandas']
+mock_pandas.DataFrame.return_value = mock.Mock()
+mock_pandas.DataFrame.return_value.__iter__ = lambda x: iter([])
+
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
