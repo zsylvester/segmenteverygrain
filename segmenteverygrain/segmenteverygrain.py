@@ -39,7 +39,7 @@ def predict_image_tile(im_tile,model):
     ----------
     im_tile : 2D or 3D array
         The image tile for which the prediction will be done. Can have one or more channels.
-    model :
+    model
         Tensorflow model used for semantic segmentation.
 
     Returns
@@ -62,7 +62,7 @@ def predict_image(big_im, model, I):
     ----------
     big_im : 2D or 3D array
         The image that is being segmented. Can have one or more channels.
-    model :
+    model
         Tensorflow model used for semantic segmentation.
     I : int
         Size of the square-shaped image tiles in pixels.
@@ -170,8 +170,10 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
 
     Returns
     -------
-    labels_simple : the labels as an image
-    all_coords : pixel coordinates of the prompts
+    labels_simple
+        the labels as an image
+    all_coords
+        pixel coordinates of the prompts
     """
 
     grains = big_im_pred[:,:,1].copy() # grain prediction from semantic segmentation result
@@ -239,18 +241,27 @@ def one_point_prompt(x, y, image, predictor, ax=False):
     """
     Perform SAM segmentation using a single point prompt.
 
-    Args:
-        x: The x-coordinate of the point.
-        y: The y-coordinate of the point.
-        image (numpy.ndarray): The input image.
-        predictor: The SAM predictor.
-        ax (bool, optional): Whether to plot the segmentation result on an axis. Defaults to False.
+    Parameters
+    ----------
+        x : float
+            the x-coordinate of the point
+        y : float
+            the y-coordinate of the point
+        image : numpy.ndarray)
+            the input image
+        predictor 
+            the SAM predictor
+        ax : bool, default True
+            whether to plot the segmentation result on an axis
 
-    Returns:
-        sx: the x-coordinates of the contour points.
-        sy: the y-coordinates of the contour points.
-        mask: the segmented mask.
-
+    Returns
+    -------
+        sx
+            the x-coordinates of the contour points
+        sy
+            the y-coordinates of the contour points
+        mask
+            the segmented mask
     """
     input_point = np.array([[x, y]])
     input_label = np.array([1])
@@ -298,18 +309,29 @@ def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
     Perform a two-point-prompt-based segmentation using the SAM model. 
     Second point is used as background (label=0).
 
-    Args:
-        x1 (int): x-coordinate of the first point.
-        y1 (int): y-coordinate of the first point.
-        x2 (int): x-coordinate of the second point.
-        y2 (int): y-coordinate of the second point.
-        ax (matplotlib.axes.Axes): The axes to plot the segmentation result.
-        image (numpy.ndarray): The input image.
-        predictor: The segmentation predictor.
+    Parameters
+    ----------
+        x1 : int
+            x-coordinate of the first point
+        y1 : int
+            y-coordinate of the first point
+        x2 : int 
+            x-coordinate of the second point
+        y2 : int 
+            y-coordinate of the second point
+        ax : matplotlib.axes.Axes
+            The axes to plot the segmentation result
+        image : numpy.ndarray
+            the input image
+        predictor 
+            the SAM predictor
 
-    Returns:
-        numpy.ndarray: The x-coordinates of the contour points.
-        numpy.ndarray: The y-coordinates of the contour points.
+    Returns
+    -------
+        sx: numpy.ndarray
+            The x-coordinates of the contour points
+        sy : numpy.ndarray
+            The y-coordinates of the contour points
     """
     input_point = np.array([[x1, y1], [x2, y2]])
     input_label = np.array([1, 0])
@@ -333,11 +355,15 @@ def find_overlapping_polygons(polygons):
     """
     Finds and returns a list of overlapping polygons from the given list of polygons using spatial indexing.
 
-    Args:
-        polygons (list): A list of polygons.
+    Parameters
+    ----------
+    polygons : list
+        A list of polygons.
 
-    Returns:
-        overlapping_polygons (list): A list of tuples representing the indices of overlapping polygons.
+    Returns
+    -------
+    overlapping_polygons : list
+        A list of tuples representing the indices of overlapping polygons.
 
     """
     overlapping_polygons = []
@@ -367,8 +393,10 @@ def Unet():
     """
     Creates a U-Net model for image segmentation.
 
-    Returns:
-    model: The U-Net model.
+    Returns
+    -------
+    model : tensorflow.keras.Model
+        The U-Net model.
     """
 
     tf.keras.backend.clear_session()
@@ -432,13 +460,17 @@ def weighted_crossentropy(y_true, y_pred):
     """
     Calculates the weighted cross-entropy loss between the true labels and predicted labels.
 
-    Args:
-        y_true (tensor): True labels.
-        y_pred (tensor): Predicted labels.
+    Parameters
+    ----------
+    y_true : tensor
+        True labels.
+    y_pred : tensor
+        Predicted labels.
 
-    Returns:
-        loss: Weighted cross-entropy loss.
-
+    Returns
+    -------
+    loss : tensor
+        Weighted cross-entropy loss.
     """
     class_weights = tf.constant([[[[0.6, 1.0, 5.0]]]]) # increase the weight on the grains and the grain boundaries
     unweighted_losses = tf.nn.softmax_cross_entropy_with_logits(labels=y_true, logits=y_pred)
@@ -452,11 +484,15 @@ def plot_images_and_labels(img, label):
     Plot the input image and its corresponding label side by side.
     The third subplot shows the input image with the label overlayed.
 
-    Parameters:
-    - img: The input image to be plotted.
-    - label: The label image to be plotted.
+    Parameters
+    ----------
+    img : numpy.ndarray
+        The input image to be plotted.
+    label : numpy.ndarray
+        The label image to be plotted.
 
-    Returns:
+    Returns
+    -------
     None
     """
     fig = plt.figure(figsize=(12, 4))
@@ -479,14 +515,19 @@ def plot_images_and_labels(img, label):
 
 def calculate_iou(poly1, poly2):
     """
-    Calculates the Intersection over Union (IoU) between two polygons.
+    Calculate the Intersection over Union (IoU) between two polygons.
 
-    Parameters:
-    poly1 (Polygon): The first polygon.
-    poly2 (Polygon): The second polygon.
+    Parameters
+    ----------
+    poly1 : Polygon
+        The first polygon.
+    poly2 : Polygon
+        The second polygon.
 
-    Returns:
-    iou (float): The IoU value between the two polygons.
+    Returns
+    -------
+    iou : float
+        The IoU value between the two polygons.
     """
     with warnings.catch_warnings():
         warnings.simplefilter("ignore", RuntimeWarning)
@@ -499,11 +540,15 @@ def pick_most_similar_polygon(polygons):
     """
     Picks the 'most similar' polygon from a list of polygons based on the average IoU scores.
 
-    Args:
-        polygons (list): A list of polygons.
+    Parameters
+    ----------
+    polygons : list
+        A list of polygons.
 
-    Returns:
-        most_similar_polygon (polygon): The most similar polygon.
+    Returns
+    -------
+    most_similar_polygon : Polygon
+        The most similar polygon.
 
     """
     # Calculate the average IoU for each polygon
@@ -523,24 +568,41 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
     """
     Perform segmentation using the SAM algorithm.
 
-    Parameters:
-    - sam (SamPredictor): The SAM model.
-    - big_im (numpy.ndarray): The input image.
-    - big_im_pred (numpy.ndarray): The output of the Unet segmentation.
-    - coords (numpy.ndarray): The coordinates of the SAM prompts.
-    - labels (numpy.ndarray): The labeled image that comes from the 'label_grains' function.
-    - min_area (int): The minimum area of the grains, in pixels.
-    - plot_image (bool): Whether to plot the segmented image. Default is False.
-    - remove_edge_grains (bool): Whether to remove grains that are touching the edge of the image. Default is False.
-    - remove_large_objects (bool): Whether to remove large objects. Default is False. This is useful when the segmentation result is not very good.
+    Parameters
+    ----------
+    sam : SamPredictor
+        The SAM model.
+    big_im : numpy.ndarray
+        The input image.
+    big_im_pred : numpy.ndarray
+        The output of the Unet segmentation.
+    coords : numpy.ndarray
+        The coordinates of the SAM prompts.
+    labels : numpy.ndarray
+        The labeled image that comes from the 'label_grains' function.
+    min_area : int
+        The minimum area of the grains, in pixels.
+    plot_image : bool, optional
+        Whether to plot the segmented image. Default is False.
+    remove_edge_grains : bool, optional
+        Whether to remove grains that are touching the edge of the image. Default is False.
+    remove_large_objects : bool, optional
+        Whether to remove large objects. Default is False. This is useful when the segmentation result is not very good.
 
-    Returns:
-    - all_grains (list): List of polygons representing the segmented grains.
-    - labels (numpy.ndarray): The labeled image.
-    - mask_all (numpy.ndarray): The mask of all grains.
-    - grain_data (pandas.DataFrame): DataFrame containing properties of each grain.
-    - fig (matplotlib.figure.Figure): The figure object if plot_image is True, otherwise None.
-    - ax (matplotlib.axes.Axes): The axes object if plot_image is True, otherwise None.
+    Returns
+    -------
+    all_grains : list
+        List of polygons representing the segmented grains.
+    labels : numpy.ndarray
+        The labeled image.
+    mask_all : numpy.ndarray
+        The mask of all grains.
+    grain_data : pandas.DataFrame
+        DataFrame containing properties of each grain.
+    fig : matplotlib.figure.Figure or None
+        The figure object if plot_image is True, otherwise None.
+    ax : matplotlib.axes.Axes or None
+        The axes object if plot_image is True, otherwise None.
     """
     predictor = SamPredictor(sam)
     predictor.set_image(big_im)
@@ -637,13 +699,21 @@ def find_connected_components(all_grains, min_area):
     """
     Finds connected components in a graph of overlapping polygons.
 
-    Args:
-        all_grains (list): List of polygons representing all grains.
-        min_area (float): Minimum area threshold for valid grains.
+    Parameters
+    ----------
+    all_grains : list
+        List of polygons representing all grains.
+    min_area : float
+        Minimum area threshold for valid grains.
 
-    Returns:
-        new_grains (list): List of polygons that do not overlap and have an area greater than min_area.
-        comps (list): List of sets, where each set represents a connected component of overlapping polygons.
+    Returns
+    -------
+    new_grains : list
+        List of polygons that do not overlap and have an area greater than min_area.
+    comps : list
+        List of sets, where each set represents a connected component of overlapping polygons.
+    g : networkx.Graph
+        The graph of overlapping polygons.
     """
     overlapping_polygons = find_overlapping_polygons(all_grains)
     g = nx.Graph(overlapping_polygons)
@@ -666,21 +736,29 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
     """
     Merge overlapping polygons in a connected component.
 
-    This function takes a list of all polygons, a list of polygons that do not overlap with other polygons, 
+    This function takes a list of all polygons, a list of polygons that do not overlap with other polygons,
     a list of connected components, a minimum area threshold, and the Unet prediction.
     It iterates over each connected component and merges the overlapping polygons within that component.
     The most similar polygon is selected as the representative polygon for the merged region.
     If the area of the representative polygon is greater than the minimum area threshold, it is added to the new polygons list.
 
-    Args:
-        all_grains (list): List of all polygons.
-        new_grains (list): List of polygons that do not overlap each other.
-        comps (list): List of connected components.
-        min_area (float): Minimum area threshold.
+    Parameters
+    ----------
+    all_grains : list
+        List of all polygons.
+    new_grains : list
+        List of polygons that do not overlap each other.
+    comps : list
+        List of connected components.
+    min_area : float
+        Minimum area threshold.
+    big_im_pred : numpy.ndarray
+        The Unet prediction.
 
-    Returns:
-        list: List of merged polygons.
-
+    Returns
+    -------
+    all_grains : list
+        List of merged polygons.
     """
     for j in trange(len(comps)): # deal with the overlapping objects, one connected component at a time
         polygons = [] # polygons in the connected component
@@ -757,12 +835,17 @@ def rasterize_grains(all_grains, big_im):
     """
     Rasterizes a list of polygons representing grains into an array of labels.
 
-    Args:
-        all_grains (list): A list of polygons representing grains.
-        big_im (numpy.ndarray): The input image.
+    Parameters
+    ----------
+    all_grains : list
+        A list of polygons representing grains.
+    big_im : numpy.ndarray
+        The input image.
 
-    Returns:
-        numpy.ndarray: The rasterized array of labels.
+    Returns
+    -------
+    numpy.ndarray
+        The rasterized array of labels.
 
     """
     labels = np.arange(1, len(all_grains)+1)
@@ -787,15 +870,23 @@ def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     """
     Create a labeled image based on the provided grains and input images.
 
-    Parameters:
-    - all_grains (list): List of shapely Polygon objects representing the grains.
-    - big_im (numpy.ndarray): Input image.
-    - big_im_pred (numpy.ndarray): Predicted image (based on Unet model).
-    - min_area (int): Minimum area threshold for filtering grains.
+    Parameters
+    ----------
+    all_grains : list
+        List of shapely Polygon objects representing the grains.
+    big_im : numpy.ndarray
+        Input image.
+    big_im_pred : numpy.ndarray
+        Predicted image (based on Unet model).
+    min_area : int
+        Minimum area threshold for filtering grains.
 
-    Returns:
-    - rasterized (numpy.ndarray): Labeled image where each grain is assigned a unique label.
-    - mask_all (numpy.ndarray): Binary mask indicating the presence of grains and their boundaries.
+    Returns
+    -------
+    rasterized : numpy.ndarray
+        Labeled image where each grain is assigned a unique label.
+    mask_all : numpy.ndarray
+        Binary mask indicating the presence of grains and their boundaries.
     """
     rasterized = rasterize_grains(all_grains, big_im) # rasterize grains
     boundaries = []
@@ -812,16 +903,25 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
     """
     Predicts the location of grains in a large image using a patch-based approach.
 
-    Args:
-        fname (str): The file path of the input image.
-        model: The Unet model used forthe preliminary grain prediction.
-        sam: The SAM model used for grain segmentation.
-        min_area (int): The minimum area threshold for valid grains.
-        patch_size (int, optional): The size of each patch. Defaults to 4000.
-        overlap (int, optional): The overlap between patches. Defaults to 400.
+    Parameters
+    ----------
+    fname : str
+        The file path of the input image.
+    model : tensorflow.keras.Model
+        The Unet model used for the preliminary grain prediction.
+    sam : SamPredictor
+        The SAM model used for grain segmentation.
+    min_area : int
+        The minimum area threshold for valid grains.
+    patch_size : int, optional
+        The size of each patch. Defaults to 4000.
+    overlap : int, optional
+        The overlap between patches. Defaults to 400.
 
-    Returns:
-        list: A list of grains represented as polygons.
+    Returns
+    -------
+    All_Grains : list
+        A list of grains represented as polygons.
 
     """
     step_size = patch_size - overlap  # step size for overlapping patches
@@ -850,13 +950,21 @@ def load_and_preprocess(image_path, mask_path, augmentations=False):
     """
     Load and preprocess an image and its corresponding mask.
 
-    Args:
-        image_path (str): The file path of the image.
-        mask_path (str): The file path of the mask.
-        augmentations (bool, optional): Whether to apply augmentations to the image. Defaults to False.
+    Parameters
+    ----------
+    image_path : str
+        The file path of the image.
+    mask_path : str
+        The file path of the mask.
+    augmentations : bool, optional
+        Whether to apply augmentations to the image. Defaults to False.
 
-    Returns:
-        tuple: A tuple containing the preprocessed image and its corresponding mask.
+    Returns
+    -------
+    image : numpy.ndarray
+        the preprocessed image.
+    mask : numpy.ndarray
+        the preprocessed mask.
     """
     # Load image
     image = tf.io.read_file(image_path)
@@ -893,12 +1001,22 @@ def onclick(event, ax, coords, image, predictor):
     If right mouse button is clicked, the point is used as background (label=0) and the 
     current mask is adjusted accordingly (if possible).
 
-    Parameters:
-    - event: The mouse click event object.
-    - ax: The matplotlib Axes object.
-    - coords: A list to store the coordinates of the clicked points.
-    - image: The image data.
-    - predictor: The predictor object for segmentation.
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.MouseEvent
+        The mouse click event object.
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object.
+    coords : list
+        A list to store the coordinates of the clicked points.
+    image : numpy.ndarray
+        The image data.
+    predictor : SamPredictor
+        The predictor object for segmentation.
+
+    Returns
+    -------
+    None
     """
     x, y = event.xdata, event.ydata
     if event.button == 1: # left mouse button for object
@@ -915,10 +1033,14 @@ def onpress(event, ax, fig):
     """
     Handle key press events for deleting or merging polygons.
 
-    Parameters:
-    - event: The key press event object.
-    - ax: The matplotlib Axes object.
-    - fig: The matplotlib Figure object.
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.KeyEvent
+        The key press event object.
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object.
+    fig : matplotlib.figure.Figure
+        The matplotlib Figure object.
     """
     sys.stdout.flush()
     if event.key == 'x': # delete last polygon
@@ -944,11 +1066,16 @@ def onclick2(event, all_grains, grain_inds, ax, select_only=False):
     based on mouse click events. The selected grains then are either deleted or merged,
     using the 'onpress2' function.
 
-    Parameters:
-    - event: The mouse click event object.
-    - all_grains: A list of all the grains (polygons).
-    - grain_inds: A list to store the indices of the selected grains.
-    - ax: The matplotlib Axes object representing the plot.
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.MouseEvent
+        The mouse click event object.
+    all_grains : list
+        A list of all the grains (polygons).
+    grain_inds : list
+        A list to store the indices of the selected grains.
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object representing the plot.
     """
     x, y = event.xdata, event.ydata
     point = Point(x, y)
@@ -963,12 +1090,18 @@ def onpress2(event, all_grains, grain_inds, fig, ax):
     """
     Handle key press events when deleting or merging grains.
 
-    Parameters:
-    - event: The key press event object.
-    - all_grains: A list of all grains (polygons).
-    - grain_inds: A list of indices corresponding to the grains.
-    - fig: The figure object.
-    - ax: The axes object.
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.KeyEvent
+        The key press event object.
+    all_grains : list
+        A list of all grains (polygons).
+    grain_inds : list
+        A list of indices corresponding to the grains.
+    fig : matplotlib.figure.Figure
+        The figure object.
+    ax : matplotlib.axes.Axes
+        The axes object.
     """
     sys.stdout.flush()
     if event.key == 'x': # delete last polygon
@@ -1008,9 +1141,12 @@ def click_for_scale(event, ax):
     Handles mouse click events to measure the distance between two points on a plot.
     Prints the distance between the two points in number of pixels.
 
-    Parameters:
-    - event: The mouse click event object.
-    - ax: The matplotlib Axes object representing the plot.
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.MouseEvent
+        The mouse click event object.
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object representing the plot.
     """
     global x1, x2, y1, y2, dist
     if event.button == 1: # left mouse button for start point of scale
@@ -1027,19 +1163,27 @@ def click_for_scale(event, ax):
 
 def get_grains_from_patches(ax, image):
     """
-    Extracts grains from patches on a plot and creates a labeled image based on the updated set of grains.
+    Extract grains from patches on a plot and create a labeled image based on the updated set of grains.
 
-    Parameters:
-    - ax: The matplotlib Axes object containing the patches.
-    - image: The input image.
+    Parameters
+    ----------
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object containing the patches.
+    image : numpy.ndarray
+        The input image.
 
-    Returns:
-    - all_grains: A list of Polygon objects representing the extracted grains.
-    - labels: The labeled image where each grain is assigned a unique label.
-    - mask_all: The binary mask image where grains and their boundaries are marked.
-    - fig: The matplotlib Figure object.
-    - ax: The matplotlib Axes object.
-
+    Returns
+    -------
+    all_grains : list
+        A list of Polygon objects representing the extracted grains.
+    labels : numpy.ndarray
+        The labeled image where each grain is assigned a unique label.
+    mask_all : numpy.ndarray
+        The binary mask image where grains and their boundaries are marked.
+    fig : matplotlib.figure.Figure
+        The matplotlib Figure object.
+    ax : matplotlib.axes.Axes
+        The matplotlib Axes object.
     """
     all_grains = []
     for i in trange(len(ax.patches)):
@@ -1071,17 +1215,22 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_ima
     """
     Plot image with randomly colored grain masks.
 
-    Parameters:
-    - image: numpy.ndarray
+    Parameters
+    ----------
+    image : numpy.ndarray
         The input image to be plotted.
-    - all_grains: list
+    all_grains : list
         A list of shapely Polygon objects representing the grain masks.
-    - ax: matplotlib.axes.Axes
+    ax : matplotlib.axes.Axes
         The axes object on which to plot the image and grain masks.
-    - cmap: str, optional
+    cmap : str, optional
         The name of the colormap to use for coloring the grain masks. Default is 'viridis'.
-    - transparency: float, optional
-        The transparency level of the image. Default is 0.0 (fully opaque).
+    plot_image : bool, optional
+        Whether to plot the image. Default is True.
+
+    Returns
+    -------
+    None
     """
     # Get the colormap object
     cmap = plt.cm.get_cmap(cmap)
@@ -1105,12 +1254,22 @@ def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersiz
     """
     Plot the axes and centroids of each grain on the given axis.
 
-    Parameters:
-    - all_grains: List of all grains.
-    - labels: Array of labeled regions.
-    - ax: The axis object to plot on.
-    - linewidth: Width of the lines to plot (default: 1).
-    - markersize: Size of the markers to plot (default: 10).
+    Parameters
+    ----------
+    all_grains : list
+        List of all grains.
+    labels : numpy.ndarray
+        Array of labeled regions.
+    ax : matplotlib.axes.Axes
+        The axis object to plot on.
+    linewidth : int, optional
+        Width of the lines to plot (default is 1).
+    markersize : int, optional
+        Size of the markers to plot (default is 10).
+
+    Returns
+    -------
+    None
     """
     regions = regionprops(labels.astype('int'))
     for ind in range(len(all_grains)-1):
@@ -1128,16 +1287,25 @@ def classify_points(feature1, feature2, x1, y1, x2, y2):
     """
     Classifies points based on their position relative to a line.
 
-    Args:
-        feature1 (list): List of x-coordinates of the points.
-        feature2 (list): List of y-coordinates of the points.
-        x1 (float): x-coordinate of the first point on the line.
-        y1 (float): y-coordinate of the first point on the line.
-        x2 (float): x-coordinate of the second point on the line.
-        y2 (float): y-coordinate of the second point on the line.
+    Parameters
+    ----------
+    feature1 : list
+        List of x-coordinates of the points.
+    feature2 : list
+        List of y-coordinates of the points.
+    x1 : float
+        x-coordinate of the first point on the line.
+    y1 : float
+        y-coordinate of the first point on the line.
+    x2 : float
+        x-coordinate of the second point on the line.
+    y2 : float
+        y-coordinate of the second point on the line.
 
-    Returns:
-        list: List of classifications for each point. Each classification is either 0 (on or one side of the line) or 1 (the other side of the line).
+    Returns
+    -------
+    list
+        List of classifications for each point. Each classification is either 0 (on or one side of the line) or 1 (the other side of the line).
 
     """
     # Line equation coefficients
