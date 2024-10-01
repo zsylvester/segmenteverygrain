@@ -27,6 +27,10 @@
 - rtree
 - tqdm
 
+## Documentation
+
+More documentation is available at [https://zsylvester.github.io/segmenteverygrain/index.html](https://zsylvester.github.io/segmenteverygrain/index.html).
+
 ## Installation
 
 'segmenteverygrain' is available through pypi.org, so you can install it by running
