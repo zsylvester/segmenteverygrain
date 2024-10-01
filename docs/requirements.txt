@@ -1,2 +1,17 @@
 sphinx
 sphinx-rtd-theme
+pandas
+numpy
+matplotlib
+tqdm
+newtworkx
+rasterio
+warnings
+scikit-image
+shapely
+scipy
+scikit-learn
+rtree
+itertools
+tensorflow
+segment-anything
