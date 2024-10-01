@@ -13,7 +13,7 @@ MOCK_MODULES = ["numpy", "matplotlib", "matplotlib.pyplot", "pandas", "scipy", "
     "rtree", "itertools", "networkx", "rasterio", "rasterio.features", "shapely", "tensorflow", "segment-anything",
     "skimage.measure", "skimage.morphology", "skimage.segmentation", "skimage.feature", "shapely.geometry", "shapely.affinity",
     "scipy.ndimage", "sklearn.cluster", "tensorflow.keras.models", "tensorflow.keras.layers", 
-    "tensorflow.keras.preprocessing.image", "segment-anything",]
+    "tensorflow.keras.preprocessing.image", "segment_anything"]
 for mod_name in MOCK_MODULES:
     sys.modules[mod_name] = mock.Mock()
 
