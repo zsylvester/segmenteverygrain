@@ -14,12 +14,13 @@ from skimage.morphology import binary_erosion, binary_dilation
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 
-from shapely.geometry import Polygon, Point
+from shapely.geometry import Polygon, Point, MultiPolygon
 from shapely.affinity import translate
 import scipy.ndimage as ndi
 from sklearn.cluster import DBSCAN
 import rtree
 from tqdm import trange
+import itertools
 
 import tensorflow as tf
 from tensorflow.keras.models import Model
@@ -130,30 +131,6 @@ def predict_image(big_im, model, I):
     big_im_pred = big_im_pred[:, I2:-I2, :] # crop the left and right side padding
     big_im_pred = big_im_pred[:-pad_rows, :-pad_cols, :] # get rid of padding
     return big_im_pred
-
-def compute_curvature(x,y):
-    """
-    Compute first derivatives and curvature of a curve.
-
-    Parameters
-    ----------
-    x : 1D array
-        x-coordinates of the curve
-    y : 1D array
-        y-coordinates of the curve
-
-    Returns
-    -------
-    curvature : 1D array
-        curvature of the curve (in 1/units of x and y)
-    """
-
-    dx = np.gradient(x) # first derivatives
-    dy = np.gradient(y)      
-    ddx = np.gradient(dx) # second derivatives 
-    ddy = np.gradient(dy) 
-    curvature = (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
-    return curvature
 
 def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
     """
@@ -311,13 +288,13 @@ def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
 
     Parameters
     ----------
-        x1 : int
+        x1 : float
             x-coordinate of the first point
-        y1 : int
+        y1 : float
             y-coordinate of the first point
-        x2 : int 
+        x2 : float 
             x-coordinate of the second point
-        y2 : int 
+        y2 : float 
             y-coordinate of the second point
         ax : matplotlib.axes.Axes
             The axes to plot the segmentation result
@@ -566,7 +543,7 @@ def pick_most_similar_polygon(polygons):
 
 def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_image=False, remove_edge_grains=False, remove_large_objects=False):
     """
-    Perform segmentation using the SAM algorithm.
+    Perform segmentation using the Segment Anything Model (SAM).
 
     Parameters
     ----------
@@ -728,9 +705,6 @@ def find_connected_components(all_grains, min_area):
                 all_grains[i] = all_grains[i].buffer(0)
             new_grains.append(all_grains[i])
     return new_grains, comps, g
-
-import itertools
-from shapely.geometry import MultiPolygon
 
 def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred):
     """
@@ -1325,3 +1299,27 @@ def classify_points(feature1, feature2, x1, y1, x2, y2):
         else:
             classifications.append(0)  # On the line
     return classifications
+
+def compute_curvature(x,y):
+    """
+    Compute first derivatives and curvature of a curve.
+
+    Parameters
+    ----------
+    x : 1D array
+        x-coordinates of the curve
+    y : 1D array
+        y-coordinates of the curve
+
+    Returns
+    -------
+    curvature : 1D array
+        curvature of the curve (in 1/units of x and y)
+    """
+
+    dx = np.gradient(x) # first derivatives
+    dy = np.gradient(y)      
+    ddx = np.gradient(dx) # second derivatives 
+    ddy = np.gradient(dy) 
+    curvature = (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
+    return curvature
