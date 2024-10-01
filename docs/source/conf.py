@@ -26,6 +26,13 @@ mock_pandas = sys.modules['pandas']
 mock_pandas.DataFrame.return_value = mock.Mock()
 mock_pandas.DataFrame.return_value.__iter__ = lambda x: iter([])
 
+# Mock common iterable methods for other modules
+for mod_name in MOCK_MODULES:
+    mock_module = sys.modules[mod_name]
+    mock_module.items.return_value = iter([])
+    mock_module.keys.return_value = iter([])
+    mock_module.values.return_value = iter([])
+
 
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
