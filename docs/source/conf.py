@@ -3,6 +3,13 @@
 # For the full list of built-in configuration values, see the documentation:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html
 
+from unittest import mock
+
+# Mock open3d because it fails to build in readthedocs
+MOCK_MODULES = ["numpy", "matplotlib", "pandas", "scipy", "scikit-image", "scikit-learn", "tqdm", "opencv-python", "rtree", "itertools", "networkx", "rasterio", "shapely", "tensorflow", "segment-anything"]
+for mod_name in MOCK_MODULES:
+    sys.modules[mod_name] = mock.Mock()
+
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
