@@ -4,7 +4,7 @@ pandas
 numpy
 matplotlib
 tqdm
-newtworkx
+networkx
 rasterio
 warnings
 scikit-image
