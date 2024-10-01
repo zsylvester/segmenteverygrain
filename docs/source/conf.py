@@ -9,7 +9,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 from unittest import mock
 
 # Mock open3d because it fails to build in readthedocs
-MOCK_MODULES = ["numpy", "matplotlib", "matplotlib.pyplot", "pandas", "scipy", "scikit-image", "scikit-learn", "tqdm", 
+MOCK_MODULES = ["numpy", "matplotlib", "matplotlib.pyplot", "pandas", "scipy", "skimage", "scikit-learn", "tqdm", 
     "rtree", "itertools", "networkx", "rasterio", "rasterio.features", "shapely", "tensorflow", "segment-anything",
     "skimage.measure", "skimage.morphology", "skimage.segmentation", "skimage.feature", "shapely.geometry", "shapely.affinity",
     "scipy.ndimage", "sklearn.cluster", "tensorflow.keras.models", "tensorflow.keras.layers", "tensorflow.keras.preprocessing.image"]
