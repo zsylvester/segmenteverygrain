@@ -3,10 +3,6 @@ API Reference
 .. toctree::
    :caption: API Reference
 
-.. automodule:: segmenteverygrain
-   :members:
-   :undoc-members:
-
 .. autofunction:: segmenteverygrain.predict_image
 .. autofunction:: segmenteverygrain.predict_large_image
 .. autofunction:: segmenteverygrain.predict_image_tile
