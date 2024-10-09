@@ -14,13 +14,17 @@ from skimage.morphology import binary_erosion, binary_dilation
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 
-from shapely.geometry import Polygon, Point, MultiPolygon
+from shapely.geometry import Polygon, Point, MultiPolygon, mapping, shape
 from shapely.affinity import translate
 import scipy.ndimage as ndi
+from sklearn.model_selection import train_test_split
 from sklearn.cluster import DBSCAN
 import rtree
-from tqdm import trange
 import itertools
+from glob import glob 
+import os
+from PIL import Image
+import json
 
 import tensorflow as tf
 from tensorflow.keras.models import Model
@@ -29,6 +33,7 @@ from tensorflow.keras.layers import Conv2D, Conv2DTranspose
 from tensorflow.keras.layers import MaxPooling2D
 from tensorflow.keras.layers import concatenate
 from tensorflow.keras.preprocessing.image import load_img
+from tensorflow.keras.optimizers import Adam
 
 from segment_anything import SamPredictor
 
@@ -174,42 +179,45 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
     # Find the object with the largest area:
     label_counts = np.bincount(temp_labels.ravel())
     labels = np.where(label_counts > 100)[0][1:]
-    largest_label = np.argmax(label_counts[1:]) + 1
-    for label in labels:
-        temp_labels[temp_labels == label] = largest_label
-    bounds[temp_labels != largest_label] = 0
-    bounds = bounds-1
-    bounds[bounds < 0] = 1
-    bounds = bounds.astype('bool')
-    distance = ndi.distance_transform_edt(bounds)
-    coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=bounds.astype('bool'))
-    background_probs = big_im_pred[:,:,0][coords[:,0], coords[:,1]]
-    inds = np.where(background_probs < 0.3)[0]
-    coords = coords[inds, :]
-    mask = np.zeros(distance.shape, dtype=bool)
-    mask[tuple(coords.T)] = True
-    markers, _ = ndi.label(mask)
-    labels = watershed(-distance, markers, mask=bounds)
-    props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
-                                                                                    'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
-    grain_data = pd.DataFrame(props)
-    if len(grain_data) > 0:
-        coords = np.vstack((grain_data['centroid-1'].values, grain_data['centroid-0'].values)).T
-        # Create a DBSCAN clustering object
-        dbscan = DBSCAN(eps=dbs_max_dist, min_samples=2)
-        # Fit the data to the DBSCAN object
-        dbscan.fit(np.vstack((grain_data['centroid-1'], grain_data['centroid-0'])).T)
-        # Get the cluster labels for each point (-1 represents noise/outliers)
-        db_labels = dbscan.labels_
-        coords_ws = coords[np.where(db_labels == -1)[0]]
-        for i in np.unique(db_labels):
-            xy = np.mean(coords[np.where(db_labels == i)[0]], axis=0)
-            coords_ws = np.vstack((coords_ws, xy))
-        coords_ws = coords_ws.astype('int32')
-        background_probs = big_im_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
-        inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
-        coords_ws = coords_ws[inds, :]
-        all_coords = np.vstack((coords_ws, coords_simple))
+    if len(label_counts[1:]) > 0:
+        largest_label = np.argmax(label_counts[1:]) + 1
+        for label in labels:
+            temp_labels[temp_labels == label] = largest_label
+        bounds[temp_labels != largest_label] = 0
+        bounds = bounds-1
+        bounds[bounds < 0] = 1
+        bounds = bounds.astype('bool')
+        distance = ndi.distance_transform_edt(bounds)
+        coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=bounds.astype('bool'))
+        background_probs = big_im_pred[:,:,0][coords[:,0], coords[:,1]]
+        inds = np.where(background_probs < 0.3)[0]
+        coords = coords[inds, :]
+        mask = np.zeros(distance.shape, dtype=bool)
+        mask[tuple(coords.T)] = True
+        markers, _ = ndi.label(mask)
+        labels = watershed(-distance, markers, mask=bounds)
+        props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+                                                                                        'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
+        grain_data = pd.DataFrame(props)
+        if len(grain_data) > 0:
+            coords = np.vstack((grain_data['centroid-1'].values, grain_data['centroid-0'].values)).T
+            # Create a DBSCAN clustering object
+            dbscan = DBSCAN(eps=dbs_max_dist, min_samples=2)
+            # Fit the data to the DBSCAN object
+            dbscan.fit(np.vstack((grain_data['centroid-1'], grain_data['centroid-0'])).T)
+            # Get the cluster labels for each point (-1 represents noise/outliers)
+            db_labels = dbscan.labels_
+            coords_ws = coords[np.where(db_labels == -1)[0]]
+            for i in np.unique(db_labels):
+                xy = np.mean(coords[np.where(db_labels == i)[0]], axis=0)
+                coords_ws = np.vstack((coords_ws, xy))
+            coords_ws = coords_ws.astype('int32')
+            background_probs = big_im_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
+            inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
+            coords_ws = coords_ws[inds, :]
+            all_coords = np.vstack((coords_ws, coords_simple))
+        else:
+            all_coords = coords_simple
     else:
         all_coords = coords_simple
     return labels_simple, all_coords
@@ -247,38 +255,49 @@ def one_point_prompt(x, y, image, predictor, ax=False):
         point_labels=input_label,
         multimask_output=True,
     )
-    ind = np.argmax(scores)
-    if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) > 0.1: # if mask is very large compared to size of the image
-        scores = np.delete(scores, ind)
+    new_masks = []
+    new_scores = []
+    if len(masks) > 1:
+        for ind in range(len(masks)):
+            if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) <= 0.1: # if mask is very large compared to size of the image
+                new_scores.append(scores[ind])
+                if masks.ndim > 2:
+                    new_masks.append(masks[ind, :, :])
+                else:
+                    new_masks.append(masks)
+    if len(new_masks) > 0:
+        masks = new_masks
+        scores = new_scores
         ind = np.argmax(scores)
-    temp_labels, n_elems = measure.label(masks[ind], return_num = True, connectivity=1)
-    if n_elems > 1: # if the mask has more than one element, find the largest one and delete the rest
-        mask = masks[ind]
-        # Find the object with the largest area
-        label_counts = np.bincount(temp_labels.ravel())
-        largest_label = np.argmax(label_counts[1:]) + 1
-        mask[temp_labels != largest_label] = 0
-    else:
-        mask = masks[ind]
-    contours = measure.find_contours(mask, 0.5)
-    if len(contours) > 0:
-        sx = contours[0][:,1]
-        sy = contours[0][:,0]
-    else:
-        sx = []; sy = []
-    if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
-        mask = np.pad(mask, 1, mode='constant')
+        temp_labels, n_elems = measure.label(masks[ind], return_num = True, connectivity=1)
+        if n_elems > 1: # if the mask has more than one element, find the largest one and delete the rest
+            mask = masks[ind]
+            # Find the object with the largest area
+            label_counts = np.bincount(temp_labels.ravel())
+            largest_label = np.argmax(label_counts[1:]) + 1
+            mask[temp_labels != largest_label] = 0
+        else:
+            mask = masks[ind]
         contours = measure.find_contours(mask, 0.5)
-        sx = contours[0][:,1]
-        sy = contours[0][:,0]
-        if np.any(mask[1, :]):
-            sy = sy-1
-        if np.any(mask[:,1]):
-            sx = sx-1
-        mask = mask[1:-1, 1:-1]
-    if len(sx) > 0 and ax:
-        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-        ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
+        if len(contours) > 0:
+            sx = contours[0][:,1]
+            sy = contours[0][:,0]
+        else:
+            sx = []; sy = []
+        if np.any(mask[0, :]) or np.any(mask[-1, :]) or np.any(mask[:, 0]) or np.any(mask[0, -1]):
+            mask = np.pad(mask, 1, mode='constant')
+            contours = measure.find_contours(mask, 0.5)
+            sx = contours[0][:,1]
+            sy = contours[0][:,0]
+            if np.any(mask[1, :]):
+                sy = sy-1
+            if np.any(mask[:,1]):
+                sx = sx-1
+            mask = mask[1:-1, 1:-1]
+        if len(sx) > 0 and ax:
+            color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+            ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
+    else: sx = []; sy = []; mask = np.zeros_like(image[:,:,0])
     return sx, sy, mask
 
 def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
@@ -589,22 +608,23 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         x = coords[i,0]
         y = coords[i,1]
         sx, sy, mask = one_point_prompt(x, y, big_im, predictor)
-        if remove_edge_grains and np.sum(np.hstack([mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T])) == 0: # if the mask is not touching too much the edge of the image
-            labels_in_mask = np.unique(labels[mask])
-            large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100] # if the mask contains a large grain
-            if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
-                poly = Polygon(np.vstack((sx, sy)).T)
-                if not poly.is_valid:
-                    poly = poly.buffer(0)
-                all_grains.append(poly)
-        if not remove_edge_grains:
-            labels_in_mask = np.unique(labels[mask])
-            large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100]
-            if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
-                poly = Polygon(np.vstack((sx, sy)).T)
-                if not poly.is_valid:
-                    poly = poly.buffer(0)
-                all_grains.append(poly)
+        if np.max(mask) > 0:
+            if remove_edge_grains and np.sum(np.hstack([mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T])) == 0: # if the mask is not touching too much the edge of the image
+                labels_in_mask = np.unique(labels[mask])
+                large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100] # if the mask contains a large grain
+                if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
+                    poly = Polygon(np.vstack((sx, sy)).T)
+                    if not poly.is_valid:
+                        poly = poly.buffer(0)
+                    all_grains.append(poly)
+            if not remove_edge_grains:
+                labels_in_mask = np.unique(labels[mask])
+                large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100]
+                if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
+                    poly = Polygon(np.vstack((sx, sy)).T)
+                    if not poly.is_valid:
+                        poly = poly.buffer(0)
+                    all_grains.append(poly)
 
     print('finding overlapping polygons...')
     new_grains, comps, g = find_connected_components(all_grains, min_area)
@@ -635,17 +655,18 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
             Nodes += nodes
 
         classifications = classify_points(N_neighbors_before, N_neighbors_after, 10, 0, 60, 25)
-        cluster_0_mean = np.nanmean(np.array(N_neighbors_after)[np.array(classifications)==0])
-        cluster_1_mean = np.nanmean(np.array(N_neighbors_after)[np.array(classifications)==1])
-        if cluster_0_mean > cluster_1_mean: # the cluster with the larger number of neighbors after pruning the components is the one that we want to keep
-            all_grains = np.array(all_grains)[np.array(Nodes)[np.array(classifications)==0]]
-        else:
-            all_grains = np.array(all_grains)[np.array(Nodes)[np.array(classifications)==1]]
+        if len(np.unique(classifications)) > 1:
+            cluster_0_mean = np.nanmean(np.array(N_neighbors_after)[np.array(classifications)==0])
+            cluster_1_mean = np.nanmean(np.array(N_neighbors_after)[np.array(classifications)==1])
+            if cluster_0_mean > cluster_1_mean: # the cluster with the larger number of neighbors after pruning the components is the one that we want to keep
+                all_grains = np.array(all_grains)[np.array(Nodes)[np.array(classifications)==0]]
+            else:
+                all_grains = np.array(all_grains)[np.array(Nodes)[np.array(classifications)==1]]
 
         all_grains = list(all_grains) + new_grains
 
         print('finding overlapping polygons...')
-        new_grains, comps = find_connected_components(all_grains, min_area)
+        new_grains, comps, g = find_connected_components(all_grains, min_area)
 
     print('finding best polygons...')
     all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred)
@@ -653,7 +674,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         print('creating labeled image...')
         labels, mask_all = create_labeled_image(all_grains, big_im, big_im_pred, min_area)
     else:
-        labels = np.zeros_like(big_im)
+        labels = np.zeros_like(big_im[:,:,0])
         mask_all = np.zeros_like(big_im)
     if plot_image:
         fig, ax = plt.subplots(figsize=(15,10))
@@ -666,7 +687,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         plt.ylim([np.shape(big_im)[0], 0])
         plt.tight_layout()
     else:
-        fig, ax = None, None
+        fig, ax = None, None                                                                    
     props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
                                                                                     'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
     grain_data = pd.DataFrame(props)
@@ -747,9 +768,10 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
                 if diff_polygon.area > min_area:
                     diff_raster = rasterize_grains([diff_polygon], big_im_pred)
                     diff_grain = big_im_pred[diff_raster == 1][:,1]
-                    # if a large fraction of the pixels in the difference polygon are grains:
-                    if len(np.where(diff_grain > 0.5)[0])/len(diff_grain) > 0.1:
-                        diff_polys.append(diff_polygon)
+                    if len(diff_grain) > 0:
+                        # if a large fraction of the pixels in the difference polygon are grains:
+                        if len(np.where(diff_grain > 0.5)[0])/len(diff_grain) > 0.1:
+                            diff_polys.append(diff_polygon)
         # deal with the cases when the difference polygons are MultiPolygons:
         polys = []
         for poly in diff_polys:
@@ -873,7 +895,7 @@ def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     rasterized = rasterized.astype('int')
     return rasterized, mask_all
 
-def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=400):
+def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=400, remove_large_objects=False):
     """
     Predicts the location of grains in a large image using a patch-based approach.
 
@@ -891,12 +913,15 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
         The size of each patch. Defaults to 4000.
     overlap : int, optional
         The overlap between patches. Defaults to 400.
+    remove_large_objects : bool, optional
+        Whether to remove large objects from the segmentation. Defaults to False.
 
     Returns
     -------
     All_Grains : list
         A list of grains represented as polygons.
-
+    big_im_pred : numpy.ndarray
+        The Unet predictions for the entire image.
     """
     step_size = patch_size - overlap  # step size for overlapping patches
     big_im = np.array(load_img(fname))
@@ -904,21 +929,38 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
     # loop over the image and extract patches:
     All_Grains = []
     total_patches = ((img_height - patch_size + step_size) // step_size + 1) * ((img_width - patch_size + step_size) // step_size + 1)
+    # Initialize an array to store the Unet predictions for the entire image
+    big_im_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
+    
     for i in range(0, img_height - patch_size + step_size + 1, step_size):
         for j in range(0, img_width - patch_size + step_size + 1, step_size):
             patch = big_im[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)]
             patch_pred = predict_image(patch, model, I=256) # use the Unet model to predict the mask on the patch
+            
+            # Define the weights for blending the overlapping regions
+            weights = np.ones_like(patch_pred)
+            if i > 0:
+                weights[:overlap, :] *= np.linspace(0, 1, overlap)[:, None, None]
+            if j > 0:
+                weights[:, :overlap] *= np.linspace(0, 1, overlap)[None, :, None]
+            if i + patch_size < img_height:
+                weights[-overlap:, :] *= np.linspace(1, 0, overlap)[:, None, None]
+            if j + patch_size < img_width:
+                weights[:, -overlap:] *= np.linspace(1, 0, overlap)[None, :, None]
+
+            # Update big_im_pred with the weighted sum
+            big_im_pred[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)] += patch_pred * weights
             labels, coords = label_grains(patch, patch_pred, dbs_max_dist=20.0)
             if len(coords) > 0: # run the SAM algorithm only if there are grains in the patch
                 all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(sam, patch, patch_pred, coords, labels, \
-                                    min_area=min_area, plot_image=False, remove_edge_grains=True, remove_large_objects=False)
+                                    min_area=min_area, plot_image=False, remove_edge_grains=True, remove_large_objects=remove_large_objects)
                 for grain in all_grains:
                     All_Grains += [translate(grain, xoff=j, yoff=i)] # translate the grains to the original image coordinates
             patch_num = i//step_size*((img_width - patch_size + step_size)//step_size + 1) + j//step_size + 1
             print(f"processed patch #{patch_num} out of {total_patches} patches")
     new_grains, comps, g = find_connected_components(All_Grains, min_area)
     All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area, patch_pred)
-    return All_Grains
+    return All_Grains, big_im_pred
 
 def load_and_preprocess(image_path, mask_path, augmentations=False):
     """
@@ -1323,3 +1365,256 @@ def compute_curvature(x,y):
     ddy = np.gradient(dy) 
     curvature = (dx*ddy-dy*ddx)/((dx**2+dy**2)**1.5)
     return curvature
+
+def patchify_training_data(input_dir, patch_dir):
+    """
+    Extracts patches from training images and labels, and saves them to the specified directory.
+
+    Parameters
+    ----------
+    input_dir : str
+        The directory containing the input images and labels.
+    patch_dir : str
+        The directory where the patches will be saved.
+
+    Returns
+    -------
+    tuple
+        A tuple containing the paths to the directories where the image patches and label patches are saved.
+
+    Notes
+    -----
+    - The function expects the input directory to contain files with 'image' and 'mask' in their filenames.
+    - The patches are extracted with a size of 256x256 pixels and a stride of 128 pixels.
+    - The function creates subdirectories 'images' and 'labels' within the specified patch directory to save the patches.
+    - If the input directory does not exist or contains no matching files, the function will print a warning and return.
+    """
+    if not os.path.exists(input_dir):
+        print(f"Warning: The directory {input_dir} does not exist.")
+        return
+
+    images = sorted(glob(input_dir + "*image*"))
+    labels = sorted(glob(input_dir + "*mask*"))
+
+    if not images or not labels:
+        print(f"Warning: No files containing 'image' or 'mask' found in {input_dir}.")
+        return
+
+    # Create directories for patches
+    patches_dir = os.path.join(patch_dir, "Patches")
+    images_dir = os.path.join(patches_dir, "images")
+    labels_dir = os.path.join(patches_dir, "labels")
+    os.makedirs(images_dir, exist_ok=True)
+    os.makedirs(labels_dir, exist_ok=True)
+
+    start_no = 0
+    for image in tqdm(images):
+        # Load the large image
+        large_image = tf.keras.preprocessing.image.load_img(image)
+        # Convert the image to a tensor
+        large_image = tf.keras.preprocessing.image.img_to_array(large_image)
+        # Reshape the tensor to have a batch size of 1
+        large_image = tf.reshape(large_image, [1, *large_image.shape])
+        # Extract patches from the large image
+        patches = tf.image.extract_patches(
+            images=large_image,
+            sizes=[1, 256, 256, 1],
+            strides=[1, 128, 128, 1],
+            rates=[1, 1, 1, 1],
+            padding='VALID'
+        )
+        # Reshape the patches tensor to have a batch size of -1
+        patches = tf.reshape(patches, [-1, 256, 256, 3])
+        # Write patches to files
+        for i in range(patches.shape[0]):
+            im = np.asarray(patches[i,:,:,:]).astype('uint8')
+            imname = os.path.join(images_dir, 'im%03d.png' % (start_no + i))
+            im = Image.fromarray(im.astype(np.uint8))
+            im.save(imname)
+        start_no = start_no + patches.shape[0]
+
+    start_no = 0
+    for image in tqdm(labels):
+        # Load the large image
+        large_image = tf.keras.preprocessing.image.load_img(image)
+        # Convert the image to a tensor
+        large_image = tf.keras.preprocessing.image.img_to_array(large_image)
+        large_image = large_image[:,:,0,np.newaxis] # only keep one layer and add a new axis
+        # Reshape the tensor to have a batch size of 1
+        large_image = tf.reshape(large_image, [1, *large_image.shape])
+        # Extract patches from the large image
+        patches = tf.image.extract_patches(
+            images=large_image,
+            sizes=[1, 256, 256, 1],
+            strides=[1, 128, 128, 1],
+            rates=[1, 1, 1, 1],
+            padding='VALID'
+        )
+        # Reshape the patches tensor to have a batch size of -1
+        patches = tf.reshape(patches, [-1, 256, 256, 1])
+        # Write patches to files
+        for i in range(patches.shape[0]):
+            im = np.asarray(patches[i,:,:,0]).astype('uint8')
+            imname = os.path.join(labels_dir, 'im%03d.png' % (start_no + i))
+            im = Image.fromarray(im.astype(np.uint8))
+            im.save(imname)
+        start_no = start_no + patches.shape[0]
+    return images_dir, labels_dir
+
+def create_train_val_test_data(image_dir, mask_dir, augmentation=True):
+    """
+    Splits image and mask data into training, validation, and test datasets, with optional augmentation.
+
+    Parameters
+    ----------
+    image_dir : str
+        Directory containing the image files.
+    mask_dir : str
+        Directory containing the mask files.
+    augmentation : bool, optional
+        If True, applies data augmentation to the training dataset (default is True).
+
+    Returns
+    -------
+    train_dataset : tf.data.Dataset
+        TensorFlow dataset for training.
+    val_dataset : tf.data.Dataset
+        TensorFlow dataset for validation.
+    test_dataset : tf.data.Dataset
+        TensorFlow dataset for testing.
+    """
+
+    image_files = sorted(glob(os.path.join(image_dir, '*.png')))
+    mask_files = sorted(glob(os.path.join(mask_dir, '*.png')))
+
+    batch_size = 32
+    shuffle_buffer_size = 1000
+
+    # First, split the data into training + validation and test sets
+    train_val_images, test_images, train_val_masks, test_masks = train_test_split(
+        image_files,
+        mask_files,
+        test_size=0.15,  # 15% of the data for testing
+        random_state=42  
+    )
+    # Then split the training + validation set into training and validation sets
+    train_images, val_images, train_masks, val_masks = train_test_split(
+        train_val_images,
+        train_val_masks,
+        test_size=0.25,  # 25% of the remaining data for validation
+        random_state=42  
+    )
+
+    if augmentation:
+        train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_masks))
+    else:
+        train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_masks, tf.Variable([True] * len(train_images), dtype=tf.bool)))
+    train_dataset = train_dataset.map(load_and_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+    train_dataset = train_dataset.shuffle(shuffle_buffer_size).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+    val_dataset = tf.data.Dataset.from_tensor_slices((val_images, val_masks))
+    val_dataset = val_dataset.map(load_and_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+    val_dataset = val_dataset.shuffle(shuffle_buffer_size).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+    test_dataset = tf.data.Dataset.from_tensor_slices((test_images, test_masks))
+    test_dataset = test_dataset.map(load_and_preprocess, num_parallel_calls=tf.data.AUTOTUNE)
+    test_dataset = test_dataset.shuffle(shuffle_buffer_size).batch(batch_size).prefetch(tf.data.AUTOTUNE)
+
+    return train_dataset, val_dataset, test_dataset
+
+def create_and_train_model(weights_dir, train_dataset, val_dataset, test_dataset, epochs=100):
+    """
+    Create and train a U-Net model.
+
+    Parameters
+    ----------
+    weights_dir : str
+        Path to the directory containing the model weights.
+    train_dataset : tf.data.Dataset
+        Training dataset.
+    val_dataset : tf.data.Dataset
+        Validation dataset.
+    test_dataset : tf.data.Dataset
+        Test dataset.
+    epochs : int, optional
+        Number of epochs to train the model (default is 100).
+
+    Returns
+    -------
+    model : tf.keras.Model
+        Trained U-Net model.
+
+    Notes
+    -----
+    The function will plot the training and validation loss and accuracy over epochs.
+    """
+    model = Unet()
+    model.compile(optimizer=Adam(), loss=weighted_crossentropy, metrics=["accuracy"])
+    model.load_weights(weights_dir)
+    history = model.fit(train_dataset, epochs=epochs, validation_data=val_dataset)
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
+    axes[0].plot(history.history['loss'])
+    axes[0].plot(history.history['val_loss'])
+    axes[0].set_xlabel('epoch')
+    axes[0].set_ylabel('loss')
+    axes[1].plot(history.history['accuracy'])
+    axes[1].plot(history.history['val_accuracy'])
+    axes[1].set_xlabel('epoch')
+    axes[1].set_ylabel('accuracy')
+    model.evaluate(test_dataset)
+    return model
+
+def save_polygons(polygons, fname):
+    """
+    Save a list of polygons to a file in GeoJSON format.
+
+    Parameters
+    ----------
+    polygons : list
+        A list of Shapely polygon objects to be saved.
+    fname : str
+        The filename where the GeoJSON data will be saved.
+
+    Returns
+    -------
+    None
+    """
+    # Convert polygons to GeoJSON-like format
+    geojson_data = {
+        "type": "FeatureCollection",
+        "features": []
+    }
+    for polygon in polygons:
+        feature = {
+            "type": "Feature",
+            "geometry": mapping(polygon),  # Convert Shapely polygon to GeoJSON format
+            "properties": {}
+        }
+        geojson_data["features"].append(feature)
+    # Save to a file
+    with open(fname, 'w') as f:
+        json.dump(geojson_data, f)
+
+def read_polygons(fname):
+    """
+    Reads polygons from a GeoJSON file.
+
+    Parameters
+    ----------
+    fname : str
+        The file path to the GeoJSON file.
+
+    Returns
+    -------
+    list
+        A list of Shapely Polygon objects extracted from the GeoJSON file.
+    """
+    # Load the GeoJSON file
+    with open(fname, 'r') as f:
+        geojson_data = json.load(f)
+    # Extract the polygons
+    polygons = []
+    for feature in geojson_data['features']:
+        geometry = feature['geometry']
+        polygons.append(shape(geometry))  # Convert GeoJSON geometry to Shapely Polygon
+    return polygons
