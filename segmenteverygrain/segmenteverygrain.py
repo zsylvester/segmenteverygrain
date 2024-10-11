@@ -1505,7 +1505,7 @@ def create_train_val_test_data(image_dir, mask_dir, augmentation=True):
         random_state=42  
     )
 
-    if augmentation:
+    if not augmentation:
         train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_masks))
     else:
         train_dataset = tf.data.Dataset.from_tensor_slices((train_images, train_masks, tf.Variable([True] * len(train_images), dtype=tf.bool)))
