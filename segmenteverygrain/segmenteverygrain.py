@@ -2,6 +2,7 @@ import sys
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib.patches import Polygon as mpl_Polygon
 from tqdm import tqdm, trange
 import networkx as nx
 import rasterio
@@ -37,14 +38,16 @@ from tensorflow.keras.optimizers import Adam
 
 from segment_anything import SamPredictor
 
-def predict_image_tile(im_tile,model):
+__version__ = '0.1.9'
+
+def predict_image_tile(im_tile, model):
     """
     Predicts one image tile using a Unet model.
 
     Parameters
     ----------
-    im_tile : 2D or 3D array
-        The image tile for which the prediction will be done. Can have one or more channels.
+    im_tile : 3D array
+        The image tile for which the prediction will be done.
     model
         Tensorflow model used for semantic segmentation.
 
@@ -53,11 +56,17 @@ def predict_image_tile(im_tile,model):
     im_tile_pred : 3D array
         Predicted tile.
     """
-
-    if len(np.shape(im_tile)) == 2:
-        im_tile = np.expand_dims(im_tile, 2)
-    im_tile = model.predict(np.stack((im_tile, im_tile), axis=0), verbose=0)
-    im_tile_pred = im_tile[0] 
+    
+    # Check for invalid input
+    if not isinstance(im_tile, np.ndarray):
+        raise ValueError("Input image tile must be a numpy array.")
+    if len(im_tile.shape) != 3:
+        raise ValueError("Input image tile must be a 3D array.")
+    if len(im_tile.shape) == 3 and im_tile.shape[2] != 3:
+        raise ValueError("3D input image tile must have 3 channels.")
+    im_tile = np.expand_dims(im_tile, axis=0) # add batch dimension
+    im_tile_pred = model.predict(im_tile, verbose=0) # make prediction
+    im_tile_pred = im_tile_pred[0] # remove batch dimension
     return im_tile_pred
 
 def predict_image(big_im, model, I):
@@ -79,12 +88,19 @@ def predict_image(big_im, model, I):
         Semantic segmentation result for the input image.
     """
 
+    # Check for invalid input
+    if not isinstance(big_im, np.ndarray):
+        raise ValueError("Input image must be a numpy array.")
+    if big_im.ndim not in [2, 3]:
+        raise ValueError("Input image must be a 2D or 3D array.")
+    if big_im.ndim == 3 and big_im.shape[2] not in [1, 3]:
+        raise ValueError("3D input image must have 1 or 3 channels.")
+
     pad_rows = I - np.mod(big_im.shape[0], I)
     pad_cols = I - np.mod(big_im.shape[1], I)
-    if len(np.shape(big_im)) == 2:
-        big_im = np.vstack((big_im, np.zeros((pad_rows, big_im.shape[1]))))
-        big_im = np.hstack((big_im, np.zeros((big_im.shape[0], pad_cols))))
-    if len(np.shape(big_im)) == 3:
+    if big_im.ndim == 2:
+        big_im = np.stack((big_im, big_im, big_im), axis=-1) # convert to 3 channels
+    if big_im.ndim == 3:
         big_im = np.vstack((big_im, np.zeros((pad_rows, big_im.shape[1], big_im.shape[2]))))
         big_im = np.hstack((big_im, np.zeros((big_im.shape[0], pad_cols, big_im.shape[2]))))
     r = int(np.floor(big_im.shape[0]/I)) # number of rows of image tiles
@@ -259,7 +275,7 @@ def one_point_prompt(x, y, image, predictor, ax=False):
     new_scores = []
     if len(masks) > 1:
         for ind in range(len(masks)):
-            if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) <= 0.1: # if mask is very large compared to size of the image
+            if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) <= 0.5: # if mask is very large compared to size of the image
                 new_scores.append(scores[ind])
                 if masks.ndim > 2:
                     new_masks.append(masks[ind, :, :])
@@ -300,7 +316,7 @@ def one_point_prompt(x, y, image, predictor, ax=False):
     else: sx = []; sy = []; mask = np.zeros_like(image[:,:,0])
     return sx, sy, mask
 
-def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
+def two_point_prompt(x1, y1, x2, y2, image, predictor, ax=False):
     """
     Perform a two-point-prompt-based segmentation using the SAM model. 
     Second point is used as background (label=0).
@@ -343,8 +359,9 @@ def two_point_prompt(x1, y1, x2, y2, ax, image, predictor):
     contours = measure.find_contours(masks[ind], 0.5)
     sx = contours[0][:,1]
     sy = contours[0][:,0]
-    color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
-    ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
+    if ax:
+        color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+        ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy
 
 def find_overlapping_polygons(polygons):
@@ -381,7 +398,7 @@ def find_overlapping_polygons(polygons):
                     poly1 = poly1.buffer(0)
                 if not poly2.is_valid:
                     poly2 = poly2.buffer(0)
-                if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > 0.4*(min(poly1.area, poly2.area)):
+                if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > 0.4*(min(poly1.area, poly2.area)) and (j, i) not in overlapping_polygons:
                     overlapping_polygons.append((i, j))
     return overlapping_polygons
 
@@ -672,7 +689,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
     all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred)
     if len(all_grains) > 0:
         print('creating labeled image...')
-        labels, mask_all = create_labeled_image(all_grains, big_im, big_im_pred, min_area)
+        labels, mask_all = create_labeled_image(all_grains, big_im)
     else:
         labels = np.zeros_like(big_im[:,:,0])
         mask_all = np.zeros_like(big_im)
@@ -827,7 +844,7 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
     all_grains = new_grains # replace original list of polygons
     return all_grains
 
-def rasterize_grains(all_grains, big_im):
+def rasterize_grains(all_grains, image):
     """
     Rasterizes a list of polygons representing grains into an array of labels.
 
@@ -835,7 +852,7 @@ def rasterize_grains(all_grains, big_im):
     ----------
     all_grains : list
         A list of polygons representing grains.
-    big_im : numpy.ndarray
+    image : numpy.ndarray
         The input image.
 
     Returns
@@ -848,8 +865,8 @@ def rasterize_grains(all_grains, big_im):
     # Combine polygons and labels into a tuple of (polygon, label) pairs
     shapes_with_labels = zip(all_grains, labels)
     # Define the shape and resolution of the rasterized output
-    out_shape = big_im.shape[:2]  # Output array shape (height, width)
-    bounds = (0, big_im.shape[0], big_im.shape[1], 0)  # Left, bottom, right, top of the array (bounding box)
+    out_shape = image.shape[:2]  # Output array shape (height, width)
+    bounds = (0, image.shape[0], image.shape[1], 0)  # Left, bottom, right, top of the array (bounding box)
     # Define the transformation from pixel coordinates to spatial coordinates
     transform = rasterio.transform.from_bounds(*bounds, out_shape[1], out_shape[0])
     # Rasterize the polygons into an array of labels
@@ -862,7 +879,7 @@ def rasterize_grains(all_grains, big_im):
     )
     return rasterized
 
-def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
+def create_labeled_image(all_grains, image):
     """
     Create a labeled image based on the provided grains and input images.
 
@@ -870,12 +887,8 @@ def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     ----------
     all_grains : list
         List of shapely Polygon objects representing the grains.
-    big_im : numpy.ndarray
+    image : numpy.ndarray
         Input image.
-    big_im_pred : numpy.ndarray
-        Predicted image (based on Unet model).
-    min_area : int
-        Minimum area threshold for filtering grains.
 
     Returns
     -------
@@ -884,12 +897,12 @@ def create_labeled_image(all_grains, big_im, big_im_pred, min_area):
     mask_all : numpy.ndarray
         Binary mask indicating the presence of grains and their boundaries.
     """
-    rasterized = rasterize_grains(all_grains, big_im) # rasterize grains
+    rasterized = rasterize_grains(all_grains, image) # rasterize grains
     boundaries = []
     for grain in all_grains:
         boundaries.append(grain.boundary.buffer(2))
-    boundaries_rasterized = rasterize_grains(boundaries, big_im)
-    mask_all = np.zeros(big_im.shape[:-1])
+    boundaries_rasterized = rasterize_grains(boundaries, image) # rasterize grain boundaries
+    mask_all = np.zeros(image.shape[:-1]) # combine grains and grain boundaries into a single mask
     mask_all[rasterized > 0] = 1
     mask_all[boundaries_rasterized >= 1] = 2
     rasterized = rasterized.astype('int')
@@ -1152,6 +1165,104 @@ def onpress2(event, all_grains, grain_inds, fig, ax):
             patch.set_visible(not patch.get_visible())
         fig.canvas.draw()
 
+def extract_patch(image, center, patch_size):
+    """
+    Extract a patch from the image centered on the given coordinates.
+
+    Parameters
+    ----------
+    image : np.ndarray
+        The large image from which to extract the patch.
+    center : tuple
+        The (x, y) coordinates of the center of the patch.
+    patch_size : int
+        The size of the patch (assumed to be square).
+
+    Returns
+    -------
+    np.ndarray
+        The extracted patch.
+    """
+    x, y = center
+    half_size = patch_size // 2
+    x_start = max(x - half_size, 0)
+    y_start = max(y - half_size, 0)
+    x_end = min(x + half_size, image.shape[1])
+    y_end = min(y + half_size, image.shape[0])
+    patch = image[y_start:y_end, x_start:x_end]
+    return patch, (x_start, y_start)
+
+def convert_to_large_image_coords(sx, sy, patch_origin):
+    """
+    Convert the coordinates from the patch to the large image.
+
+    Parameters
+    ----------
+    sx : int
+        The x-coordinate in the patch.
+    sy : int
+        The y-coordinate in the patch.
+    patch_origin : tuple
+        The (x, y) coordinates of the top-left corner of the patch in the large image.
+
+    Returns
+    -------
+    tuple
+        The (x, y) coordinates in the large image.
+    """
+    x_start, y_start = patch_origin
+    x_large = x_start + sx
+    y_large = y_start + sy
+    return x_large, y_large
+
+def onclick_large_image(event, ax, coords, image, predictor, patch_size=1000):
+    """
+    Handles mouse click events on a large image for segmentation purposes.
+
+    Parameters
+    ----------
+    event : matplotlib.backend_bases.MouseEvent
+        The mouse event that triggered the function.
+    ax : matplotlib.axes.Axes
+        The axes object where the image is displayed.
+    coords : list of tuple
+        List of coordinates where the user has clicked.
+    image : numpy.ndarray
+        The large image on which segmentation is performed.
+    predictor : object
+        The predictor object used for segmentation.
+    patch_size : int, optional
+        The size of the patch to extract around the clicked point (default is 1000).
+
+    Notes
+    -----
+    - Left mouse button (event.button == 1) is used to add an object.
+    - Right mouse button (event.button == 3) is used to remove the last added object.
+    - The function updates the display with the segmented region.
+    """
+    x, y = event.xdata, event.ydata
+    if event.button == 1: # left mouse button for object
+        coords.append((x, y))
+        patch, patch_origin = extract_patch(image, (int(np.round(coords[-1][0])), int(np.round(coords[-1][1]))), patch_size)
+        predictor.set_image(patch)
+        sx, sy, mask = one_point_prompt(coords[-1][0]-patch_origin[0], coords[-1][1]-patch_origin[1], patch, predictor, ax=False)
+        x_large, y_large = convert_to_large_image_coords(sx, sy, patch_origin)
+        if len(x_large) > 0:
+            color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+            ax.fill(x_large, y_large, facecolor=color, edgecolor='k', alpha=0.5)
+            ax.figure.canvas.draw()
+    if event.button == 3: # right mouse button for background
+        ax.patches[-1].remove()
+        coords.append((x, y))
+        patch, patch_origin = extract_patch(image, (int(np.round(coords[-1][0])), int(np.round(coords[-1][1]))), patch_size)
+        predictor.set_image(patch)
+        sx, sy = two_point_prompt(coords[-2][0]-patch_origin[0], coords[-2][1]-patch_origin[1], coords[-1][0]-patch_origin[0], coords[-1][1]-patch_origin[1], patch, predictor, ax=False)
+        x_large, y_large = convert_to_large_image_coords(sx, sy, patch_origin)
+        if len(x_large) > 0:
+            color = np.concatenate([np.random.random(3), np.array([0.6])], axis=0)
+            ax.fill(x_large, y_large, facecolor=color, edgecolor='k', alpha=0.5)
+            ax.figure.canvas.draw()
+
 def click_for_scale(event, ax):
     """
     Handles mouse click events to measure the distance between two points on a plot.
@@ -1177,7 +1288,7 @@ def click_for_scale(event, ax):
         dist = ((x2 - x1)**2 + (y2 - y1)**2)**0.5
         print('number of pixels: ' + str(np.round(dist, 2)))
 
-def get_grains_from_patches(ax, image):
+def get_grains_from_patches(ax, image, plotting=False):
     """
     Extract grains from patches on a plot and create a labeled image based on the updated set of grains.
 
@@ -1206,6 +1317,17 @@ def get_grains_from_patches(ax, image):
         x = ax.patches[i].get_path().vertices[:,0]
         y = ax.patches[i].get_path().vertices[:,1]
         all_grains.append(Polygon(np.vstack((x, y)).T))
+
+    ol_polys = find_overlapping_polygons(all_grains)
+    polys_to_remove = []
+    for polys in ol_polys:
+        if all_grains[polys[0]].area >= all_grains[polys[1]].area:
+            polys_to_remove.append(polys[1])
+        else:
+            polys_to_remove.append(polys[0])
+    polys_to_remove.sort(reverse=True)
+    for ind in polys_to_remove:
+        all_grains.remove(all_grains[ind])
         
     # create labeled image
     rasterized = rasterize_grains(all_grains, image)
@@ -1216,16 +1338,17 @@ def get_grains_from_patches(ax, image):
     mask_all = np.zeros(image.shape[:-1])
     mask_all[rasterized > 0] = 1
     mask_all[boundaries_rasterized >= 1] = 2
-    plt.figure()
-    plt.imshow(rasterized)
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.imshow(image)
-    ax.imshow(mask_all, alpha=0.5)
-    for i in trange(len(all_grains)):
-        ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
-                facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
-    return all_grains, rasterized, mask_all, fig, ax
+    if plotting:
+        plt.figure()
+        plt.imshow(rasterized)
+        fig = plt.figure()
+        ax = fig.add_subplot(111)
+        ax.imshow(image)
+        ax.imshow(mask_all, alpha=0.5)
+        for i in trange(len(all_grains)):
+            ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
+                    facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
+    return all_grains, rasterized, mask_all
 
 def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_image=True):
     """
@@ -1256,7 +1379,7 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_ima
     # Get the individual colors
     colors = [cmap(i) for i in color_indices]
     if plot_image:
-        ax.imshow(image)
+        ax.imshow(image, alpha=0.75)
     for i in trange(len(all_grains)):
         color = colors[i]
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
@@ -1618,3 +1741,41 @@ def read_polygons(fname):
         geometry = feature['geometry']
         polygons.append(shape(geometry))  # Convert GeoJSON geometry to Shapely Polygon
     return polygons
+
+def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length):
+    """
+    Plots a histogram of the major and minor axis lengths in phi scale.
+
+    Parameters
+    ----------
+    major_axis_length : array-like
+        The lengths of the major axes of the grains.
+    minor_axis_length : array-like
+        The lengths of the minor axes of the grains.
+
+    Returns
+    -------
+    fig : matplotlib.figure.Figure
+        The figure object containing the plot.
+    ax : matplotlib.axes._subplots.AxesSubplot
+        The axes object containing the plot.
+    """
+    phi_major = -np.log2(major_axis_length) # major axis length in phi scale
+    phi_minor = -np.log2(minor_axis_length)
+    fig, ax = plt.subplots(figsize=(8,6))
+    n, bins, patches = plt.hist(phi_major, np.arange(0, 7, 0.1), alpha=1, zorder=2)
+    ax.hist(phi_minor, np.arange(0, 7, 0.1), alpha=0.5)
+    for i in range(1, 7):
+        ax.plot([i, i], [0, max(n)+100], 'k', linewidth=0.3)
+    ax.text(0.45, 75, 'coarse sand', rotation='vertical')
+    ax.text(1.45, 75, 'medium sand', rotation='vertical')
+    ax.text(2.45, 75, 'fine sand', rotation='vertical')
+    ax.text(3.45, 75, 'v. fine sand', rotation='vertical')
+    ax.text(4.45, 75, 'coarse silt', rotation='vertical')
+    ax.text(5.45, 75, 'medium silt', rotation='vertical')
+    ax.text(6.45, 75, 'fine silt', rotation='vertical')
+    ax.set_xlim(0, 7)
+    ax.set_ylim(0, max(n)+100)
+    ax.set_xlabel('axis length (phi units)')
+    ax.set_ylabel('count')
+    return fig, ax
