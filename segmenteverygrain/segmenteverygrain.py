@@ -273,7 +273,7 @@ def one_point_prompt(x, y, image, predictor, ax=False):
     )
     new_masks = []
     new_scores = []
-    if len(masks) > 1:
+    if len(masks) >= 1:
         for ind in range(len(masks)):
             if np.sum(masks[ind])/(image.shape[0]*image.shape[1]) <= 0.5: # if mask is very large compared to size of the image
                 new_scores.append(scores[ind])
@@ -364,7 +364,7 @@ def two_point_prompt(x1, y1, x2, y2, image, predictor, ax=False):
         ax.fill(sx, sy, facecolor=color, edgecolor='k', alpha=0.5)
     return sx, sy
 
-def find_overlapping_polygons(polygons):
+def find_overlapping_polygons(polygons, min_overlap=0.4):
     """
     Finds and returns a list of overlapping polygons from the given list of polygons using spatial indexing.
 
@@ -398,7 +398,9 @@ def find_overlapping_polygons(polygons):
                     poly1 = poly1.buffer(0)
                 if not poly2.is_valid:
                     poly2 = poly2.buffer(0)
-                if i != j and poly1.intersects(poly2) and poly1.intersection(poly2).area > 0.4*(min(poly1.area, poly2.area)) and (j, i) not in overlapping_polygons:
+                if i != j and poly1.intersects(poly2)\
+                    and poly1.intersection(poly2).area > min_overlap*(min(poly1.area, poly2.area))\
+                    and (j, i) not in overlapping_polygons:
                     overlapping_polygons.append((i, j))
     return overlapping_polygons
 
@@ -577,7 +579,7 @@ def pick_most_similar_polygon(polygons):
     most_similar_polygon = polygons[most_similar_index]
     return most_similar_polygon
 
-def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_image=False, remove_edge_grains=False, remove_large_objects=False):
+def sam_segmentation(sam, image, image_pred, coords, labels, min_area, plot_image=False, remove_edge_grains=False, remove_large_objects=False):
     """
     Perform segmentation using the Segment Anything Model (SAM).
 
@@ -585,9 +587,9 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
     ----------
     sam : SamPredictor
         The SAM model.
-    big_im : numpy.ndarray
+    image : numpy.ndarray
         The input image.
-    big_im_pred : numpy.ndarray
+    image_pred : numpy.ndarray
         The output of the Unet segmentation.
     coords : numpy.ndarray
         The coordinates of the SAM prompts.
@@ -618,30 +620,18 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         The axes object if plot_image is True, otherwise None.
     """
     predictor = SamPredictor(sam)
-    predictor.set_image(big_im)
+    predictor.set_image(image)
     all_grains = []
     print('creating masks using SAM...')
     for i in trange(len(coords[:,0])):
         x = coords[i,0]
         y = coords[i,1]
-        sx, sy, mask = one_point_prompt(x, y, big_im, predictor)
+        sx, sy, mask = one_point_prompt(x, y, image, predictor)
         if np.max(mask) > 0:
             if remove_edge_grains and np.sum(np.hstack([mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T])) == 0: # if the mask is not touching too much the edge of the image
-                labels_in_mask = np.unique(labels[mask])
-                large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100] # if the mask contains a large grain
-                if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
-                    poly = Polygon(np.vstack((sx, sy)).T)
-                    if not poly.is_valid:
-                        poly = poly.buffer(0)
-                    all_grains.append(poly)
+                all_grains = collect_polygon_from_mask(labels, mask, image_pred, all_grains, sx, sy)
             if not remove_edge_grains:
-                labels_in_mask = np.unique(labels[mask])
-                large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= 100]
-                if len(large_labels_in_mask) < 10 and np.mean(big_im_pred[:,:,0][mask]) < 0.7: # skip masks that are mostly background
-                    poly = Polygon(np.vstack((sx, sy)).T)
-                    if not poly.is_valid:
-                        poly = poly.buffer(0)
-                    all_grains.append(poly)
+                all_grains = collect_polygon_from_mask(labels, mask, image_pred, all_grains, sx, sy)
 
     print('finding overlapping polygons...')
     new_grains, comps, g = find_connected_components(all_grains, min_area)
@@ -659,7 +649,7 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
             edges_to_remove = []
             for edge in g_small.edges:
                 iou = calculate_iou(all_grains[edge[0]], all_grains[edge[1]])
-                if iou < 0.8:
+                if iou < 0.8: # probably this shouldn't be hardcoded!
                     edges_to_remove.append(edge)
             for edge in edges_to_remove:
                 g_small.remove_edge(edge[0], edge[1])
@@ -686,29 +676,69 @@ def sam_segmentation(sam, big_im, big_im_pred, coords, labels, min_area, plot_im
         new_grains, comps, g = find_connected_components(all_grains, min_area)
 
     print('finding best polygons...')
-    all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred)
+    all_grains = merge_overlapping_polygons(all_grains, new_grains, comps, min_area, image_pred)
     if len(all_grains) > 0:
         print('creating labeled image...')
-        labels, mask_all = create_labeled_image(all_grains, big_im)
+        labels, mask_all = create_labeled_image(all_grains, image)
     else:
-        labels = np.zeros_like(big_im[:,:,0])
-        mask_all = np.zeros_like(big_im)
+        labels = np.zeros_like(image[:,:,0])
+        mask_all = np.zeros_like(image)
     if plot_image:
         fig, ax = plt.subplots(figsize=(15,10))
-        ax.imshow(big_im)
-        plot_image_w_colorful_grains(big_im, all_grains, ax, cmap='Paired')
+        ax.imshow(image)
+        plot_image_w_colorful_grains(image, all_grains, ax, cmap='Paired')
         plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10)
         plt.xticks([])
         plt.yticks([])
-        plt.xlim([0, np.shape(big_im)[1]])
-        plt.ylim([np.shape(big_im)[0], 0])
+        plt.xlim([0, np.shape(image)[1]])
+        plt.ylim([np.shape(image)[0], 0])
         plt.tight_layout()
     else:
         fig, ax = None, None                                                                    
-    props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+    props = regionprops_table(labels, intensity_image = image, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
                                                                                     'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
     grain_data = pd.DataFrame(props)
     return all_grains, labels, mask_all, grain_data, fig, ax
+
+def collect_polygon_from_mask(labels, mask, image_pred, all_grains, sx, sy, min_area=100, max_n_large_grains=10, max_bg_fraction=0.7):
+    """
+    Collect polygon from a mask and append it to a list of grains.
+
+    Parameters
+    ----------
+    labels : ndarray
+        Array of labels for each pixel in the image.
+    mask : ndarray
+        Boolean mask indicating the region of interest.
+    image_pred : ndarray
+        Predicted image from the Unet model.
+    all_grains : list
+        List to append the resulting polygons to.
+    sx : ndarray
+        X-coordinates of the polygon vertices.
+    sy : ndarray
+        Y-coordinates of the polygon vertices.
+    min_area : int, optional
+        Minimum area for a label to be considered significant (default is 100).
+    max_n_large_grains : int, optional
+        Maximum number of large grains allowed in the mask (default is 10).
+    max_bg_fraction : float, optional
+        Maximum fraction of the mask that can be background (default is 0.7).
+
+    Returns
+    -------
+    list
+        Updated list of polygons representing grains.
+    """
+    labels_in_mask = np.unique(labels[mask])
+    large_labels_in_mask = [label for label in labels_in_mask if len(labels[mask][labels[mask]==label]) >= min_area]
+    # skip masks that (1) cover too many objects of significant size in the Unet output and (2) masks that are mostly background:
+    if len(large_labels_in_mask) < max_n_large_grains and np.mean(image_pred[:,:,0][mask]) < max_bg_fraction:
+        poly = Polygon(np.vstack((sx, sy)).T)
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        all_grains.append(poly)
+    return all_grains
 
 def find_connected_components(all_grains, min_area):
     """
@@ -1481,7 +1511,6 @@ def compute_curvature(x,y):
     curvature : 1D array
         curvature of the curve (in 1/units of x and y)
     """
-
     dx = np.gradient(x) # first derivatives
     dy = np.gradient(y)      
     ddx = np.gradient(dx) # second derivatives 
