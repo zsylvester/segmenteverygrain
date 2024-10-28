@@ -774,7 +774,7 @@ def find_connected_components(all_grains, min_area):
             new_grains.append(all_grains[i])
     return new_grains, comps, g
 
-def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_pred):
+def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, image_pred):
     """
     Merge overlapping polygons in a connected component.
 
@@ -794,7 +794,7 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
         List of connected components.
     min_area : float
         Minimum area threshold.
-    big_im_pred : numpy.ndarray
+    image_pred : numpy.ndarray
         The Unet prediction.
 
     Returns
@@ -813,8 +813,8 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
             if polygon != most_similar_polygon:
                 diff_polygon = polygon.difference(most_similar_polygon)
                 if diff_polygon.area > min_area:
-                    diff_raster = rasterize_grains([diff_polygon], big_im_pred)
-                    diff_grain = big_im_pred[diff_raster == 1][:,1]
+                    diff_raster = rasterize_grains([diff_polygon], image_pred)
+                    diff_grain = image_pred[diff_raster == 1][:,1]
                     if len(diff_grain) > 0:
                         # if a large fraction of the pixels in the difference polygon are grains:
                         if len(np.where(diff_grain > 0.5)[0])/len(diff_grain) > 0.1:
@@ -867,7 +867,7 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, big_im_p
             if opened_polygon.area > min_area and type(opened_polygon) == Polygon:
                 opened_polygons.append(opened_polygon)
         selected_polygons = opened_polygons
-        if most_similar_polygon.area > min_area:
+        if most_similar_polygon.area > min_area and most_similar_polygon not in new_grains:
             new_grains.append(most_similar_polygon)
         if len(selected_polygons) > 0:
             new_grains += selected_polygons
@@ -911,7 +911,7 @@ def rasterize_grains(all_grains, image):
 
 def create_labeled_image(all_grains, image):
     """
-    Create a labeled image based on the provided grains and input images.
+    Create a labeled image based on the provided grains and input image.
 
     Parameters
     ----------
