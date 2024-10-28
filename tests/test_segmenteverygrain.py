@@ -435,5 +435,39 @@ class TestMergeOverlappingPolygons(unittest.TestCase):
         self.assertEqual(len(merged_grains), 1)
         self.assertTrue(any(poly.equals(self.poly4) for poly in merged_grains))
 
+class TestClassifyPoints(unittest.TestCase):
+
+    def test_classify_points_on_line(self):
+        feature1 = [1, 2, 3]
+        feature2 = [1, 2, 3]
+        x1, y1 = 0, 0
+        x2, y2 = 4, 4
+        classifications = seg.classify_points(feature1, feature2, x1, y1, x2, y2)
+        self.assertEqual(classifications, [0, 0, 0])
+
+    def test_classify_points_one_side(self):
+        feature1 = [1, 2, 3]
+        feature2 = [2, 3, 4]
+        x1, y1 = 0, 0
+        x2, y2 = 4, 4
+        classifications = seg.classify_points(feature1, feature2, x1, y1, x2, y2)
+        self.assertEqual(classifications, [0, 0, 0])
+
+    def test_classify_points_other_side(self):
+        feature1 = [2, 3, 4]
+        feature2 = [1, 2, 3]
+        x1, y1 = 0, 0
+        x2, y2 = 4, 4
+        classifications = seg.classify_points(feature1, feature2, x1, y1, x2, y2)
+        self.assertEqual(classifications, [1, 1, 1])
+
+    def test_classify_points_mixed(self):
+        feature1 = [1, 2, 3, 4]
+        feature2 = [2, 3, 2, 1]
+        x1, y1 = 0, 0
+        x2, y2 = 4, 4
+        classifications = seg.classify_points(feature1, feature2, x1, y1, x2, y2)
+        self.assertEqual(classifications, [0, 0, 1, 1])
+
 if __name__ == '__main__':
     unittest.main()
