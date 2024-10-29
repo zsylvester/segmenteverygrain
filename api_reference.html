@@ -314,6 +314,15 @@ document.write(`
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
 </ul>
             </nav>
         </div>
@@ -331,18 +340,18 @@ document.write(`
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">big_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Permalink to this definition">#</a></dt>
 <dd><p>Segmantic segmentation of the entire image using a Unet model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>big_im</strong> (<em>2D</em><em> or </em><em>3D array</em>) – The image that is being segmented. Can have one or more channels.</p></li>
+<li><p><strong>image</strong> (<em>2D</em><em> or </em><em>3D array</em>) – The image that is being segmented. Can have one or more channels.</p></li>
 <li><p><strong>model</strong> – Tensorflow model used for semantic segmentation.</p></li>
 <li><p><strong>I</strong> (<em>int</em>) – Size of the square-shaped image tiles in pixels.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>big_im_pred</strong> – Semantic segmentation result for the input image.</p>
+<dd class="field-even"><p><strong>image_pred</strong> – Semantic segmentation result for the input image.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>3D array</p>
@@ -369,7 +378,7 @@ document.write(`
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>All_Grains</strong> (<em>list</em>) – A list of grains represented as polygons.</p></li>
-<li><p><strong>big_im_pred</strong> (<em>numpy.ndarray</em>) – The Unet predictions for the entire image.</p></li>
+<li><p><strong>image_pred</strong> (<em>numpy.ndarray</em>) – The Unet predictions for the entire image.</p></li>
 </ul>
 </p>
 </dd>
@@ -398,13 +407,13 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.label_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">big_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Permalink to this definition">#</a></dt>
 <dd><p>Label grains in semantic segmentation result and generate prompts for SAM model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>big_im</strong> (<em>2D</em><em> or </em><em>3d array</em>) – image that was segmented</p></li>
-<li><p><strong>big_im_pred</strong> (<em>3D array</em>) – semantic segmentation result</p></li>
+<li><p><strong>image</strong> (<em>2D</em><em> or </em><em>3d array</em>) – image that was segmented</p></li>
+<li><p><strong>image_pred</strong> (<em>3D array</em>) – semantic segmentation result</p></li>
 <li><p><strong>dbs_max_dist</strong> (<em>float</em>) – DBSCAN distance parameter; decreasing it results in more SAM prompts and longer processing times</p></li>
 </ul>
 </dd>
@@ -903,6 +912,202 @@ Prints the distance between the two points in number of pixels.</p>
 </dl>
 </dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.extract_patch">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">extract_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.extract_patch" title="Permalink to this definition">#</a></dt>
+<dd><p>Extract a patch from the image centered on the given coordinates.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image</strong> (<em>np.ndarray</em>) – The large image from which to extract the patch.</p></li>
+<li><p><strong>center</strong> (<em>tuple</em>) – The (x, y) coordinates of the center of the patch.</p></li>
+<li><p><strong>patch_size</strong> (<em>int</em>) – The size of the patch (assumed to be square).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The extracted patch.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>np.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.convert_to_large_image_coords">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">convert_to_large_image_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.convert_to_large_image_coords" title="Permalink to this definition">#</a></dt>
+<dd><p>Convert the coordinates from the patch to the large image.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>sx</strong> (<em>int</em>) – The x-coordinate in the patch.</p></li>
+<li><p><strong>sy</strong> (<em>int</em>) – The y-coordinate in the patch.</p></li>
+<li><p><strong>patch_origin</strong> (<em>tuple</em>) – The (x, y) coordinates of the top-left corner of the patch in the large image.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The (x, y) coordinates in the large image.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.onclick_large_image">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick_large_image" title="Permalink to this definition">#</a></dt>
+<dd><p>Handles mouse click events on a large image for segmentation purposes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>event</strong> (<em>matplotlib.backend_bases.MouseEvent</em>) – The mouse event that triggered the function.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The axes object where the image is displayed.</p></li>
+<li><p><strong>coords</strong> (<em>list</em><em> of </em><em>tuple</em>) – List of coordinates where the user has clicked.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – The large image on which segmentation is performed.</p></li>
+<li><p><strong>predictor</strong> (<em>object</em>) – The predictor object used for segmentation.</p></li>
+<li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of the patch to extract around the clicked point (default is 1000).</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>Left mouse button (event.button == 1) is used to add an object.</p></li>
+<li><p>Right mouse button (event.button == 3) is used to remove the last added object.</p></li>
+<li><p>The function updates the display with the segmented region.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.patchify_training_data">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">patchify_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.patchify_training_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Extracts patches from training images and labels, and saves them to the specified directory.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>input_dir</strong> (<em>str</em>) – The directory containing the input images and labels.</p></li>
+<li><p><strong>patch_dir</strong> (<em>str</em>) – The directory where the patches will be saved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A tuple containing the paths to the directories where the image patches and label patches are saved.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tuple</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<ul class="simple">
+<li><p>The function expects the input directory to contain files with ‘image’ and ‘mask’ in their filenames.</p></li>
+<li><p>The patches are extracted with a size of 256x256 pixels and a stride of 128 pixels.</p></li>
+<li><p>The function creates subdirectories ‘images’ and ‘labels’ within the specified patch directory to save the patches.</p></li>
+<li><p>If the input directory does not exist or contains no matching files, the function will print a warning and return.</p></li>
+</ul>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.create_train_val_test_data">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_train_val_test_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_train_val_test_data" title="Permalink to this definition">#</a></dt>
+<dd><p>Splits image and mask data into training, validation, and test datasets, with optional augmentation.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_dir</strong> (<em>str</em>) – Directory containing the image files.</p></li>
+<li><p><strong>mask_dir</strong> (<em>str</em>) – Directory containing the mask files.</p></li>
+<li><p><strong>augmentation</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies data augmentation to the training dataset (default is True).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>train_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for training.</p></li>
+<li><p><strong>val_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for validation.</p></li>
+<li><p><strong>test_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for testing.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.create_and_train_model">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_and_train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">weights_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_and_train_model" title="Permalink to this definition">#</a></dt>
+<dd><p>Create and train a U-Net model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>weights_dir</strong> (<em>str</em>) – Path to the directory containing the model weights.</p></li>
+<li><p><strong>train_dataset</strong> (<em>tf.data.Dataset</em>) – Training dataset.</p></li>
+<li><p><strong>val_dataset</strong> (<em>tf.data.Dataset</em>) – Validation dataset.</p></li>
+<li><p><strong>test_dataset</strong> (<em>tf.data.Dataset</em>) – Test dataset.</p></li>
+<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of epochs to train the model (default is 100).</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>model</strong> – Trained U-Net model.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>tf.keras.Model</p>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>The function will plot the training and validation loss and accuracy over epochs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.save_polygons">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">save_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.save_polygons" title="Permalink to this definition">#</a></dt>
+<dd><p>Save a list of polygons to a file in GeoJSON format.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>polygons</strong> (<em>list</em>) – A list of Shapely polygon objects to be saved.</p></li>
+<li><p><strong>fname</strong> (<em>str</em>) – The filename where the GeoJSON data will be saved.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p>None</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.read_polygons">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">read_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.read_polygons" title="Permalink to this definition">#</a></dt>
+<dd><p>Reads polygons from a GeoJSON file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>fname</strong> (<em>str</em>) – The file path to the GeoJSON file.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A list of Shapely Polygon objects extracted from the GeoJSON file.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.plot_histogram_of_axis_lengths">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_histogram_of_axis_lengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">major_axis_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minor_axis_length</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_histogram_of_axis_lengths" title="Permalink to this definition">#</a></dt>
+<dd><p>Plots a histogram of the major and minor axis lengths in phi scale.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>major_axis_length</strong> (<em>array-like</em>) – The lengths of the major axes of the grains.</p></li>
+<li><p><strong>minor_axis_length</strong> (<em>array-like</em>) – The lengths of the minor axes of the grains.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>fig</strong> (<em>matplotlib.figure.Figure</em>) – The figure object containing the plot.</p></li>
+<li><p><strong>ax</strong> (<em>matplotlib.axes._subplots.AxesSubplot</em>) – The axes object containing the plot.</p></li>
+</ul>
+</p>
+</dd>
+</dl>
+</dd></dl>
+
 </section>
 
 
@@ -967,6 +1172,15 @@ Prints the distance between the two points in number of pixels.</p>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
 </ul>
   </nav></div>
 
