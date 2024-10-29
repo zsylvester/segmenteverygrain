@@ -352,7 +352,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_large_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">400</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Permalink to this definition">#</a></dt>
 <dd><p>Predicts the location of grains in a large image using a patch-based approach.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -363,13 +363,15 @@ document.write(`
 <li><p><strong>min_area</strong> (<em>int</em>) – The minimum area threshold for valid grains.</p></li>
 <li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of each patch. Defaults to 4000.</p></li>
 <li><p><strong>overlap</strong> (<em>int</em><em>, </em><em>optional</em>) – The overlap between patches. Defaults to 400.</p></li>
+<li><p><strong>remove_large_objects</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove large objects from the segmentation. Defaults to False.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>All_Grains</strong> – A list of grains represented as polygons.</p>
-</dd>
-<dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>list</p>
+<dd class="field-even"><p><ul class="simple">
+<li><p><strong>All_Grains</strong> (<em>list</em>) – A list of grains represented as polygons.</p></li>
+<li><p><strong>big_im_pred</strong> (<em>numpy.ndarray</em>) – The Unet predictions for the entire image.</p></li>
+</ul>
+</p>
 </dd>
 </dl>
 </dd></dl>
@@ -381,7 +383,7 @@ document.write(`
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>im_tile</strong> (<em>2D</em><em> or </em><em>3D array</em>) – The image tile for which the prediction will be done. Can have one or more channels.</p></li>
+<li><p><strong>im_tile</strong> (<em>3D array</em>) – The image tile for which the prediction will be done.</p></li>
 <li><p><strong>model</strong> – Tensorflow model used for semantic segmentation.</p></li>
 </ul>
 </dd>
@@ -443,7 +445,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.two_point_prompt">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">two_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.two_point_prompt" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">two_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.two_point_prompt" title="Permalink to this definition">#</a></dt>
 <dd><p>Perform a two-point-prompt-based segmentation using the SAM model.
 Second point is used as background (label=0).</p>
 <dl class="field-list simple">
@@ -470,7 +472,7 @@ Second point is used as background (label=0).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.find_overlapping_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_overlapping_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_overlapping_polygons" title="Permalink to this definition">#</a></dt>
 <dd><p>Finds and returns a list of overlapping polygons from the given list of polygons using spatial indexing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -562,14 +564,14 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.sam_segmentation">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">sam_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.sam_segmentation" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">sam_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.sam_segmentation" title="Permalink to this definition">#</a></dt>
 <dd><p>Perform segmentation using the Segment Anything Model (SAM).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>sam</strong> (<em>SamPredictor</em>) – The SAM model.</p></li>
-<li><p><strong>big_im</strong> (<em>numpy.ndarray</em>) – The input image.</p></li>
-<li><p><strong>big_im_pred</strong> (<em>numpy.ndarray</em>) – The output of the Unet segmentation.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – The input image.</p></li>
+<li><p><strong>image_pred</strong> (<em>numpy.ndarray</em>) – The output of the Unet segmentation.</p></li>
 <li><p><strong>coords</strong> (<em>numpy.ndarray</em>) – The coordinates of the SAM prompts.</p></li>
 <li><p><strong>labels</strong> (<em>numpy.ndarray</em>) – The labeled image that comes from the ‘label_grains’ function.</p></li>
 <li><p><strong>min_area</strong> (<em>int</em>) – The minimum area of the grains, in pixels.</p></li>
@@ -616,7 +618,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.merge_overlapping_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">merge_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.merge_overlapping_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">merge_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.merge_overlapping_polygons" title="Permalink to this definition">#</a></dt>
 <dd><p>Merge overlapping polygons in a connected component.</p>
 <p>This function takes a list of all polygons, a list of polygons that do not overlap with other polygons,
 a list of connected components, a minimum area threshold, and the Unet prediction.
@@ -630,7 +632,7 @@ If the area of the representative polygon is greater than the minimum area thres
 <li><p><strong>new_grains</strong> (<em>list</em>) – List of polygons that do not overlap each other.</p></li>
 <li><p><strong>comps</strong> (<em>list</em>) – List of connected components.</p></li>
 <li><p><strong>min_area</strong> (<em>float</em>) – Minimum area threshold.</p></li>
-<li><p><strong>big_im_pred</strong> (<em>numpy.ndarray</em>) – The Unet prediction.</p></li>
+<li><p><strong>image_pred</strong> (<em>numpy.ndarray</em>) – The Unet prediction.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -644,13 +646,13 @@ If the area of the representative polygon is greater than the minimum area thres
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.rasterize_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">rasterize_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.rasterize_grains" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">rasterize_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.rasterize_grains" title="Permalink to this definition">#</a></dt>
 <dd><p>Rasterizes a list of polygons representing grains into an array of labels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>all_grains</strong> (<em>list</em>) – A list of polygons representing grains.</p></li>
-<li><p><strong>big_im</strong> (<em>numpy.ndarray</em>) – The input image.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – The input image.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -664,15 +666,13 @@ If the area of the representative polygon is greater than the minimum area thres
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.create_labeled_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_labeled_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">big_im_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_labeled_image" title="Permalink to this definition">#</a></dt>
-<dd><p>Create a labeled image based on the provided grains and input images.</p>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_labeled_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_labeled_image" title="Permalink to this definition">#</a></dt>
+<dd><p>Create a labeled image based on the provided grains and input image.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>all_grains</strong> (<em>list</em>) – List of shapely Polygon objects representing the grains.</p></li>
-<li><p><strong>big_im</strong> (<em>numpy.ndarray</em>) – Input image.</p></li>
-<li><p><strong>big_im_pred</strong> (<em>numpy.ndarray</em>) – Predicted image (based on Unet model).</p></li>
-<li><p><strong>min_area</strong> (<em>int</em>) – Minimum area threshold for filtering grains.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – Input image.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -797,7 +797,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.get_grains_from_patches">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_grains_from_patches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_grains_from_patches" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_grains_from_patches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_grains_from_patches" title="Permalink to this definition">#</a></dt>
 <dd><p>Extract grains from patches on a plot and create a labeled image based on the updated set of grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
