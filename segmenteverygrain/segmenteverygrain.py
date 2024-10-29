@@ -69,13 +69,13 @@ def predict_image_tile(im_tile, model):
     im_tile_pred = im_tile_pred[0] # remove batch dimension
     return im_tile_pred
 
-def predict_image(big_im, model, I):
+def predict_image(image, model, I):
     """
     Segmantic segmentation of the entire image using a Unet model.
 
     Parameters
     ----------
-    big_im : 2D or 3D array
+    image : 2D or 3D array
         The image that is being segmented. Can have one or more channels.
     model
         Tensorflow model used for semantic segmentation.
@@ -84,27 +84,27 @@ def predict_image(big_im, model, I):
 
     Returns
     -------
-    big_im_pred : 3D array
+    image_pred : 3D array
         Semantic segmentation result for the input image.
     """
 
     # Check for invalid input
-    if not isinstance(big_im, np.ndarray):
+    if not isinstance(image, np.ndarray):
         raise ValueError("Input image must be a numpy array.")
-    if big_im.ndim not in [2, 3]:
+    if image.ndim not in [2, 3]:
         raise ValueError("Input image must be a 2D or 3D array.")
-    if big_im.ndim == 3 and big_im.shape[2] not in [1, 3]:
+    if image.ndim == 3 and image.shape[2] not in [1, 3]:
         raise ValueError("3D input image must have 1 or 3 channels.")
 
-    pad_rows = I - np.mod(big_im.shape[0], I)
-    pad_cols = I - np.mod(big_im.shape[1], I)
-    if big_im.ndim == 2:
-        big_im = np.stack((big_im, big_im, big_im), axis=-1) # convert to 3 channels
-    if big_im.ndim == 3:
-        big_im = np.vstack((big_im, np.zeros((pad_rows, big_im.shape[1], big_im.shape[2]))))
-        big_im = np.hstack((big_im, np.zeros((big_im.shape[0], pad_cols, big_im.shape[2]))))
-    r = int(np.floor(big_im.shape[0]/I)) # number of rows of image tiles
-    c = int(np.floor(big_im.shape[1]/I)) # number of columns of image tiles
+    pad_rows = I - np.mod(image.shape[0], I)
+    pad_cols = I - np.mod(image.shape[1], I)
+    if image.ndim == 2:
+        image = np.stack((image, image, image), axis=-1) # convert to 3 channels
+    if image.ndim == 3:
+        image = np.vstack((image, np.zeros((pad_rows, image.shape[1], image.shape[2]))))
+        image = np.hstack((image, np.zeros((image.shape[0], pad_cols, image.shape[2]))))
+    r = int(np.floor(image.shape[0]/I)) # number of rows of image tiles
+    c = int(np.floor(image.shape[1]/I)) # number of columns of image tiles
     
     I2 = int(I/2)
     W = np.hanning(I) * np.hanning(I)[:, np.newaxis]
@@ -113,55 +113,55 @@ def predict_image(big_im, model, I):
     Wdown = W.copy()
     Wdown[I2:, :] = np.tile(np.hanning(I), (I2, 1))
 
-    big_im = np.hstack((np.zeros((r*I, I2, 3)), big_im, np.zeros((r*I, I2, 3)))) # padding on the left and right sides
-    big_im_pred = np.zeros((big_im.shape[0], big_im.shape[1], 3))
+    image = np.hstack((np.zeros((r*I, I2, 3)), image, np.zeros((r*I, I2, 3)))) # padding on the left and right sides
+    image_pred = np.zeros((image.shape[0], image.shape[1], 3))
     print('segmenting image tiles...')
     for i in trange(c+1): # rows, no offset
         for j in range(1,2*r-2): # columns
-            im_tile = big_im[j*I2:(j+2)*I2, i*I:(i+1)*I, :]/255.0
+            im_tile = image[j*I2:(j+2)*I2, i*I:(i+1)*I, :]/255.0
             im_tile_pred = predict_image_tile(im_tile, model)
             for layer in range(3):
-                big_im_pred[j*I2:(j+2)*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * W
+                image_pred[j*I2:(j+2)*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * W
     for i in range(c+1): # first row
-        im_tile = big_im[:2*I2, i*I:(i+1)*I, :]/255.0
+        im_tile = image[:2*I2, i*I:(i+1)*I, :]/255.0
         im_tile_pred = predict_image_tile(im_tile, model)
         for layer in range(3):
-            big_im_pred[:2*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * Wup
+            image_pred[:2*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * Wup
     for i in range(c+1): # last row
-        im_tile = big_im[(2*r-2)*I2:2*r*I2, i*I:(i+1)*I, :]/255.0
+        im_tile = image[(2*r-2)*I2:2*r*I2, i*I:(i+1)*I, :]/255.0
         im_tile_pred = predict_image_tile(im_tile,model)
         for layer in range(3):
-            big_im_pred[(2*r-2)*I2:2*r*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * Wdown
+            image_pred[(2*r-2)*I2:2*r*I2, i*I:(i+1)*I, layer] += im_tile_pred[:, :, layer] * Wdown
     for i in trange(c): # rows, half offset
         for j in range(1,2*r-2): # columns
-            im_tile = big_im[j*I2:(j+2)*I2, i*I+I2:(i+1)*I+I2, :]/255.0
+            im_tile = image[j*I2:(j+2)*I2, i*I+I2:(i+1)*I+I2, :]/255.0
             im_tile_pred = predict_image_tile(im_tile,model)
             for layer in range(3):
-                big_im_pred[j*I2:(j+2)*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * W
+                image_pred[j*I2:(j+2)*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * W
     for i in range(c): # first row
-        im_tile = big_im[:2*I2, i*I+I2:(i+1)*I+I2, :]/255.0
+        im_tile = image[:2*I2, i*I+I2:(i+1)*I+I2, :]/255.0
         im_tile_pred = predict_image_tile(im_tile,model)
         for layer in range(3):
-            big_im_pred[:2*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * Wup
+            image_pred[:2*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * Wup
     for i in range(c): # last row
-        im_tile = big_im[(2*r-2)*I2:2*r*I2, i*I+I2:(i+1)*I+I2, :]/255.0
+        im_tile = image[(2*r-2)*I2:2*r*I2, i*I+I2:(i+1)*I+I2, :]/255.0
         im_tile_pred = predict_image_tile(im_tile,model)
         for layer in range(3):
-            big_im_pred[(2*r-2)*I2:2*r*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * Wdown
+            image_pred[(2*r-2)*I2:2*r*I2, i*I+I2:(i+1)*I+I2, layer] += im_tile_pred[:, :, layer] * Wdown
 
-    big_im_pred = big_im_pred[:, I2:-I2, :] # crop the left and right side padding
-    big_im_pred = big_im_pred[:-pad_rows, :-pad_cols, :] # get rid of padding
-    return big_im_pred
+    image_pred = image_pred[:, I2:-I2, :] # crop the left and right side padding
+    image_pred = image_pred[:-pad_rows, :-pad_cols, :] # get rid of padding
+    return image_pred
 
-def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
+def label_grains(image, image_pred, dbs_max_dist=20.0):
     """
     Label grains in semantic segmentation result and generate prompts for SAM model.
 
     Parameters
     ----------
-    big_im : 2D or 3d array
+    image : 2D or 3d array
         image that was segmented
-    big_im_pred : 3D array
+    image_pred : 3D array
         semantic segmentation result
     dbs_max_dist : float
         DBSCAN distance parameter; decreasing it results in more SAM prompts and longer processing times
@@ -174,20 +174,20 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
         pixel coordinates of the prompts
     """
 
-    grains = big_im_pred[:,:,1].copy() # grain prediction from semantic segmentation result
+    grains = image_pred[:,:,1].copy() # grain prediction from semantic segmentation result
     grains[grains >= 0.5] = 1
     grains[grains < 0.5] = 0
     grains = grains.astype('bool')
     labels_simple, n_elems = measure.label(grains, return_num = True, connectivity=1)
-    props = regionprops_table(labels_simple, intensity_image = big_im, properties=('label', 'area', 'centroid'))
+    props = regionprops_table(labels_simple, intensity_image = image, properties=('label', 'area', 'centroid'))
     grain_data_simple = pd.DataFrame(props)
     coords_simple = np.vstack((grain_data_simple['centroid-1'], grain_data_simple['centroid-0'])).T # use the centroids of the Unet grains as 'simple' prompts
     coords_simple = coords_simple.astype('int32')
-    background_probs = big_im_pred[:,:,0][coords_simple[:,1], coords_simple[:,0]]
+    background_probs = image_pred[:,:,0][coords_simple[:,1], coords_simple[:,0]]
     inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
     coords_simple = coords_simple[inds, :]
 
-    bounds = big_im_pred[:,:,2].copy() # grain boundary prediction
+    bounds = image_pred[:,:,2].copy() # grain boundary prediction
     bounds[bounds >= 0.5] = 1
     bounds[bounds < 0.5] = 0
     bounds = bounds.astype('bool')
@@ -205,14 +205,14 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
         bounds = bounds.astype('bool')
         distance = ndi.distance_transform_edt(bounds)
         coords = peak_local_max(distance, footprint=np.ones((3, 3)), labels=bounds.astype('bool'))
-        background_probs = big_im_pred[:,:,0][coords[:,0], coords[:,1]]
+        background_probs = image_pred[:,:,0][coords[:,0], coords[:,1]]
         inds = np.where(background_probs < 0.3)[0]
         coords = coords[inds, :]
         mask = np.zeros(distance.shape, dtype=bool)
         mask[tuple(coords.T)] = True
         markers, _ = ndi.label(mask)
         labels = watershed(-distance, markers, mask=bounds)
-        props = regionprops_table(labels, intensity_image = big_im, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
+        props = regionprops_table(labels, intensity_image = image, properties=('label', 'area', 'centroid', 'major_axis_length', 'minor_axis_length', 
                                                                                         'orientation', 'perimeter', 'max_intensity', 'mean_intensity', 'min_intensity'))
         grain_data = pd.DataFrame(props)
         if len(grain_data) > 0:
@@ -228,7 +228,7 @@ def label_grains(big_im, big_im_pred, dbs_max_dist=20.0):
                 xy = np.mean(coords[np.where(db_labels == i)[0]], axis=0)
                 coords_ws = np.vstack((coords_ws, xy))
             coords_ws = coords_ws.astype('int32')
-            background_probs = big_im_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
+            background_probs = image_pred[:,:,0][coords_ws[:,1], coords_ws[:,0]]
             inds = np.where(background_probs < 0.3)[0] # get rid of prompts that are likely to be background
             coords_ws = coords_ws[inds, :]
             all_coords = np.vstack((coords_ws, coords_simple))
@@ -963,21 +963,21 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
     -------
     All_Grains : list
         A list of grains represented as polygons.
-    big_im_pred : numpy.ndarray
+    image_pred : numpy.ndarray
         The Unet predictions for the entire image.
     """
     step_size = patch_size - overlap  # step size for overlapping patches
-    big_im = np.array(load_img(fname))
-    img_height, img_width = big_im.shape[:2]  # get the height and width of the image 
+    image = np.array(load_img(fname))
+    img_height, img_width = image.shape[:2]  # get the height and width of the image 
     # loop over the image and extract patches:
     All_Grains = []
     total_patches = ((img_height - patch_size + step_size) // step_size + 1) * ((img_width - patch_size + step_size) // step_size + 1)
     # Initialize an array to store the Unet predictions for the entire image
-    big_im_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
+    image_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
     
     for i in range(0, img_height - patch_size + step_size + 1, step_size):
         for j in range(0, img_width - patch_size + step_size + 1, step_size):
-            patch = big_im[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)]
+            patch = image[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)]
             patch_pred = predict_image(patch, model, I=256) # use the Unet model to predict the mask on the patch
             
             # Define the weights for blending the overlapping regions
@@ -991,8 +991,8 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
             if j + patch_size < img_width:
                 weights[:, -overlap:] *= np.linspace(1, 0, overlap)[None, :, None]
 
-            # Update big_im_pred with the weighted sum
-            big_im_pred[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)] += patch_pred * weights
+            # Update image_pred with the weighted sum
+            image_pred[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)] += patch_pred * weights
             labels, coords = label_grains(patch, patch_pred, dbs_max_dist=20.0)
             if len(coords) > 0: # run the SAM algorithm only if there are grains in the patch
                 all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(sam, patch, patch_pred, coords, labels, \
@@ -1003,7 +1003,7 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
             print(f"processed patch #{patch_num} out of {total_patches} patches")
     new_grains, comps, g = find_connected_components(All_Grains, min_area)
     All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area, patch_pred)
-    return All_Grains, big_im_pred
+    return All_Grains, image_pred
 
 def load_and_preprocess(image_path, mask_path, augmentations=False):
     """
