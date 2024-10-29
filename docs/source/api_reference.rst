@@ -30,3 +30,12 @@ API Reference
 .. autofunction:: segmenteverygrain.plot_grain_axes_and_centroids
 .. autofunction:: segmenteverygrain.classify_points
 .. autofunction:: segmenteverygrain.compute_curvature
+.. autofunction:: segmenteverygrain.extract_patch
+.. autofunction:: segmenteverygrain.convert_to_large_image_coords
+.. autofunction:: segmenteverygrain.onclick_large_image
+.. autofunction:: segmenteverygrain.patchify_training_data
+.. autofunction:: segmenteverygrain.create_train_val_test_data
+.. autofunction:: segmenteverygrain.create_and_train_model
+.. autofunction:: segmenteverygrain.save_polygons
+.. autofunction:: segmenteverygrain.read_polygons
+.. autofunction:: segmenteverygrain.plot_histogram_of_axis_lengths
