@@ -1,7 +1,5 @@
-python==3.8
 numpy
-matplotlib==3.7.1
-pyqt==5.15.7
+matplotlib
 pandas
 jupyterlab
 scipy
