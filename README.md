@@ -4,7 +4,6 @@
 
 [![Tests](https://github.com/zsylvester/segmenteverygrain/actions/workflows/ci.yaml/badge.svg)](https://github.com/zsylvester/segmenteverygrain/actions/workflows/ci.yaml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-![GitHub release downloads](https://img.shields.io/github/downloads/zsylvester/segmenteverygrain/total)
 
 
 ## Description
