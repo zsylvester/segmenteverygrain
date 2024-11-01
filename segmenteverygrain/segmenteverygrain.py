@@ -1380,7 +1380,7 @@ def get_grains_from_patches(ax, image, plotting=False):
                     facecolor=(0,0,1), edgecolor='none', linewidth=0.5, alpha=0.4)
     return all_grains, rasterized, mask_all
 
-def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_image=True):
+def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_image=True, im_alpha=1.0):
     """
     Plot image with randomly colored grain masks.
 
@@ -1409,11 +1409,11 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_ima
     # Get the individual colors
     colors = [cmap(i) for i in color_indices]
     if plot_image:
-        ax.imshow(image, alpha=0.75)
+        ax.imshow(image, alpha=im_alpha)
     for i in trange(len(all_grains)):
         color = colors[i]
         ax.fill(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
-                facecolor=color, edgecolor='none', linewidth=1, alpha=0.4)
+                facecolor=color, edgecolor='none', linewidth=1, alpha=0.5)
         ax.plot(all_grains[i].exterior.xy[0], all_grains[i].exterior.xy[1], 
                 color='k', linewidth=1)
     ax.set_xticks([])
