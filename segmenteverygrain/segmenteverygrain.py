@@ -1783,6 +1783,7 @@ def get_area_weighted_distribution(grain_sizes, areas):
     return area_weighted_grain_size
 
 def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length, area=[], binsize=0.1, xlimits=None):
+
     """
     Plots a histogram of the major and minor axis lengths in phi scale.
 
@@ -1792,6 +1793,12 @@ def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length, area=[]
         The lengths of the major axes of the grains in millimeters.
     minor_axis_length : array-like
         The lengths of the minor axes of the grains in millimeters.
+    area : array-like, optional
+        The areas of the grains in square millimeters. If provided, the axis lengths will be weighted by the area.
+    binsize : float, optional
+        The size of the bins for the histogram. Default is 0.1.
+    xlimits : tuple, optional
+        The limits for the x-axis in millimeters. If not provided, the limits will be determined from the data.
 
     Returns
     -------
