@@ -938,7 +938,7 @@ def create_labeled_image(all_grains, image):
     rasterized = rasterized.astype('int')
     return rasterized, mask_all
 
-def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=400, remove_large_objects=False):
+def predict_large_image(fname, model, sam, min_area, patch_size=2000, overlap=300, remove_large_objects=False):
     """
     Predicts the location of grains in a large image using a patch-based approach.
 
@@ -953,9 +953,9 @@ def predict_large_image(fname, model, sam, min_area, patch_size=4000, overlap=40
     min_area : int
         The minimum area threshold for valid grains.
     patch_size : int, optional
-        The size of each patch. Defaults to 4000.
+        The size of each patch. Defaults to 2000.
     overlap : int, optional
-        The overlap between patches. Defaults to 400.
+        The overlap between patches. Defaults to 300.
     remove_large_objects : bool, optional
         Whether to remove large objects from the segmentation. Defaults to False.
 
@@ -1418,6 +1418,9 @@ def plot_image_w_colorful_grains(image, all_grains, ax, cmap='viridis', plot_ima
                 color='k', linewidth=1)
     ax.set_xticks([])
     ax.set_yticks([])
+    ax.set_xlim(0, image.shape[1])
+    ax.set_ylim(image.shape[0], 0)
+    plt.tight_layout()
 
 def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersize=10):
     """
@@ -1771,16 +1774,24 @@ def read_polygons(fname):
         polygons.append(shape(geometry))  # Convert GeoJSON geometry to Shapely Polygon
     return polygons
 
-def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length):
+def get_area_weighted_distribution(grain_sizes, areas):
+    area_weighted_grain_size = []
+    mean_area = np.mean(areas)
+    for i in range(len(grain_sizes)):
+        for j in range(int(areas[i]/(0.5*mean_area))):
+            area_weighted_grain_size.append(grain_sizes[i])
+    return area_weighted_grain_size
+
+def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length, area=[], binsize=0.1, xlimits=None):
     """
     Plots a histogram of the major and minor axis lengths in phi scale.
 
     Parameters
     ----------
     major_axis_length : array-like
-        The lengths of the major axes of the grains.
+        The lengths of the major axes of the grains in millimeters.
     minor_axis_length : array-like
-        The lengths of the minor axes of the grains.
+        The lengths of the minor axes of the grains in millimeters.
 
     Returns
     -------
@@ -1789,23 +1800,87 @@ def plot_histogram_of_axis_lengths(major_axis_length, minor_axis_length):
     ax : matplotlib.axes._subplots.AxesSubplot
         The axes object containing the plot.
     """
+    if len(area)>0:
+        major_axis_length = get_area_weighted_distribution(major_axis_length, area)
+        minor_axis_length = get_area_weighted_distribution(minor_axis_length, area)
     phi_major = -np.log2(major_axis_length) # major axis length in phi scale
     phi_minor = -np.log2(minor_axis_length)
+    if xlimits:
+        phi_max = int(np.ceil(-np.log2(xlimits[0])))
+        phi_min = int(np.floor(-np.log2(xlimits[1])))
+    else:
+        phi_max = int(np.ceil(max(np.max(phi_minor), np.max(phi_major))))
+        phi_min = int(np.floor(min(np.min(phi_minor), np.min(phi_major))))
     fig, ax = plt.subplots(figsize=(8,6))
-    n, bins, patches = plt.hist(phi_major, np.arange(0, 7, 0.1), alpha=1, zorder=2)
-    ax.hist(phi_minor, np.arange(0, 7, 0.1), alpha=0.5)
-    for i in range(1, 7):
-        ax.plot([i, i], [0, max(n)+100], 'k', linewidth=0.3)
+    n, bins, patches = plt.hist(phi_major, np.arange(phi_min, phi_max, binsize), alpha=0.5, zorder=2)
+    ax.hist(phi_minor, np.arange(phi_min, phi_max, binsize), alpha=0.5)
     y_loc = max(n) - 0.2*max(n)
-    ax.text(0.45, y_loc, 'coarse sand', rotation='vertical')
-    ax.text(1.45, y_loc, 'medium sand', rotation='vertical')
-    ax.text(2.45, y_loc, 'fine sand', rotation='vertical')
-    ax.text(3.45, y_loc, 'v. fine sand', rotation='vertical')
-    ax.text(4.45, y_loc, 'coarse silt', rotation='vertical')
-    ax.text(5.45, y_loc, 'medium silt', rotation='vertical')
-    ax.text(6.45, y_loc, 'fine silt', rotation='vertical')
-    ax.set_xlim(0, 7)
+    grain_size_classes = {
+        'very fine silt': [7, 8], 'fine silt': [6, 7], 'medium silt': [5, 6], 'coarse silt': [4, 5],
+        'very fine sand': [3, 4], 'fine sand': [2, 3], 'medium sand': [1, 2], 'coarse sand': [0, 1],
+        'very coarse sand': [-1, 0], 'granule': [-2, -1], 'pebble': [-6, -2], 'cobble': [-8, -6], 'boulder': [-12, -8]
+    }
+    matching_classes, bounds = find_grain_size_classes(grain_size_classes, phi_min, phi_max)
+    bounds = np.array(sorted(bounds)[::-1])
+    if xlimits:
+        bounds = bounds[(bounds >= phi_min) & (bounds <= phi_max)]
+    for i in range(len(bounds)-1):
+            ax.text(bounds[i]*0.5 + bounds[i+1]*0.5 + 0.05, y_loc, matching_classes[i], rotation='vertical')
+            ax.plot([bounds[i], bounds[i]], [0, max(n)+0.1*max(n)], 'k', linewidth=0.3)
+    if xlimits:
+        ax.set_xlim(phi_max, phi_min)
+    else:
+        ax.set_xlim(bounds[0], bounds[-1])
     ax.set_ylim(0, max(n) + 0.1*max(n))
-    ax.set_xlabel('axis length (phi units)')
+    ax.set_xticks(np.arange(bounds[-1], bounds[0]+1))
+    ax.set_xticklabels([np.round(2**i, 3) for i in range(-bounds[-1], -bounds[0]-1, -1)])
+    ax.set_xlabel('grain axis length (mm)')
     ax.set_ylabel('count')
+    ax2 = ax.twiny()
+    ax2.set_xlim(ax.get_xlim())
+    ax2.set_xticks(bounds)
+    ax2.set_xticklabels([i for i in bounds])
+    ax2.set_xlabel('phi scale')
+    phi_major_sorted = np.sort(phi_major)
+    ecdf_major = np.arange(1, len(phi_major_sorted) + 1) / len(phi_major_sorted)
+    phi_minor_sorted = np.sort(phi_minor)
+    ecdf_minor = np.arange(1, len(phi_minor_sorted) + 1) / len(phi_minor_sorted)
+    ax3 = ax.twinx()
+    ax3.plot(phi_major_sorted, ecdf_major[::-1], color='tab:blue', linewidth=2, zorder=3)
+    ax3.plot(phi_minor_sorted, ecdf_minor[::-1], color='tab:orange', linewidth=2, zorder=3)
+    ax3.set_ylim(0, 1)
     return fig, ax
+
+def find_grain_size_classes(grain_size_classes, value1, value2, xlimits=None):
+    """
+    Find grain size classes that overlap with a given range.
+
+    Parameters
+    ----------
+    grain_size_classes : dict
+        A dictionary where keys are grain size class names and values are tuples
+        of (lower_bound, upper_bound) representing the size range of each class.
+    value1 : float
+        One end of the range to check for overlapping grain size classes.
+    value2 : float
+        The other end of the range to check for overlapping grain size classes.
+
+    Returns
+    -------
+    matching_classes : list
+        A list of grain size class names that overlap with the given range.
+    bounds : list
+        A list of unique bounds (both lower and upper) from the matching classes.
+    """
+    min_value = min(value1, value2)
+    max_value = max(value1, value2)
+    matching_classes = []
+    bounds = []
+    for grain_class, (lower_bound, upper_bound) in grain_size_classes.items():
+        if lower_bound < max_value and upper_bound > min_value:
+            matching_classes.append(grain_class)
+            if lower_bound not in bounds:
+                bounds.append(lower_bound)
+            if upper_bound not in bounds:
+                bounds.append(upper_bound)
+    return matching_classes, bounds
