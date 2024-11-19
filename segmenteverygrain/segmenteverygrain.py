@@ -896,7 +896,7 @@ def rasterize_grains(all_grains, image):
     shapes_with_labels = zip(all_grains, labels)
     # Define the shape and resolution of the rasterized output
     out_shape = image.shape[:2]  # Output array shape (height, width)
-    bounds = (0, image.shape[0], image.shape[1], 0)  # Left, bottom, right, top of the array (bounding box)
+    bounds = (-0.5, image.shape[0]-0.5, image.shape[1]-0.5, -0.5)  # Left, bottom, right, top of the array (bounding box)
     # Define the transformation from pixel coordinates to spatial coordinates
     transform = rasterio.transform.from_bounds(*bounds, out_shape[1], out_shape[0])
     # Rasterize the polygons into an array of labels
