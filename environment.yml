@@ -5,10 +5,10 @@ channels:
   - defaults
 
 dependencies:
-  - python=3.8
+  - python=3.9
   - numpy
-  - matplotlib=3.7.1
-  - pyqt=5.15.7
+  - matplotlib
+  - pyqt
   - pandas
   - jupyterlab
   - scipy
@@ -23,7 +23,7 @@ dependencies:
     - rasterio
     - opencv-python
     - rtree
-    - tensorflow==2.13.0
+    - tensorflow
     - torch
     - torchvision
     - segment-anything
