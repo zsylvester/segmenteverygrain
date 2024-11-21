@@ -28,17 +28,16 @@ from PIL import Image
 import json
 
 import tensorflow as tf
-from tensorflow.keras.models import Model
-from tensorflow.keras.layers import BatchNormalization
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose
-from tensorflow.keras.layers import MaxPooling2D
-from tensorflow.keras.layers import concatenate
-from tensorflow.keras.preprocessing.image import load_img
-from tensorflow.keras.optimizers import Adam
+from keras import Model
+from keras.layers import Input, BatchNormalization
+from keras.layers import Conv2D, Conv2DTranspose
+from keras.layers import MaxPooling2D
+from keras.layers import concatenate
+from keras.utils import load_img
+from keras.saving import load_model
+from keras.optimizers import Adam
 
 from segment_anything import SamPredictor
-
-__version__ = '0.1.9'
 
 def predict_image_tile(im_tile, model):
     """
@@ -416,9 +415,10 @@ def Unet():
 
     tf.keras.backend.clear_session()
 
-    image = tf.keras.Input((256, 256, 3), name='input')
+    # image = tf.keras.Input((256, 256, 3), name='input')
+    inputs = Input((256, 256, 3), name='input')
     
-    conv1 = Conv2D(16, (3,3), activation='relu', padding = 'same')(image)
+    conv1 = Conv2D(16, (3,3), activation='relu', padding = 'same')(inputs)
     conv1 = Conv2D(16, (3,3), activation='relu', padding = 'same')(conv1)
     conv1 = BatchNormalization()(conv1)
 
@@ -467,7 +467,7 @@ def Unet():
     conv9 = BatchNormalization()(conv9)
 
     conv10 = Conv2D(3, (1,1), activation='softmax')(conv9)
-    model = Model(inputs=[image], outputs=[conv10])
+    model = Model(inputs=[inputs], outputs=[conv10])
 
     return model
 
@@ -1677,14 +1677,14 @@ def create_train_val_test_data(image_dir, mask_dir, augmentation=True):
 
     return train_dataset, val_dataset, test_dataset
 
-def create_and_train_model(weights_dir, train_dataset, val_dataset, test_dataset, epochs=100):
+def create_and_train_model(train_dataset, val_dataset, test_dataset, model_file=None, epochs=100):
     """
     Create and train a U-Net model.
 
     Parameters
     ----------
-    weights_dir : str
-        Path to the directory containing the model weights.
+    model_file : str
+        Path to the file containing the model weights.
     train_dataset : tf.data.Dataset
         Training dataset.
     val_dataset : tf.data.Dataset
@@ -1703,9 +1703,11 @@ def create_and_train_model(weights_dir, train_dataset, val_dataset, test_dataset
     -----
     The function will plot the training and validation loss and accuracy over epochs.
     """
-    model = Unet()
-    model.compile(optimizer=Adam(), loss=weighted_crossentropy, metrics=["accuracy"])
-    model.load_weights(weights_dir)
+    if model_file:
+        model = load_model(model_file, custom_objects={'weighted_crossentropy': weighted_crossentropy})
+    else:
+        model = Unet()
+        model.compile(optimizer=Adam(), loss=weighted_crossentropy, metrics=["accuracy"])
     history = model.fit(train_dataset, epochs=epochs, validation_data=val_dataset)
     fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12,5))
     axes[0].plot(history.history['loss'])
