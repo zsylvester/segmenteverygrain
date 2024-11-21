@@ -13,7 +13,7 @@ pillow
 rasterio
 opencv-python
 rtree
-tensorflow==2.13.0
+tensorflow
 torch
 torchvision
 segment-anything
