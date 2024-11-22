@@ -415,7 +415,6 @@ def Unet():
 
     tf.keras.backend.clear_session()
 
-    # image = tf.keras.Input((256, 256, 3), name='input')
     inputs = Input((256, 256, 3), name='input')
     
     conv1 = Conv2D(16, (3,3), activation='relu', padding = 'same')(inputs)
@@ -1565,7 +1564,7 @@ def patchify_training_data(input_dir, patch_dir):
     start_no = 0
     for image in tqdm(images):
         # Load the large image
-        large_image = tf.keras.preprocessing.image.load_img(image)
+        large_image = load_img(image)
         # Convert the image to a tensor
         large_image = tf.keras.preprocessing.image.img_to_array(large_image)
         # Reshape the tensor to have a batch size of 1
@@ -1591,7 +1590,7 @@ def patchify_training_data(input_dir, patch_dir):
     start_no = 0
     for image in tqdm(labels):
         # Load the large image
-        large_image = tf.keras.preprocessing.image.load_img(image)
+        large_image = load_img(image)
         # Convert the image to a tensor
         large_image = tf.keras.preprocessing.image.img_to_array(large_image)
         large_image = large_image[:,:,0,np.newaxis] # only keep one layer and add a new axis
