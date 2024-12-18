@@ -973,7 +973,7 @@ def predict_large_image(fname, model, sam, min_area, patch_size=2000, overlap=30
     total_patches = ((img_height - patch_size + step_size) // step_size + 1) * ((img_width - patch_size + step_size) // step_size + 1)
     # Initialize an array to store the Unet predictions for the entire image
     image_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
-    
+
     for i in range(0, img_height - patch_size + step_size + 1, step_size):
         for j in range(0, img_width - patch_size + step_size + 1, step_size):
             patch = image[i:min(i + patch_size, img_height), j:min(j + patch_size, img_width)]
@@ -999,10 +999,17 @@ def predict_large_image(fname, model, sam, min_area, patch_size=2000, overlap=30
                 for grain in all_grains:
                     All_Grains += [translate(grain, xoff=j, yoff=i)] # translate the grains to the original image coordinates
             patch_num = i//step_size*((img_width - patch_size + step_size)//step_size + 1) + j//step_size + 1
+            if len(coords) > 0:
+                coords[:,0] = coords[:,0] + j
+                coords[:,1] = coords[:,1] + i
+                if patch_num > 1:
+                    all_coords = np.vstack((all_coords, coords))
+                else:
+                    all_coords = coords.copy()
             print(f"processed patch #{patch_num} out of {total_patches} patches")
     new_grains, comps, g = find_connected_components(All_Grains, min_area)
     All_Grains = merge_overlapping_polygons(All_Grains, new_grains, comps, min_area, patch_pred)
-    return All_Grains, image_pred
+    return All_Grains, image_pred, all_coords
 
 def load_and_preprocess(image_path, mask_path, augmentations=False):
     """
@@ -1084,7 +1091,7 @@ def onclick(event, ax, coords, image, predictor):
     if event.button == 3: # right mouse button for background
         ax.patches[-1].remove()
         coords.append((x, y))
-        sx, sy = two_point_prompt(coords[-2][0], coords[-2][1], coords[-1][0], coords[-1][1], ax, image, predictor)
+        sx, sy = two_point_prompt(coords[-2][0], coords[-2][1], coords[-1][0], coords[-1][1], image, predictor, ax=ax)
         ax.figure.canvas.draw()
         
 def onpress(event, ax, fig):
