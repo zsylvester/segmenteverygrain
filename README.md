@@ -50,7 +50,7 @@ See the [Segment_every_grain.ipynb](https://github.com/zsylvester/segmenteverygr
 
 <img src="https://github.com/zsylvester/segmenteverygrain/blob/main/miocene_sst_large_2.jpeg" width="600">
 
-The [Train_seg_unet_model.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Train_seg_unet_model.ipynb) notebook goes through the steps needed to create, train, and test the Unet model. If the base Unet model does not work well on a specific type of image, it is a good idea to generate some new training data (a few small images are usually enough) and to fine tune the base model so that it works better on the new image type. The workflow in the 'Train_seg_unet_model' notebook can be used to do this finetuning -- you just need to load the weights of the base model before starting the training.
+ If the base Unet model does not work well on a specific type of image, it is a good idea to generate some new training data (a few small images are usually enough) and to fine tune the base model so that it works better on the new image type. This can be done by running the cells in the last section ('Finetuning the base model') of the [Segment_every_grain.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb) notebook.
 
 The [Segment_every_grain_colab.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
 
