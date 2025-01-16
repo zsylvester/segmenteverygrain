@@ -42,6 +42,34 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml) file with conda (or mamba).
 
+Download Anaconda at [https:www.anaconda.com/download](https:www.anaconda.com/download).
+
+In Anaconda Prompt enter the following to install pip and git packages:
+
+```
+conda install pip git
+```
+
+Download the segmenteverygrain files.
+
+Windows:
+```
+git clone --depth 1 https://github.com/zsylvester/segmenteverygrain.git
+```
+Linux/Mac:
+```
+git clone --depth 1 git@github.com:zsylvester/segmenteverygrain.git
+```
+
+Setup the segmenteverygrain environment in Anaconda:
+```
+conda env create -f segmenteverygrain/environment.yml
+```
+Activate environment:
+```
+conda activate segmenteverygrain
+```
+
 ## Getting started
 
 See the [Segment_every_grain.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb) notebook for an example of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result, and saving the grain data and the mask. The last section of the notebook illustrates the use of the 'predict_large_image' function that is recommended for large images (e.g., larger than 2000x3000 pixels). The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using this approach. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
