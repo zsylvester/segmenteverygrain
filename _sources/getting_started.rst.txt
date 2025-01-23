@@ -4,14 +4,12 @@ Getting started
 .. toctree::
    :caption: Getting started
 
-To load the Unet model:
+To load the U-Net model:
 
 .. code-block:: python
 
    import segmenteverygrain as seg
-   model = seg.Unet()
-   model.compile(optimizer=Adam(), loss=seg.weighted_crossentropy, metrics=["accuracy"])
-   model.load_weights('./checkpoints/seg_model')
+   model = load_model("seg_model.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
 
 To run the Unet segmentation on an image and label the grains in the Unet output:
 
@@ -32,9 +30,9 @@ The Unet prediction should be QC-d before running the SAM segmentation:
    plt.xticks([])
    plt.yticks([]);
 
-If the Unet segmentation is of low quality, the base model can be (and should be) fine tuned using the ``Train_seg_unet_model.ipynb`` notebook.
+If the U-Net segmentation is of low quality, the base model can be (and should be) finetuned using the steps outlined :ref:`below<Finetuning the U-Net model>`.
 
-To run the SAM segmentation on an image, using the outputs from the Unet model:
+To run the SAM segmentation on an image, using the outputs from the U-Net model:
 
 .. code-block:: python
 

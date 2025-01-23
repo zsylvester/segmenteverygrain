@@ -36,11 +36,9 @@
 <h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p>To load the Unet model:</p>
+<p>To load the U-Net model:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">segmenteverygrain</span> <span class="k">as</span> <span class="nn">seg</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">Unet</span><span class="p">()</span>
-<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">Adam</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">])</span>
-<span class="n">model</span><span class="o">.</span><span class="n">load_weights</span><span class="p">(</span><span class="s1">&#39;./checkpoints/seg_model&#39;</span><span class="p">)</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;seg_model.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
 </pre></div>
 </div>
 <p>To run the Unet segmentation on an image and label the grains in the Unet output:</p>
@@ -58,8 +56,8 @@ The Unet prediction should be QC-d before running the SAM segmentation:</p>
 <span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([]);</span>
 </pre></div>
 </div>
-<p>If the Unet segmentation is of low quality, the base model can be (and should be) fine tuned using the <code class="docutils literal notranslate"><span class="pre">Train_seg_unet_model.ipynb</span></code> notebook.</p>
-<p>To run the SAM segmentation on an image, using the outputs from the Unet model:</p>
+<p>If the U-Net segmentation is of low quality, the base model can be (and should be) finetuned using the steps outlined <a class="reference internal" href="#finetuning-the-u-net-model"><span class="std std-ref">below</span></a>.</p>
+<p>To run the SAM segmentation on an image, using the outputs from the U-Net model:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">all_grains</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask_all</span><span class="p">,</span> <span class="n">grain_data</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">sam_segmentation</span><span class="p">(</span><span class="n">sam</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">plot_image</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">remove_large_objects</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
