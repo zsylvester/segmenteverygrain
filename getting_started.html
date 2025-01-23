@@ -105,7 +105,7 @@ segmentation, interactively updating the result, and saving the grain data and t
 </pre></div>
 </div>
 <p>If you want to use this new model to make predictions, you will need to load it with the custom loss function:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;new_model.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;seg_model_finetuned.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
 </pre></div>
 </div>
 </section>

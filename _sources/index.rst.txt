@@ -39,8 +39,9 @@ Or you can install it from the source code:
    cd segmenteverygrain
    pip install .
 
-The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use 
-the `environment.yml <https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml>`_ file with conda (or mamba).
+The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the `environment.yml <https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml>`_ file with conda (or mamba).
+
+For Apple Silicon users, the `environment_macos.yml <https://github.com/zsylvester/segmenteverygrain/blob/main/environment_macos.yml>`_ file is recommended. This will make it possible to use the GPU for training the U-Net models.
 
 Contents
 --------
