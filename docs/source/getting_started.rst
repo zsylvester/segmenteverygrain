@@ -105,4 +105,4 @@ If you want to use this new model to make predictions, you will need to load it 
 
 .. code-block:: python
 
-   model = load_model("new_model.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = load_model("seg_model_finetuned.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
