@@ -59,6 +59,9 @@ See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygr
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through the steps of loading the models, running the 
 segmentation, interactively updating the result, and saving the grain data and the mask.
 
+Finetuning the U-Net model
+--------------------------
+
 The last section of the `Segment_every_grain.ipynb` notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.
 
 .. code-block:: python
@@ -81,7 +84,7 @@ Next, training, validation, and test datasets are created from the patches:
 
    train_dataset, val_dataset, test_dataset = seg.create_train_val_test_data(image_dir, mask_dir, augmentation=True)
 
-Now we are ready to load the existing model weights and to train the model::
+Now we are ready to load the existing model weights and to train the model:
 
 .. code-block:: python
 
