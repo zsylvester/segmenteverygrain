@@ -9,9 +9,12 @@ To load the U-Net model:
 .. code-block:: python
 
    import segmenteverygrain as seg
+   from keras.saving import load_model
    model = load_model("seg_model.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
 
-To run the Unet segmentation on an image and label the grains in the Unet output:
+This assumes that you are using Keras 3 and 'seg_model.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with with the latest version of the package.
+
+To run the U-Net segmentation on an image and label the grains in the U-Net output:
 
 .. code-block:: python
 
@@ -20,7 +23,7 @@ To run the Unet segmentation on an image and label the grains in the Unet output
     
 The input image should not be much larger than ~2000x3000 pixels, in part to avoid long running times; it is supposed to be a numpy array with 3 channels (RGB).
 Grains should be well defined in the image and not too small (e.g., only a few pixels in size).
-The Unet prediction should be QC-d before running the SAM segmentation:
+The U-Net prediction should be QC-d before running the SAM segmentation:
 
 .. code-block:: python
 
@@ -28,14 +31,18 @@ The Unet prediction should be QC-d before running the SAM segmentation:
    plt.imshow(big_im_pred)
    plt.scatter(np.array(coords)[:,0], np.array(coords)[:,1], c='k')
    plt.xticks([])
-   plt.yticks([]);
+   plt.yticks([])
 
 If the U-Net segmentation is of low quality, the base model can be (and should be) finetuned using the steps outlined :ref:`below<Finetuning the U-Net model>`.
 
-To run the SAM segmentation on an image, using the outputs from the U-Net model:
+The Segment Anything model can be downloaded from this `link <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth>`_.
+
+Here is an example showing how to run the SAM segmentation on an image, using the outputs from the U-Net model:
 
 .. code-block:: python
 
+   from segment_anything import sam_model_registry
+   sam = sam_model_registry["default"](checkpoint="sam_vit_h_4b8939.pth") # load the SAM model
    all_grains, labels, mask_all, grain_data, fig, ax = seg.sam_segmentation(sam, image, image_pred, coords, labels, min_area=400.0, plot_image=True, remove_edge_grains=False, remove_large_objects=False)
 
 The ``all_grains`` list contains shapely polygons of the grains detected in the image. ``labels`` is an image that contains the labels of the grains. 
@@ -60,7 +67,7 @@ segmentation, interactively updating the result, and saving the grain data and t
 Finetuning the U-Net model
 --------------------------
 
-The last section of the `Segment_every_grain.ipynb` notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.
+The last section of the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb>`_ notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.
 
 .. code-block:: python
 
@@ -87,3 +94,15 @@ Now we are ready to load the existing model weights and to train the model:
 .. code-block:: python
 
    model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model.keras', epochs=100)
+
+If you are happy with the finetuned model, you will want to save it:
+
+.. code-block:: python
+
+   model.save('seg_model_finetuned.keras')
+
+If you want to use this new model to make predictions, you will need to load it with the custom loss function:
+
+.. code-block:: python
+
+   model = load_model("new_model.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
