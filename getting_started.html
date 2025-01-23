@@ -38,27 +38,32 @@
 </div>
 <p>To load the U-Net model:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">segmenteverygrain</span> <span class="k">as</span> <span class="nn">seg</span>
+<span class="kn">from</span> <span class="nn">keras.saving</span> <span class="kn">import</span> <span class="n">load_model</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;seg_model.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>To run the Unet segmentation on an image and label the grains in the Unet output:</p>
+<p>This assumes that you are using Keras 3 and ‘seg_model.keras’ was saved using Keras 3. Older models created with a <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> version that was based on Keras 2 do not work with with the latest version of the package.</p>
+<p>To run the U-Net segmentation on an image and label the grains in the U-Net output:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">image_pred</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">predict_image</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">I</span><span class="o">=</span><span class="mi">256</span><span class="p">)</span>
 <span class="n">labels</span><span class="p">,</span> <span class="n">coords</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">label_grains</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">dbs_max_dist</span><span class="o">=</span><span class="mf">20.0</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The input image should not be much larger than ~2000x3000 pixels, in part to avoid long running times; it is supposed to be a numpy array with 3 channels (RGB).
 Grains should be well defined in the image and not too small (e.g., only a few pixels in size).
-The Unet prediction should be QC-d before running the SAM segmentation:</p>
+The U-Net prediction should be QC-d before running the SAM segmentation:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">15</span><span class="p">,</span><span class="mi">10</span><span class="p">))</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">big_im_pred</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)[:,</span><span class="mi">0</span><span class="p">],</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coords</span><span class="p">)[:,</span><span class="mi">1</span><span class="p">],</span> <span class="n">c</span><span class="o">=</span><span class="s1">&#39;k&#39;</span><span class="p">)</span>
 <span class="n">plt</span><span class="o">.</span><span class="n">xticks</span><span class="p">([])</span>
-<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([]);</span>
+<span class="n">plt</span><span class="o">.</span><span class="n">yticks</span><span class="p">([])</span>
 </pre></div>
 </div>
 <p>If the U-Net segmentation is of low quality, the base model can be (and should be) finetuned using the steps outlined <a class="reference internal" href="#finetuning-the-u-net-model"><span class="std std-ref">below</span></a>.</p>
-<p>To run the SAM segmentation on an image, using the outputs from the U-Net model:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">all_grains</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask_all</span><span class="p">,</span> <span class="n">grain_data</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">sam_segmentation</span><span class="p">(</span><span class="n">sam</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">plot_image</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">remove_large_objects</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<p>The Segment Anything model can be downloaded from this <a class="reference external" href="https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth">link</a>.</p>
+<p>Here is an example showing how to run the SAM segmentation on an image, using the outputs from the U-Net model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">segment_anything</span> <span class="kn">import</span> <span class="n">sam_model_registry</span>
+<span class="n">sam</span> <span class="o">=</span> <span class="n">sam_model_registry</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">](</span><span class="n">checkpoint</span><span class="o">=</span><span class="s2">&quot;sam_vit_h_4b8939.pth&quot;</span><span class="p">)</span> <span class="c1"># load the SAM model</span>
+<span class="n">all_grains</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask_all</span><span class="p">,</span> <span class="n">grain_data</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">sam_segmentation</span><span class="p">(</span><span class="n">sam</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">plot_image</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">remove_large_objects</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
 <p>The <code class="docutils literal notranslate"><span class="pre">all_grains</span></code> list contains shapely polygons of the grains detected in the image. <code class="docutils literal notranslate"><span class="pre">labels</span></code> is an image that contains the labels of the grains.
@@ -77,7 +82,7 @@ segmentation, interactively updating the result, and saving the grain data and t
 </section>
 <section id="finetuning-the-u-net-model">
 <h1>Finetuning the U-Net model<a class="headerlink" href="#finetuning-the-u-net-model" title="Link to this heading">¶</a></h1>
-<p>The last section of the <cite>Segment_every_grain.ipynb</cite> notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.</p>
+<p>The last section of the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">image_dir</span><span class="p">,</span> <span class="n">mask_dir</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">patchify_training_data</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">patch_dir</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -93,6 +98,14 @@ segmentation, interactively updating the result, and saving the grain data and t
 </div>
 <p>Now we are ready to load the existing model weights and to train the model:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">create_and_train_model</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">model_file</span><span class="o">=</span><span class="s1">&#39;seg_model.keras&#39;</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you are happy with the finetuned model, you will want to save it:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;seg_model_finetuned.keras&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you want to use this new model to make predictions, you will need to load it with the custom loss function:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;new_model.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
 </pre></div>
 </div>
 </section>
