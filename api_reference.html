@@ -1,13 +1,12 @@
 
-
 <!DOCTYPE html>
 
 
-<html lang="en" data-content_root="" >
+<html lang="en" data-content_root="./" >
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>API Reference &#8212; segmenteverygrain 0.2.1 documentation</title>
   
@@ -15,40 +14,42 @@
   
   <script data-cfasync="false">
     document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
-    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
   </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
 
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=a3416100" />
   
-  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
-
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
-  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
-  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="_static/documentation_options.js?v=c480a563"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'api_reference';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="prev" title="Getting started" href="getting_started.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
   </head>
   
   
@@ -56,32 +57,16 @@
 
   
   
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
   
   <div id="pst-scroll-pixel-helper"></div>
-
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
-    <i class="fa-solid fa-arrow-up"></i>
-    Back to top
-  </button>
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
   
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__primary"
-          id="__primary"/>
-  <label class="overlay overlay-primary" for="__primary"></label>
-  
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__secondary"
-          id="__secondary"/>
-  <label class="overlay overlay-secondary" for="__secondary"></label>
-  
-  <div class="search-button__wrapper">
-    <div class="search-button__overlay"></div>
-    <div class="search-button__search-container">
+  <dialog id="pst-search-dialog">
+    
 <form class="bd-search d-flex align-items-center"
       action="search.html"
       method="get">
@@ -89,7 +74,6 @@
   <input type="search"
          class="form-control"
          name="q"
-         id="search-input"
          placeholder="Search..."
          aria-label="Search..."
          autocomplete="off"
@@ -97,16 +81,25 @@
          autocapitalize="off"
          spellcheck="false"/>
   <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
-</form></div>
-  </div>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
   
-    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
-    </nav>
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
   
+
   <div class="bd-container">
     <div class="bd-container__inner bd-page-width">
       
-      <div class="bd-sidebar-primary bd-sidebar">
+      
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -121,6 +114,8 @@
         <div class="sidebar-primary-item">
 
   
+    
+  
 
 <a class="navbar-brand logo" href="index.html">
   
@@ -132,15 +127,22 @@
     <p class="title logo__title">segmenteverygrain 0.2.1 documentation</p>
   
 </a></div>
-        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
         <ul class="current nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="getting_started.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+<li class="toctree-l1 has-children"><a class="reference internal" href="getting_started.html">Getting started</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
 </ul>
-</li>
-<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">API Reference</a><input checked="" class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+</details></li>
+<li class="toctree-l1 current active has-children"><a class="current reference internal" href="#">API Reference</a><details open="open"><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
 </ul>
-</li>
+</details></li>
 </ul>
 
     </div>
@@ -149,14 +151,19 @@
   
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
   </div>
-  
-  <div id="rtd-footer-container"></div>
 
 
       </div>
       
-      <main id="main-content" class="bd-main">
+      <main id="main-content" class="bd-main" role="main">
         
         
 
@@ -165,14 +172,14 @@
           <div class="bd-content">
             <div class="bd-article-container">
               
-              <div class="bd-header-article">
+              <div class="bd-header-article d-print-none">
 <div class="header-article-items header-article__inner">
   
     <div class="header-article-items__start">
       
-        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
   <span class="fa-solid fa-bars"></span>
-</label></div>
+</button></div>
       
     </div>
   
@@ -248,25 +255,19 @@
 
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
-    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
-    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
-  </button>
-`);
-</script>
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <i class="fa-solid fa-magnifying-glass fa-lg"></i>
-  </button>
-`);
-</script>
-
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+    <span class="fa-solid fa-list"></span>
+</button>
 </div></div>
       
     </div>
@@ -282,6 +283,53 @@ document.write(`
     <div id="print-main-content">
         <div id="jb-print-toc">
             
+            <div>
+                <h2> Contents </h2>
+            </div>
+            <nav aria-label="Page">
+                <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.calculate_iou"><code class="docutils literal notranslate"><span class="pre">calculate_iou()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.click_for_scale"><code class="docutils literal notranslate"><span class="pre">click_for_scale()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.collect_polygon_from_mask"><code class="docutils literal notranslate"><span class="pre">collect_polygon_from_mask()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_labeled_image"><code class="docutils literal notranslate"><span class="pre">create_labeled_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_connected_components"><code class="docutils literal notranslate"><span class="pre">find_connected_components()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_grain_size_classes"><code class="docutils literal notranslate"><span class="pre">find_grain_size_classes()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">find_overlapping_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.get_area_weighted_distribution"><code class="docutils literal notranslate"><span class="pre">get_area_weighted_distribution()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.get_grains_from_patches"><code class="docutils literal notranslate"><span class="pre">get_grains_from_patches()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.label_grains"><code class="docutils literal notranslate"><span class="pre">label_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.load_and_preprocess"><code class="docutils literal notranslate"><span class="pre">load_and_preprocess()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.merge_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">merge_overlapping_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick"><code class="docutils literal notranslate"><span class="pre">onclick()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick2"><code class="docutils literal notranslate"><span class="pre">onclick2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.one_point_prompt"><code class="docutils literal notranslate"><span class="pre">one_point_prompt()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onpress"><code class="docutils literal notranslate"><span class="pre">onpress()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onpress2"><code class="docutils literal notranslate"><span class="pre">onpress2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.pick_most_similar_polygon"><code class="docutils literal notranslate"><span class="pre">pick_most_similar_polygon()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_image_w_colorful_grains"><code class="docutils literal notranslate"><span class="pre">plot_image_w_colorful_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_images_and_labels"><code class="docutils literal notranslate"><span class="pre">plot_images_and_labels()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_image"><code class="docutils literal notranslate"><span class="pre">predict_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_image_tile"><code class="docutils literal notranslate"><span class="pre">predict_image_tile()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.rasterize_grains"><code class="docutils literal notranslate"><span class="pre">rasterize_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.sam_segmentation"><code class="docutils literal notranslate"><span class="pre">sam_segmentation()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.two_point_prompt"><code class="docutils literal notranslate"><span class="pre">two_point_prompt()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.Unet"><code class="docutils literal notranslate"><span class="pre">Unet()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.weighted_crossentropy"><code class="docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a></li>
+</ul>
+            </nav>
         </div>
     </div>
 </div>
@@ -289,15 +337,15 @@ document.write(`
               
                 
 <div id="searchbox"></div>
-                <article class="bd-article" role="main">
+                <article class="bd-article">
                   
   <section id="api-reference">
-<h1>API Reference<a class="headerlink" href="#api-reference" title="Permalink to this heading">#</a></h1>
+<h1>API Reference<a class="headerlink" href="#api-reference" title="Link to this heading">#</a></h1>
 <div class="toctree-wrapper compound">
 </div>
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.calculate_iou">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">calculate_iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poly1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.calculate_iou" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">calculate_iou</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">poly1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">poly2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.calculate_iou" title="Link to this definition">#</a></dt>
 <dd><p>Calculate the Intersection over Union (IoU) between two polygons.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -317,7 +365,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.classify_points">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">classify_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.classify_points" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">classify_points</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">feature1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">feature2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.classify_points" title="Link to this definition">#</a></dt>
 <dd><p>Classifies points based on their position relative to a line.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -341,7 +389,7 @@ document.write(`
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.click_for_scale">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">click_for_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.click_for_scale" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">click_for_scale</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.click_for_scale" title="Link to this definition">#</a></dt>
 <dd><p>Handles mouse click events to measure the distance between two points on a plot.
 Prints the distance between the two points in number of pixels.</p>
 <dl class="field-list simple">
@@ -356,7 +404,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.collect_polygon_from_mask">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">collect_polygon_from_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_n_large_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bg_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.collect_polygon_from_mask" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">collect_polygon_from_mask</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_n_large_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_bg_fraction</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.7</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.collect_polygon_from_mask" title="Link to this definition">#</a></dt>
 <dd><p>Collect polygon from a mask and append it to a list of grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -383,7 +431,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.compute_curvature">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">compute_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.compute_curvature" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">compute_curvature</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.compute_curvature" title="Link to this definition">#</a></dt>
 <dd><p>Compute first derivatives and curvature of a curve.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -403,7 +451,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.convert_to_large_image_coords">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">convert_to_large_image_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.convert_to_large_image_coords" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">convert_to_large_image_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sx</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sy</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_origin</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.convert_to_large_image_coords" title="Link to this definition">#</a></dt>
 <dd><p>Convert the coordinates from the patch to the large image.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -424,7 +472,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.create_and_train_model">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_and_train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_and_train_model" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_and_train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_and_train_model" title="Link to this definition">#</a></dt>
 <dd><p>Create and train a U-Net model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -449,7 +497,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.create_labeled_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_labeled_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_labeled_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_labeled_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_labeled_image" title="Link to this definition">#</a></dt>
 <dd><p>Create a labeled image based on the provided grains and input image.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -470,7 +518,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.create_train_val_test_data">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_train_val_test_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_train_val_test_data" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_train_val_test_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_train_val_test_data" title="Link to this definition">#</a></dt>
 <dd><p>Splits image and mask data into training, validation, and test datasets, with optional augmentation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -493,7 +541,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.extract_patch">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">extract_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.extract_patch" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">extract_patch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">center</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.extract_patch" title="Link to this definition">#</a></dt>
 <dd><p>Extract a patch from the image centered on the given coordinates.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -514,7 +562,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.find_connected_components">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_connected_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_connected_components" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_connected_components</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_connected_components" title="Link to this definition">#</a></dt>
 <dd><p>Finds connected components in a graph of overlapping polygons.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -536,7 +584,7 @@ Prints the distance between the two points in number of pixels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.find_grain_size_classes">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_grain_size_classes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_size_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlimits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_grain_size_classes" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_grain_size_classes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_size_classes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">value2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlimits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_grain_size_classes" title="Link to this definition">#</a></dt>
 <dd><p>Find grain size classes that overlap with a given range.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -559,7 +607,7 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.find_overlapping_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_overlapping_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">find_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.find_overlapping_polygons" title="Link to this definition">#</a></dt>
 <dd><p>Finds and returns a list of overlapping polygons from the given list of polygons using spatial indexing.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -576,12 +624,12 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.get_area_weighted_distribution">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_area_weighted_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">areas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_area_weighted_distribution" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_area_weighted_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">areas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_area_weighted_distribution" title="Link to this definition">#</a></dt>
 <dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.get_grains_from_patches">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_grains_from_patches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_grains_from_patches" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_grains_from_patches</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plotting</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_grains_from_patches" title="Link to this definition">#</a></dt>
 <dd><p>Extract grains from patches on a plot and create a labeled image based on the updated set of grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -605,7 +653,7 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.label_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Link to this definition">#</a></dt>
 <dd><p>Label grains in semantic segmentation result and generate prompts for SAM model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -627,7 +675,7 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.load_and_preprocess">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">load_and_preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.load_and_preprocess" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">load_and_preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.load_and_preprocess" title="Link to this definition">#</a></dt>
 <dd><p>Load and preprocess an image and its corresponding mask.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -649,7 +697,7 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.merge_overlapping_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">merge_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.merge_overlapping_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">merge_overlapping_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">new_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">comps</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.merge_overlapping_polygons" title="Link to this definition">#</a></dt>
 <dd><p>Merge overlapping polygons in a connected component.</p>
 <p>This function takes a list of all polygons, a list of polygons that do not overlap with other polygons,
 a list of connected components, a minimum area threshold, and the Unet prediction.
@@ -677,7 +725,7 @@ If the area of the representative polygon is greater than the minimum area thres
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.onclick">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick" title="Link to this definition">#</a></dt>
 <dd><p>Run the SAM segmentation based on the prompt that comes from a mouse click event.
 If left mouse button is clicked, the point is used as an object (label=1) and a mask is added.
 If right mouse button is clicked, the point is used as background (label=0) and the
@@ -700,7 +748,7 @@ current mask is adjusted accordingly (if possible).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.onclick2">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_inds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick2" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_inds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">select_only</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick2" title="Link to this definition">#</a></dt>
 <dd><p>Event handler function for selecting and highlighting grains in a plot,
 based on mouse click events. The selected grains then are either deleted or merged,
 using the ‘onpress2’ function.</p>
@@ -718,14 +766,14 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.onclick_large_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick_large_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onclick_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1000</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onclick_large_image" title="Link to this definition">#</a></dt>
 <dd><p>Handles mouse click events on a large image for segmentation purposes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>event</strong> (<em>matplotlib.backend_bases.MouseEvent</em>) – The mouse event that triggered the function.</p></li>
 <li><p><strong>ax</strong> (<em>matplotlib.axes.Axes</em>) – The axes object where the image is displayed.</p></li>
-<li><p><strong>coords</strong> (<em>list of tuple</em>) – List of coordinates where the user has clicked.</p></li>
+<li><p><strong>coords</strong> (<em>list</em><em> of </em><em>tuple</em>) – List of coordinates where the user has clicked.</p></li>
 <li><p><strong>image</strong> (<em>numpy.ndarray</em>) – The large image on which segmentation is performed.</p></li>
 <li><p><strong>predictor</strong> (<em>object</em>) – The predictor object used for segmentation.</p></li>
 <li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of the patch to extract around the clicked point (default is 1000).</p></li>
@@ -742,7 +790,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.one_point_prompt">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">one_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.one_point_prompt" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">one_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.one_point_prompt" title="Link to this definition">#</a></dt>
 <dd><p>Perform SAM segmentation using a single point prompt.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -767,7 +815,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.onpress">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onpress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onpress" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onpress</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onpress" title="Link to this definition">#</a></dt>
 <dd><p>Handle key press events for deleting or merging polygons.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -782,7 +830,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.onpress2">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onpress2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_inds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onpress2" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">onpress2</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_inds</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.onpress2" title="Link to this definition">#</a></dt>
 <dd><p>Handle key press events when deleting or merging grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -799,7 +847,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.patchify_training_data">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">patchify_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.patchify_training_data" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">patchify_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.patchify_training_data" title="Link to this definition">#</a></dt>
 <dd><p>Extracts patches from training images and labels, and saves them to the specified directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -826,7 +874,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.pick_most_similar_polygon">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">pick_most_similar_polygon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.pick_most_similar_polygon" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">pick_most_similar_polygon</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.pick_most_similar_polygon" title="Link to this definition">#</a></dt>
 <dd><p>Picks the ‘most similar’ polygon from a list of polygons based on the average IoU scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -843,7 +891,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.plot_grain_axes_and_centroids">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_grain_axes_and_centroids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_grain_axes_and_centroids" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_grain_axes_and_centroids</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">linewidth</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">markersize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_grain_axes_and_centroids" title="Link to this definition">#</a></dt>
 <dd><p>Plot the axes and centroids of each grain on the given axis.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -863,7 +911,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.plot_histogram_of_axis_lengths">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_histogram_of_axis_lengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">major_axis_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minor_axis_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlimits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_histogram_of_axis_lengths" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_histogram_of_axis_lengths</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">major_axis_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">minor_axis_length</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">[]</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">binsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">xlimits</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_histogram_of_axis_lengths" title="Link to this definition">#</a></dt>
 <dd><p>Plots a histogram of the major and minor axis lengths in phi scale.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -887,7 +935,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.plot_image_w_colorful_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_image_w_colorful_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_image_w_colorful_grains" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_image_w_colorful_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">cmap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'viridis'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">im_alpha</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_image_w_colorful_grains" title="Link to this definition">#</a></dt>
 <dd><p>Plot image with randomly colored grain masks.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -907,7 +955,7 @@ using the ‘onpress2’ function.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.plot_images_and_labels">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_images_and_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_images_and_labels" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_images_and_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">img</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_images_and_labels" title="Link to this definition">#</a></dt>
 <dd><p>Plot the input image and its corresponding label side by side.
 The third subplot shows the input image with the label overlayed.</p>
 <dl class="field-list simple">
@@ -925,7 +973,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Link to this definition">#</a></dt>
 <dd><p>Segmantic segmentation of the entire image using a Unet model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -946,7 +994,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_image_tile">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image_tile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_tile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image_tile" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image_tile</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">im_tile</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image_tile" title="Link to this definition">#</a></dt>
 <dd><p>Predicts one image tile using a Unet model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -966,7 +1014,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_large_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Link to this definition">#</a></dt>
 <dd><p>Predicts the location of grains in a large image using a patch-based approach.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -992,7 +1040,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.rasterize_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">rasterize_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.rasterize_grains" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">rasterize_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.rasterize_grains" title="Link to this definition">#</a></dt>
 <dd><p>Rasterizes a list of polygons representing grains into an array of labels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1012,7 +1060,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.read_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">read_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.read_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">read_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.read_polygons" title="Link to this definition">#</a></dt>
 <dd><p>Reads polygons from a GeoJSON file.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1029,7 +1077,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.sam_segmentation">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">sam_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.sam_segmentation" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">sam_segmentation</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">coords</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">plot_image</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.sam_segmentation" title="Link to this definition">#</a></dt>
 <dd><p>Perform segmentation using the Segment Anything Model (SAM).</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1061,7 +1109,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.save_polygons">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">save_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.save_polygons" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">save_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">polygons</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fname</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.save_polygons" title="Link to this definition">#</a></dt>
 <dd><p>Save a list of polygons to a file in GeoJSON format.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1078,7 +1126,7 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.two_point_prompt">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">two_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.two_point_prompt" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">two_point_prompt</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">predictor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.two_point_prompt" title="Link to this definition">#</a></dt>
 <dd><p>Perform a two-point-prompt-based segmentation using the SAM model.
 Second point is used as background (label=0).</p>
 <dl class="field-list simple">
@@ -1105,7 +1153,7 @@ Second point is used as background (label=0).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.Unet">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">Unet</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.Unet" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">Unet</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.Unet" title="Link to this definition">#</a></dt>
 <dd><p>Creates a U-Net model for image segmentation.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1119,7 +1167,7 @@ Second point is used as background (label=0).</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.weighted_crossentropy">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Permalink to this definition">#</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Link to this definition">#</a></dt>
 <dd><p>Calculates the weighted cross-entropy loss between the true labels and predicted labels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1147,7 +1195,7 @@ Second point is used as background (label=0).</p>
               
               
               
-                <footer class="prev-next-footer">
+                <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
     <a class="left-prev"
@@ -1165,6 +1213,61 @@ Second point is used as background (label=0).</p>
             </div>
             
             
+              
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
+
+  <div class="sidebar-secondary-item">
+  <div class="page-toc tocsection onthispage">
+    <i class="fa-solid fa-list"></i> Contents
+  </div>
+  <nav class="bd-toc-nav page-toc">
+    <ul class="visible nav section-nav flex-column">
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.calculate_iou"><code class="docutils literal notranslate"><span class="pre">calculate_iou()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.click_for_scale"><code class="docutils literal notranslate"><span class="pre">click_for_scale()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.collect_polygon_from_mask"><code class="docutils literal notranslate"><span class="pre">collect_polygon_from_mask()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_labeled_image"><code class="docutils literal notranslate"><span class="pre">create_labeled_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_connected_components"><code class="docutils literal notranslate"><span class="pre">find_connected_components()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_grain_size_classes"><code class="docutils literal notranslate"><span class="pre">find_grain_size_classes()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.find_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">find_overlapping_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.get_area_weighted_distribution"><code class="docutils literal notranslate"><span class="pre">get_area_weighted_distribution()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.get_grains_from_patches"><code class="docutils literal notranslate"><span class="pre">get_grains_from_patches()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.label_grains"><code class="docutils literal notranslate"><span class="pre">label_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.load_and_preprocess"><code class="docutils literal notranslate"><span class="pre">load_and_preprocess()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.merge_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">merge_overlapping_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick"><code class="docutils literal notranslate"><span class="pre">onclick()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick2"><code class="docutils literal notranslate"><span class="pre">onclick2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.one_point_prompt"><code class="docutils literal notranslate"><span class="pre">one_point_prompt()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onpress"><code class="docutils literal notranslate"><span class="pre">onpress()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.onpress2"><code class="docutils literal notranslate"><span class="pre">onpress2()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.pick_most_similar_polygon"><code class="docutils literal notranslate"><span class="pre">pick_most_similar_polygon()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_image_w_colorful_grains"><code class="docutils literal notranslate"><span class="pre">plot_image_w_colorful_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.plot_images_and_labels"><code class="docutils literal notranslate"><span class="pre">plot_images_and_labels()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_image"><code class="docutils literal notranslate"><span class="pre">predict_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_image_tile"><code class="docutils literal notranslate"><span class="pre">predict_image_tile()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.rasterize_grains"><code class="docutils literal notranslate"><span class="pre">rasterize_grains()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.sam_segmentation"><code class="docutils literal notranslate"><span class="pre">sam_segmentation()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.two_point_prompt"><code class="docutils literal notranslate"><span class="pre">two_point_prompt()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.Unet"><code class="docutils literal notranslate"><span class="pre">Unet()</span></code></a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#segmenteverygrain.weighted_crossentropy"><code class="docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a></li>
+</ul>
+  </nav></div>
+
+</div></div>
               
             
           </div>
@@ -1209,8 +1312,8 @@ By Zoltan Sylvester
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
-<script src="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
 
   <footer class="bd-footer">
   </footer>

@@ -1,13 +1,12 @@
 
-
 <!DOCTYPE html>
 
 
-<html lang="en" data-content_root="" >
+<html lang="en" data-content_root="./" >
 
   <head>
     <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="generator" content="Docutils 0.18.1: http://docutils.sourceforge.net/" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>segmenteverygrain &#8212; segmenteverygrain 0.2.1 documentation</title>
   
@@ -15,40 +14,42 @@
   
   <script data-cfasync="false">
     document.documentElement.dataset.mode = localStorage.getItem("mode") || "";
-    document.documentElement.dataset.theme = localStorage.getItem("theme") || "light";
+    document.documentElement.dataset.theme = localStorage.getItem("theme") || "";
   </script>
+  <!--
+    this give us a css class that will be invisible only if js is disabled
+  -->
+  <noscript>
+    <style>
+      .pst-js-only { display: none !important; }
+
+    </style>
+  </noscript>
   
   <!-- Loaded before other Sphinx assets -->
-  <link href="_static/styles/theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="_static/styles/bootstrap.css?digest=5b4479735964841361fd" rel="stylesheet" />
-<link href="_static/styles/pydata-sphinx-theme.css?digest=5b4479735964841361fd" rel="stylesheet" />
+  <link href="_static/styles/theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
+<link href="_static/styles/pydata-sphinx-theme.css?digest=8878045cc6db502f8baf" rel="stylesheet" />
 
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=a746c00c" />
+    <link rel="stylesheet" type="text/css" href="_static/styles/sphinx-book-theme.css?v=a3416100" />
   
-  <link href="_static/vendor/fontawesome/6.1.2/css/all.min.css?digest=5b4479735964841361fd" rel="stylesheet" />
-  <link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-solid-900.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-brands-400.woff2" />
-<link rel="preload" as="font" type="font/woff2" crossorigin href="_static/vendor/fontawesome/6.1.2/webfonts/fa-regular-400.woff2" />
-
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
-    <link rel="stylesheet" href="_static/styles/sphinx-book-theme.css?digest=14f4ca6b54d191a8c7657f6c759bf11a5fb86285" type="text/css" />
-  
+  <!-- So that users can add custom icons -->
+  <script src="_static/scripts/fontawesome.js?digest=8878045cc6db502f8baf"></script>
   <!-- Pre-loaded scripts that we'll load fully later -->
-  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=5b4479735964841361fd" />
-<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd" />
-  <script src="_static/vendor/fontawesome/6.1.2/js/all.min.js?digest=5b4479735964841361fd"></script>
+  <link rel="preload" as="script" href="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf" />
+<link rel="preload" as="script" href="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf" />
 
-    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
-    <script src="_static/jquery.js"></script>
-    <script src="_static/underscore.js"></script>
-    <script src="_static/_sphinx_javascript_frameworks_compat.js"></script>
-    <script src="_static/doctools.js"></script>
-    <script src="_static/scripts/sphinx-book-theme.js?digest=5a5c038af52cf7bc1a1ec88eea08e6366ee68824"></script>
+    <script src="_static/documentation_options.js?v=c480a563"></script>
+    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/scripts/sphinx-book-theme.js?v=887ef09a"></script>
     <script>DOCUMENTATION_OPTIONS.pagename = 'index';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
     <link rel="next" title="Getting started" href="getting_started.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
+  <meta name="docsearch:version" content="" />
   </head>
   
   
@@ -56,32 +57,16 @@
 
   
   
-  <a class="skip-link" href="#main-content">Skip to main content</a>
+  <div id="pst-skip-link" class="skip-link d-print-none"><a href="#main-content">Skip to main content</a></div>
   
   <div id="pst-scroll-pixel-helper"></div>
-
   
   <button type="button" class="btn rounded-pill" id="pst-back-to-top">
-    <i class="fa-solid fa-arrow-up"></i>
-    Back to top
-  </button>
+    <i class="fa-solid fa-arrow-up"></i>Back to top</button>
 
   
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__primary"
-          id="__primary"/>
-  <label class="overlay overlay-primary" for="__primary"></label>
-  
-  <input type="checkbox"
-          class="sidebar-toggle"
-          name="__secondary"
-          id="__secondary"/>
-  <label class="overlay overlay-secondary" for="__secondary"></label>
-  
-  <div class="search-button__wrapper">
-    <div class="search-button__overlay"></div>
-    <div class="search-button__search-container">
+  <dialog id="pst-search-dialog">
+    
 <form class="bd-search d-flex align-items-center"
       action="search.html"
       method="get">
@@ -89,7 +74,6 @@
   <input type="search"
          class="form-control"
          name="q"
-         id="search-input"
          placeholder="Search..."
          aria-label="Search..."
          autocomplete="off"
@@ -97,16 +81,27 @@
          autocapitalize="off"
          spellcheck="false"/>
   <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd>K</kbd></span>
-</form></div>
-  </div>
+</form>
+  </dialog>
+
+  <div class="pst-async-banner-revealer d-none">
+  <aside id="bd-header-version-warning" class="d-none d-print-none" aria-label="Version warning"></aside>
+</div>
+
   
-    <nav class="bd-header navbar navbar-expand-lg bd-navbar">
-    </nav>
+    <header class="bd-header navbar navbar-expand-lg bd-navbar d-print-none">
+    </header>
   
+
   <div class="bd-container">
     <div class="bd-container__inner bd-page-width">
       
-      <div class="bd-sidebar-primary bd-sidebar">
+      
+      
+        
+      
+      <dialog id="pst-primary-sidebar-modal"></dialog>
+      <div id="pst-primary-sidebar" class="bd-sidebar-primary bd-sidebar">
         
 
   
@@ -121,6 +116,8 @@
         <div class="sidebar-primary-item">
 
   
+    
+  
 
 <a class="navbar-brand logo" href="#">
   
@@ -132,15 +129,22 @@
     <p class="title logo__title">segmenteverygrain 0.2.1 documentation</p>
   
 </a></div>
-        <div class="sidebar-primary-item"><nav class="bd-links" id="bd-docs-nav" aria-label="Main">
+        <div class="sidebar-primary-item">
+
+<button class="btn search-button-field search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+ <i class="fa-solid fa-magnifying-glass"></i>
+ <span class="search-button__default-text">Search</span>
+ <span class="search-button__kbd-shortcut"><kbd class="kbd-shortcut__modifier">Ctrl</kbd>+<kbd class="kbd-shortcut__modifier">K</kbd></span>
+</button></div>
+        <div class="sidebar-primary-item"><nav class="bd-links bd-docs-nav" aria-label="Main">
     <div class="bd-toc-item navbar-nav active">
         <ul class="nav bd-sidenav">
-<li class="toctree-l1 has-children"><a class="reference internal" href="getting_started.html">Getting started</a><input class="toctree-checkbox" id="toctree-checkbox-1" name="toctree-checkbox-1" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-1"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+<li class="toctree-l1 has-children"><a class="reference internal" href="getting_started.html">Getting started</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
 </ul>
-</li>
-<li class="toctree-l1 has-children"><a class="reference internal" href="api_reference.html">API Reference</a><input class="toctree-checkbox" id="toctree-checkbox-2" name="toctree-checkbox-2" type="checkbox"/><label class="toctree-toggle" for="toctree-checkbox-2"><i class="fa-solid fa-chevron-down"></i></label><ul class="simple">
+</details></li>
+<li class="toctree-l1 has-children"><a class="reference internal" href="api_reference.html">API Reference</a><details><summary><span class="toctree-toggle" role="presentation"><i class="fa-solid fa-chevron-down"></i></span></summary><ul class="simple">
 </ul>
-</li>
+</details></li>
 </ul>
 
     </div>
@@ -149,14 +153,19 @@
   
   
   <div class="sidebar-primary-items__end sidebar-primary__section">
+      <div class="sidebar-primary-item">
+<div id="ethical-ad-placement"
+      class="flat"
+      data-ea-publisher="readthedocs"
+      data-ea-type="readthedocs-sidebar"
+      data-ea-manual="true">
+</div></div>
   </div>
-  
-  <div id="rtd-footer-container"></div>
 
 
       </div>
       
-      <main id="main-content" class="bd-main">
+      <main id="main-content" class="bd-main" role="main">
         
         
 
@@ -165,14 +174,14 @@
           <div class="bd-content">
             <div class="bd-article-container">
               
-              <div class="bd-header-article">
+              <div class="bd-header-article d-print-none">
 <div class="header-article-items header-article__inner">
   
     <div class="header-article-items__start">
       
-        <div class="header-article-item"><label class="sidebar-toggle primary-toggle btn btn-sm" for="__primary" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+        <div class="header-article-item"><button class="sidebar-toggle primary-toggle btn btn-sm" title="Toggle primary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
   <span class="fa-solid fa-bars"></span>
-</label></div>
+</button></div>
       
     </div>
   
@@ -248,27 +257,19 @@
 
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm navbar-btn theme-switch-button" title="light/dark" aria-label="light/dark" data-bs-placement="bottom" data-bs-toggle="tooltip">
-    <span class="theme-switch nav-link" data-mode="light"><i class="fa-solid fa-sun fa-lg"></i></span>
-    <span class="theme-switch nav-link" data-mode="dark"><i class="fa-solid fa-moon fa-lg"></i></span>
-    <span class="theme-switch nav-link" data-mode="auto"><i class="fa-solid fa-circle-half-stroke fa-lg"></i></span>
-  </button>
-`);
-</script>
+<button class="btn btn-sm nav-link pst-navbar-icon theme-switch-button pst-js-only" aria-label="Color mode" data-bs-title="Color mode"  data-bs-placement="bottom" data-bs-toggle="tooltip">
+  <i class="theme-switch fa-solid fa-sun                fa-lg" data-mode="light" title="Light"></i>
+  <i class="theme-switch fa-solid fa-moon               fa-lg" data-mode="dark"  title="Dark"></i>
+  <i class="theme-switch fa-solid fa-circle-half-stroke fa-lg" data-mode="auto"  title="System Settings"></i>
+</button>
 
 
-<script>
-document.write(`
-  <button class="btn btn-sm navbar-btn search-button search-button__button" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
+<button class="btn btn-sm pst-navbar-icon search-button search-button__button pst-js-only" title="Search" aria-label="Search" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <i class="fa-solid fa-magnifying-glass fa-lg"></i>
-  </button>
-`);
-</script>
-<label class="sidebar-toggle secondary-toggle btn btn-sm" for="__secondary"title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
+</button>
+<button class="sidebar-toggle secondary-toggle btn btn-sm" title="Toggle secondary sidebar" data-bs-placement="bottom" data-bs-toggle="tooltip">
     <span class="fa-solid fa-list"></span>
-</label>
+</button>
 </div></div>
       
     </div>
@@ -300,13 +301,13 @@ document.write(`
               
                 
 <div id="searchbox"></div>
-                <article class="bd-article" role="main">
+                <article class="bd-article">
                   
   <figure class="align-left">
 <img alt="grains detected in an image" src="_images/gravel_example_mask.png" />
 </figure>
 <section id="segmenteverygrain">
-<h1>segmenteverygrain<a class="headerlink" href="#segmenteverygrain" title="Permalink to this heading">#</a></h1>
+<h1>segmenteverygrain<a class="headerlink" href="#segmenteverygrain" title="Link to this heading">#</a></h1>
 <p><a class="reference external" href="https://github.com/zsylvester/segmenteverygrain">GitHub Repository</a></p>
 <p><code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> is a Python package that aims to detect grains (or grain-like objects) in images.
 The goal is to develop a machine learning model that does a reasonably good job at detecting most of the grains in a photo, so that it is
@@ -321,7 +322,7 @@ with this approach, but the segmentations that are created tend to be of high qu
 merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and
 added to a dataset of grain images. These images then can be used to improve the Unet model.</p>
 <section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Permalink to this heading">#</a></h2>
+<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 </div>
 <p>To install <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> you can use <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
@@ -338,13 +339,53 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml">environment.yml</a> file with conda (or mamba).</p>
 </section>
 <section id="contents">
-<h2>Contents<a class="headerlink" href="#contents" title="Permalink to this heading">#</a></h2>
+<h2>Contents<a class="headerlink" href="#contents" title="Link to this heading">#</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a><ul class="simple">
 </ul>
 </li>
-<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul class="simple">
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.calculate_iou"><code class="docutils literal notranslate"><span class="pre">calculate_iou()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.click_for_scale"><code class="docutils literal notranslate"><span class="pre">click_for_scale()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.collect_polygon_from_mask"><code class="docutils literal notranslate"><span class="pre">collect_polygon_from_mask()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_labeled_image"><code class="docutils literal notranslate"><span class="pre">create_labeled_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_connected_components"><code class="docutils literal notranslate"><span class="pre">find_connected_components()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_grain_size_classes"><code class="docutils literal notranslate"><span class="pre">find_grain_size_classes()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">find_overlapping_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.get_area_weighted_distribution"><code class="docutils literal notranslate"><span class="pre">get_area_weighted_distribution()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.get_grains_from_patches"><code class="docutils literal notranslate"><span class="pre">get_grains_from_patches()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.label_grains"><code class="docutils literal notranslate"><span class="pre">label_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.load_and_preprocess"><code class="docutils literal notranslate"><span class="pre">load_and_preprocess()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.merge_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">merge_overlapping_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick"><code class="docutils literal notranslate"><span class="pre">onclick()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick2"><code class="docutils literal notranslate"><span class="pre">onclick2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.one_point_prompt"><code class="docutils literal notranslate"><span class="pre">one_point_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress"><code class="docutils literal notranslate"><span class="pre">onpress()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress2"><code class="docutils literal notranslate"><span class="pre">onpress2()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.pick_most_similar_polygon"><code class="docutils literal notranslate"><span class="pre">pick_most_similar_polygon()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_image_w_colorful_grains"><code class="docutils literal notranslate"><span class="pre">plot_image_w_colorful_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_images_and_labels"><code class="docutils literal notranslate"><span class="pre">plot_images_and_labels()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image"><code class="docutils literal notranslate"><span class="pre">predict_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image_tile"><code class="docutils literal notranslate"><span class="pre">predict_image_tile()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.rasterize_grains"><code class="docutils literal notranslate"><span class="pre">rasterize_grains()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.sam_segmentation"><code class="docutils literal notranslate"><span class="pre">sam_segmentation()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.two_point_prompt"><code class="docutils literal notranslate"><span class="pre">two_point_prompt()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.Unet"><code class="docutils literal notranslate"><span class="pre">Unet()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.weighted_crossentropy"><code class="docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a></li>
 </ul>
 </li>
 </ul>
@@ -360,7 +401,7 @@ the <a class="reference external" href="https://github.com/zsylvester/segmenteve
               
               
               
-                <footer class="prev-next-footer">
+                <footer class="prev-next-footer d-print-none">
                   
 <div class="prev-next-area">
     <a class="right-next"
@@ -379,7 +420,9 @@ the <a class="reference external" href="https://github.com/zsylvester/segmenteve
             
             
               
-                <div class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+                <dialog id="pst-secondary-sidebar-modal"></dialog>
+                <div id="pst-secondary-sidebar" class="bd-sidebar-secondary bd-toc"><div class="sidebar-secondary-items sidebar-secondary__inner">
+
 
   <div class="sidebar-secondary-item">
   <div class="page-toc tocsection onthispage">
@@ -437,8 +480,8 @@ By Zoltan Sylvester
   </div>
   
   <!-- Scripts loaded after <body> so the DOM is not blocked -->
-  <script src="_static/scripts/bootstrap.js?digest=5b4479735964841361fd"></script>
-<script src="_static/scripts/pydata-sphinx-theme.js?digest=5b4479735964841361fd"></script>
+  <script defer src="_static/scripts/bootstrap.js?digest=8878045cc6db502f8baf"></script>
+<script defer src="_static/scripts/pydata-sphinx-theme.js?digest=8878045cc6db502f8baf"></script>
 
   <footer class="bd-footer">
   </footer>
