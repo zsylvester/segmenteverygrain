@@ -42,9 +42,11 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml) file with conda (or mamba).
 
-Download Anaconda at [https:www.anaconda.com/download](https:www.anaconda.com/download).
+If you are starting from scratch (no software on your compute for Python package management and no git installed), here are some more detailed instructions to follow:
 
-In Anaconda Prompt enter the following to install pip and git packages:
+First, download Anaconda at [https:www.anaconda.com/download](https:www.anaconda.com/download). \[This will install the Anaconda Distribution. Alternatively, if you are comfortable with the command line, you can [rely only on `conda` or `mamba`](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html). Currently [`miniforge`](https://conda-forge.org/download) might be the best option as it allows you to rely on `mamba` package solver, whiich is faster than `conda`.\]
+
+In Anaconda Prompt (Windows), or Terminal (Mac), enter the following to install pip and git packages:
 
 ```
 conda install pip git
@@ -61,10 +63,16 @@ Linux/Mac:
 git clone --depth 1 git@github.com:zsylvester/segmenteverygrain.git
 ```
 
-Setup the segmenteverygrain environment in Anaconda:
+Set up the `segmenteverygrain` environment with conda (Windows):
 ```
 conda env create -f segmenteverygrain/environment.yml
 ```
+
+Set up the `segmenteverygrain` environment with conda (Mac):
+```
+conda env create -f segmenteverygrain/environment_macos.yml
+```
+
 Activate environment:
 ```
 conda activate segmenteverygrain
@@ -88,4 +96,4 @@ Thanks to Danny Stockli, Nick Howes, Kalinda Roberts, Jake Covault, Matt Malkows
 
 ## License
 
-segmenteverygrain is licensed under the [Apache License 2.0](https://github.com/zsylvester/segmenteverygrain/blob/master/LICENSE.txt).
+`segmenteverygrain` is licensed under the [Apache License 2.0](https://github.com/zsylvester/segmenteverygrain/blob/master/LICENSE.txt).
