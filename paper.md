@@ -68,8 +68,8 @@ With the emergence of large image segmentation models that have been trained on 
 So far, `Segmenteverygrain` has been successfully used on:
 
 * images of boulder fields on asteroids [@Robin:2024];
-* photographs of gravel and cobbles on beaches [@Roberts:2024] and on fluvial bars ((\autoref{fig:2}));  
-* photomicrographs (taken in transmitted light) of thin sections of sandstones ((\autoref{fig:3})) and oolitic limestones;  
+* photographs of gravel and cobbles on beaches [@Roberts:2024] and on fluvial bars (\autoref{fig:2});  
+* photomicrographs (taken in transmitted light) of thin sections of sandstones (\autoref{fig:3}) and oolitic limestones;  
 * photomicrographs (taken in reflected light) of sand and detrital zircon grains.
 
 ![Photo of fluvial gravel (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:2}](joss_paper_fig_2.jpg)
@@ -111,7 +111,7 @@ This is done by running the U-Net + SAM predictions on smaller tiles of the inpu
 
 After all the grains (or clasts) have been outlined in the image, a pandas dataframe can be created with grain area, centroid coordinates, major and minor axis lengths, and a number of other grain features. True lengths and widths and areas can be computed using a `units_per_pixel` variable that, if not available, can be determined using a scale bar in the image. Running the `plot_histogram_of_axis_lengths` function creates a plot with the distributions of major- and minor grain axis lengths plotted, both as histograms and as empirical cumulative distribution functions. If the grain areas are provided as well as input to the function, the distributions will be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
 
-The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces ((\autoref{fig:4})). When applied to georeferenced orthomosaics, such as those generated from photogrammetric techniques like structure-from-motion (SfM), the model enables precise assessments of granulometric change over time. By integrating these results with elevation data from digital surface models or other topographic datasets, the model enables examinations of relationships between sediment dynamics and broader geomorphic changes.
+The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces (\autoref{fig:4}). When applied to georeferenced orthomosaics, such as those generated from photogrammetric techniques like structure-from-motion (SfM), the model enables precise assessments of granulometric change over time. By integrating these results with elevation data from digital surface models or other topographic datasets, the model enables examinations of relationships between sediment dynamics and broader geomorphic changes.
  
 ![A clip of orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach (A). Clip of orthoimagery overlain with segmented grains output from processing the imagery through the `Segmenteverygrain` model, with grains colored by Wentworth size classes (B).\label{fig:4}](joss_paper_fig_4.jpg)
 
