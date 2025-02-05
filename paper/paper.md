@@ -7,7 +7,7 @@ tags:
   - sedimentology
   - petrography
 authors:
-  - name: Zoltan Sylvester
+  - name: Zoltán Sylvester
     orcid: 0000-0002-4890-4063
     corresponding: true 
     affiliation: "1, 2"
@@ -21,7 +21,7 @@ authors:
   - name: Matthew A. Malkowski
     orcid: 0000-0002-7781-6249
     affiliation: 2
-  - name: Zsofia Poros
+  - name: Zsófia Poros
     affiliation: 5
   - name: Rowan C. Martindale
     orcid: 0000-0003-2681-083X
