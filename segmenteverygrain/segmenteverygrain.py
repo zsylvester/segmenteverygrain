@@ -964,6 +964,8 @@ def predict_large_image(fname, model, sam, min_area, patch_size=2000, overlap=30
         A list of grains represented as polygons.
     image_pred : numpy.ndarray
         The Unet predictions for the entire image.
+    all_coords : numpy.ndarray
+        The coordinates of the SAM prompts.
     """
     step_size = patch_size - overlap  # step size for overlapping patches
     image = np.array(load_img(fname))
