@@ -4,6 +4,7 @@
 
 [![Tests](https://github.com/zsylvester/segmenteverygrain/actions/workflows/ci.yaml/badge.svg)](https://github.com/zsylvester/segmenteverygrain/actions/workflows/ci.yaml)
 [![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![status](https://joss.theoj.org/papers/3adb1bac50434eb701915a59d65eba40/status.svg)](https://joss.theoj.org/papers/3adb1bac50434eb701915a59d65eba40)
 
 
 ## Description
