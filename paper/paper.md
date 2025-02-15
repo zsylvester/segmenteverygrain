@@ -50,16 +50,16 @@ bibliography: paper.bib
 
 # Statement of need
 
-Grain size and shape are key parameters that influence the physical and chemical properties of granular materials. Quantitative estimates of these parameters are important in a numnber of fields, including:
+Grain size and shape are key parameters that influence the physical and chemical properties of granular materials. Quantitative estimates of these parameters are important in a number of fields, including:
 
-* geomorphology, sedimentology, stratigraphy, and paleontology;
-* subsurface reservoir quality and engineering;
+* geomorphology, sedimentology, stratigraphy, paleontology;
+* subsurface reservoir quality;
 * structural geology, petrology and geochemistry;
-* civil and geotechnical engineering;
+* civil engineering;
 * environmental science;
 * materials science.
 
-While the grain size of loose sand and finer-than-sand sediment can be measured accurately on bulk sample using laser particle size analyzers [@Blott:2004], quantifying the grain size of small samples, cemented rock or of sediment that is coarser than medium sand commonly requires manual measurement of hundreds of individual grain lengths and widths. In recent years, numerous studies have illustrated the promise of automated image analysis and/or machine learning (ML) approaches [@Buscombe:2020; @Tang:2020; @Mair:2022; @Chen:2023; @Prieur:2023; @Mair:2024; @Azzam:2024]. While these studies clearly show that ML techniques are superior to both  manual data collection and conventional image processing techniques [e.g., @Purinton:2021], they tend to focus on a narrow range of image types, e.g., gravel on fluvial bars [@Mair:2022; @Mair:2024], boulder fields on planetary surfaces [@Prieur:2023; @Robin:2024], or petrographic images [@Tang:2020; @Azzam:2024].
+In recent years, numerous studies have illustrated the promise of automated image analysis and/or machine learning (ML) approaches [@Buscombe:2020; @Tang:2020; @Mair:2022; @Chen:2023; @Prieur:2023; @Mair:2024; @Azzam:2024]. While these studies clearly show that ML techniques are superior to both  manual data collection and conventional image processing techniques [e.g., @Purinton:2021], they tend to focus on a narrow range of image types, e.g., gravel on fluvial bars [@Mair:2022; @Mair:2024], boulder fields on planetary surfaces [@Prieur:2023; @Robin:2024], or petrographic images [@Tang:2020; @Azzam:2024].
 
 With the emergence of large image segmentation models that have been trained on millions of images [e.g., @Kirillov:2023; @Ravi:2024], the opportunity arises for the utilization of these models to detect a variety of grains and grain-like objects in a broad range of image types. `Segmenteverygrain` is a Python module that takes advantage of the Segment Anything Model (SAM) [@Kirillov:2023] and uses a U-Net-style convolutional neural network to create prompts (pixel coordinates of grain centers) for SAM. It ensures that the resulting masks contain no duplicates and do not overlap. In general, SAM masks are more robust and accurate than the U-Net output (\autoref{fig:1}). The U-Net model uses patches as input and output; to reduce edge effects, Hann-window-based weighting is used on overlapping patches [@Pielawski:2020]. The U-Net model has been trained on 66 images of a variety of grains that were split into 44,533 patches of 256x256 pixels.
 
@@ -78,13 +78,13 @@ So far, `Segmenteverygrain` has been successfully used on:
 
 # Key functionality
 
-The U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types. However, it is recommended that it is first tested on a small image (e.g., 2000 x 3000 pixels), to see how well the U-Net model captures the difference between the grains and the background. If additional fine tuning is necessary, `Segmenteverygrain` has tools for interactively deleting, merging, and adding grains to generate training data. The training data can be used to fine tune the U-Net model.
+The U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types. However, it is recommended to first test it on a small image. If additional fine tuning is necessary, `Segmenteverygrain` has tools for interactively deleting, merging, and adding grains to generate training data.
 
-The `predict_large_image` function can be used to run the segmentation of larger images that contain thousands or tens of thousands of grains. This is done by running the U-Net + SAM predictions on smaller tiles of the input image (default size of 2000 x 2000 pixels), and collecting the grains into a list without duplicates.
+The `predict_large_image` function can be used to run the segmentation of larger images that contain thousands of grains. This is done by running the U-Net + SAM predictions on smaller tiles of the input image, and collecting the grains into a list without duplicates.
 
-A pandas dataframe can be created with grain area, centroid coordinates, major and minor axis lengths, and a number of other grain features. Running the `plot_histogram_of_axis_lengths` function creates a plot with the distributions of major- and minor grain axis lengths plotted. The distributions can be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
+Grain area, major and minor axis lengths, and a number of other grain features are stored in a pandas dataframe. The distributions of major- and minor grain axis lengths are plotted; they can be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
 
-The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces (\autoref{fig:4}).
+The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how to run `Segmenteverygrain` on a georeferenced image and save the results as a shapefile. This enables geospatial analyses of the coarse material, capturing variations in grain size across surfaces (\autoref{fig:4}).
  
 ![(A) Orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach. (B) Orthoimagery overlain with segmented grains colored by Wentworth size classes.\label{fig:4}](joss_paper_fig_4.jpg)
 
