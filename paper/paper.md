@@ -1,5 +1,5 @@
 ---
-title: 'Segmenteverygrain: A Python module segmentation of grains in images'
+title: 'Segmenteverygrain: A Python module for segmentation of grains in images'
 tags:
   - Python
   - geology
