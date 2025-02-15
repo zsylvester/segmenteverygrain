@@ -76,32 +76,24 @@ So far, `Segmenteverygrain` has been successfully used on:
  
 ![Photomicrograph (plane polarized light) of a sandstone in thin section (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Photomicrograph from \[@Prodanovic:2019\]. Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:3}](joss_paper_fig_3.jpg)
 
-`Segmenteverygrain` also adds functionality for segmenting large images (with a size limited by computer memory), working with georeferenced data, and interactively deleting, merging, and adding grains to the segmentation result.
-
 # Key functionality
 
-The base U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types. However, it is recommended that it is first tested on a small image (e.g., 2000 x 300 pixels), to see how well the U-Net model captures the difference between the grains and the background.
+The U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types. However, it is recommended that it is first tested on a small image (e.g., 2000 x 3000 pixels), to see how well the U-Net model captures the difference between the grains and the background. If additional fine tuning is necessary, `Segmenteverygrain` has tools for interactively deleting, merging, and adding grains to generate training data. The training data can be used to fine tune the U-Net model.
 
-Looking at the U-Net output, if it is obvious that there is room for improvement, a few small images should be used to derive training data for fine tuning the U-Net model. This can be done either by first running the segmentation workflow and then cleaning up the result, or, if the output is of low quality, by using SAM to do the segmentation. `Segmenteverygrain` makes this process straightforward as it has tools for interactively deleting, merging, and adding grains.
+The `predict_large_image` function can be used to run the segmentation of larger images that contain thousands or tens of thousands of grains. This is done by running the U-Net + SAM predictions on smaller tiles of the input image (default size of 2000 x 2000 pixels), and collecting the grains into a list without duplicates.
 
-Next, the training data (pairs of images and segmentation masks) can be used to fine tune the U-Net model. The `patchify_training_data` function creates patches of 256 x 256 pixels, which are split into training, validation, and test sets using the `create_train_val_test_data` function. Data augmentation is applied during training (`load_and_preprocess` function). The `create_and_train_model` function loads the weights of the base model, runs the training, and evaluates the new model.
-
-Once the `Segmenteverygrain` workflow has been tested on smaller images, the `predict_large_image` function can be used to run the segmentation of larger images that contain thousands or tens of thousands of grains.
-
-This is done by running the U-Net + SAM predictions on smaller tiles of the input image (default size of 2000 x 2000 pixels), and collecting the grains into a list without duplicates.
-
-After all the grains (or clasts) have been outlined in the image, a pandas dataframe can be created with grain area, centroid coordinates, major and minor axis lengths, and a number of other grain features. True lengths and widths and areas can be computed using a `units_per_pixel` variable that, if not available, can be determined using a scale bar in the image. Running the `plot_histogram_of_axis_lengths` function creates a plot with the distributions of major- and minor grain axis lengths plotted, both as histograms and as empirical cumulative distribution functions. If the grain areas are provided as well as input to the function, the distributions will be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
+A pandas dataframe can be created with grain area, centroid coordinates, major and minor axis lengths, and a number of other grain features. Running the `plot_histogram_of_axis_lengths` function creates a plot with the distributions of major- and minor grain axis lengths plotted. The distributions can be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
 
 The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces (\autoref{fig:4}).
  
-![A clip of orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach (A). Clip of orthoimagery overlain with segmented grains, with grains colored by Wentworth size classes (B).\label{fig:4}](joss_paper_fig_4.jpg)
+![(A) Orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach. (B) Orthoimagery overlain with segmented grains colored by Wentworth size classes.\label{fig:4}](joss_paper_fig_4.jpg)
 
 # Dependencies and availability
 
-The `Segmenteverygrain` package is available from PyPI at [https://pypi.org/project/segmenteverygrain/](https://pypi.org/project/segmenteverygrain/). Because it relies on the manipulation of both raster and vector data, the dependencies include a number of image processing and shape manipulation tools, such as `Pillow` [@Clark:2015], `scikit-image` [@Van_der_Walt:2014], `rasterio` [@Gillies:2019], and `shapely` [@Gillies:2007]. To identify and manipulate overlapping polygons that result from the SAM segmentation, we rely on the `networkx` package [@Hagberg:2008]. The U-Net model is built and trained using `tensorflow` [@Abadi:2015] and `keras` [@Chollet:2015]; some parts of the machine learning workflow are handled with functions from the `scikit-learn` library [@Pedregosa:2011].
+The `Segmenteverygrain` package is available from PyPI at [https://pypi.org/project/segmenteverygrain/](https://pypi.org/project/segmenteverygrain/). The dependencies include a number of image processing and shape manipulation tools, such as `Pillow` [@Clark:2015], `scikit-image` [@Van_der_Walt:2014], `rasterio` [@Gillies:2019], and `shapely` [@Gillies:2007]. To identify and manipulate overlapping polygons, we rely on the `networkx` package [@Hagberg:2008]. The U-Net model is built using `tensorflow` [@Abadi:2015] and `keras` [@Chollet:2015]; some parts of the ML workflow are handled with functions from the `scikit-learn` library [@Pedregosa:2011].
 
 # Acknowledgements
 
-Funding for this work came from the Quantitative Clastics Laboratory industrial consortium at the Bureau of Economic Geology, The University of Texas at Austin. We are thankful to Jake Covault, Sergey Fomel, and Tim Lawton for discussions.
+Funding for this work came from the Quantitative Clastics Laboratory at the Bureau of Economic Geology, The University of Texas at Austin.
 
 # References
