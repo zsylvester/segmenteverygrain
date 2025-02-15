@@ -50,7 +50,7 @@ bibliography: paper.bib
 
 # Statement of need
 
-Grain morphology, in particular size and shape, are key parameters that influence the physical and chemical properties of granular materials. Quantitative estimates of these parameters  are important in a broad range of fields, including:
+Grain size and shape are key parameters that influence the physical and chemical properties of granular materials. Quantitative estimates of these parameters are important in a numnber of fields, including:
 
 * geomorphology, sedimentology, stratigraphy, and paleontology;
 * subsurface reservoir quality and engineering;
@@ -61,7 +61,7 @@ Grain morphology, in particular size and shape, are key parameters that influenc
 
 While the grain size of loose sand and finer-than-sand sediment can be measured accurately on bulk sample using laser particle size analyzers [@Blott:2004], quantifying the grain size of small samples, cemented rock or of sediment that is coarser than medium sand commonly requires manual measurement of hundreds of individual grain lengths and widths. In recent years, numerous studies have illustrated the promise of automated image analysis and/or machine learning (ML) approaches [@Buscombe:2020; @Tang:2020; @Mair:2022; @Chen:2023; @Prieur:2023; @Mair:2024; @Azzam:2024]. While these studies clearly show that ML techniques are superior to both  manual data collection and conventional image processing techniques [e.g., @Purinton:2021], they tend to focus on a narrow range of image types, e.g., gravel on fluvial bars [@Mair:2022; @Mair:2024], boulder fields on planetary surfaces [@Prieur:2023; @Robin:2024], or petrographic images [@Tang:2020; @Azzam:2024].
 
-With the emergence of large image segmentation models that have been trained on millions of images [e.g., @Kirillov:2023; @Ravi:2024], the opportunity arises for the utilization of these models to detect a variety of grains and grain-like objects in a broad range of image types. `Segmenteverygrain` is a Python module that takes advantage of the Segment Anything Model (SAM) [@Kirillov:2023] to generate accurate segmentation masks for grains in any image, as long as the grains are relatively well defined. To automate this process, `Segmenteverygrain` uses a U-Net-style convolutional neural network to create prompts (pixel coordinates of grain centers) for SAM; and ensures that the resulting masks contain no duplicates and do not overlap. In general, SAM masks are more robust and accurate than the U-Net output (\autoref{fig:1}). The U-Net model uses patches as input and output; to reduce edge effects, Hann-window-based weighting is used on overlapping patches [@Pielawski:2020]. The U-Net model has been trained on 66 images of a variety of grains that were split into 44,533 patches of 256x256 pixels. Some of these images were labeled by manually outlining individual grains; for others, we used SAM in interactive mode by clicking on each object to provide a prompt. Segmenting every grain eliminates the problem of selecting a representative sample of grains - as long as the image itself is representative.
+With the emergence of large image segmentation models that have been trained on millions of images [e.g., @Kirillov:2023; @Ravi:2024], the opportunity arises for the utilization of these models to detect a variety of grains and grain-like objects in a broad range of image types. `Segmenteverygrain` is a Python module that takes advantage of the Segment Anything Model (SAM) [@Kirillov:2023] and uses a U-Net-style convolutional neural network to create prompts (pixel coordinates of grain centers) for SAM. It ensures that the resulting masks contain no duplicates and do not overlap. In general, SAM masks are more robust and accurate than the U-Net output (\autoref{fig:1}). The U-Net model uses patches as input and output; to reduce edge effects, Hann-window-based weighting is used on overlapping patches [@Pielawski:2020]. The U-Net model has been trained on 66 images of a variety of grains that were split into 44,533 patches of 256x256 pixels.
 
 ![Photo of fluvial gravel (A), output of the U-Net segmentation (B), and the result of the SAM segmentation (C). Grains 1-5 are all detected correctly, despite the fact that the grain boundary class in the U-Net segmentation does not fully delineate them. Patch #6 in the final segmentation result is a false positive that can be deleted manually. \label{fig:U-Net_sam_comparison}\label{fig:1}](joss_paper_fig_1.jpg)
 
@@ -69,12 +69,10 @@ So far, `Segmenteverygrain` has been successfully used on:
 
 * images of boulder fields on asteroids [@Robin:2024];
 * photographs of gravel and cobbles on beaches [@Roberts:2024] and on fluvial bars (\autoref{fig:2});  
-* photomicrographs (taken in transmitted light) of thin sections of sandstones (\autoref{fig:3}) and oolitic limestones;  
+* photomicrographs of thin sections of sandstones (\autoref{fig:3}) and oolitic limestones;  
 * photomicrographs (taken in reflected light) of sand and detrital zircon grains.
 
 ![Photo of fluvial gravel (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:2}](joss_paper_fig_2.jpg)
-
-Although the approach developed by [@Azzam:2024] for petrographic thin sections has the potential to be applied to other types as images as well, the philosophy of `GrainSight` is different from that of `Segmenteverygrain` as it provides a simple no-code user interface that requires no coding experience. In contrast, `Segmenteverygrain` assumes that the user is familiar with basic Python and ML concepts and is comfortable with running Jupyter notebooks. Although this approach might reduce the potential user base, it allows its users to relatively easily modify the code and train the model. Even when the base model does not work well on a new image type, it is straightforward to generate new training data and fine tune the U-Net model to improve the SAM output.  
  
 ![Photomicrograph (plane polarized light) of a sandstone in thin section (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Photomicrograph from \[@Prodanovic:2019\]. Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:3}](joss_paper_fig_3.jpg)
 
@@ -82,7 +80,7 @@ Although the approach developed by [@Azzam:2024] for petrographic thin sections 
 
 # Key functionality
 
-The base U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types (e.g., thin sections and reflected-light photomicrographs of mineral grains, sand, gravel and coarser clasts). However, it is recommended that it is first tested on a small image (e.g., 2000 x 300 pixels), to see how well the U-Net model captures the difference between the grains and the background.
+The base U-Net model that is available in the `Segmenteverygrain` repository works relatively well on a variety of image types. However, it is recommended that it is first tested on a small image (e.g., 2000 x 300 pixels), to see how well the U-Net model captures the difference between the grains and the background.
 
 Looking at the U-Net output, if it is obvious that there is room for improvement, a few small images should be used to derive training data for fine tuning the U-Net model. This can be done either by first running the segmentation workflow and then cleaning up the result, or, if the output is of low quality, by using SAM to do the segmentation. `Segmenteverygrain` makes this process straightforward as it has tools for interactively deleting, merging, and adding grains.
 
@@ -94,9 +92,9 @@ This is done by running the U-Net + SAM predictions on smaller tiles of the inpu
 
 After all the grains (or clasts) have been outlined in the image, a pandas dataframe can be created with grain area, centroid coordinates, major and minor axis lengths, and a number of other grain features. True lengths and widths and areas can be computed using a `units_per_pixel` variable that, if not available, can be determined using a scale bar in the image. Running the `plot_histogram_of_axis_lengths` function creates a plot with the distributions of major- and minor grain axis lengths plotted, both as histograms and as empirical cumulative distribution functions. If the grain areas are provided as well as input to the function, the distributions will be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
 
-The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces (\autoref{fig:4}). When applied to georeferenced orthomosaics, such as those generated from photogrammetric techniques like structure-from-motion (SfM), the model enables precise assessments of granulometric change over time. By integrating these results with elevation data from digital surface models or other topographic datasets, the model enables examinations of relationships between sediment dynamics and broader geomorphic changes.
+The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how one can run `Segmenteverygrain` on a georeferenced image and write out the results as a set of grain polygons in shapefile format. This feature enables detailed geospatial analyses of the coarse material distributions, capturing variations in grain size across surfaces (\autoref{fig:4}).
  
-![A clip of orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach (A). Clip of orthoimagery overlain with segmented grains output from processing the imagery through the `Segmenteverygrain` model, with grains colored by Wentworth size classes (B).\label{fig:4}](joss_paper_fig_4.jpg)
+![A clip of orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach (A). Clip of orthoimagery overlain with segmented grains, with grains colored by Wentworth size classes (B).\label{fig:4}](joss_paper_fig_4.jpg)
 
 # Dependencies and availability
 
