@@ -74,7 +74,7 @@ With the emergence of large image segmentation models trained on millions of ima
 
 ![Photo of fluvial gravel (A), output of the segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:2}](joss_paper_fig_2.jpg)
  
-![Photomicrograph of a sandstone in thin section (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Photomicrograph from \[@Prodanovic:2019\].\label{fig:3}](joss_paper_fig_3.jpg)
+![Photomicrograph of a sandstone in thin section (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Photomicrograph from @Prodanovic:2019.\label{fig:3}](joss_paper_fig_3.jpg)
 
 # Key functionality
 
