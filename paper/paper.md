@@ -94,6 +94,6 @@ The `Segmenteverygrain` package is available from PyPI at [https://pypi.org/proj
 
 # Acknowledgements
 
-Funding was provided by the Quantitative Clastics Laboratory, Bureau of Economic Geology, The University of Texas at Austin.
+Funding was provided by the Quantitative Clastics Laboratory, Bureau of Economic Geology, The University of Texas at Austin. We are thankful to Jake Covault, Sergey Fomel, and Tim Lawton for discussions.
 
 # References
