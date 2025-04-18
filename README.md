@@ -93,6 +93,48 @@ See the [Segment_every_grain.ipynb](https://github.com/zsylvester/segmenteverygr
 
 The [Segment_every_grain_colab.ipynb](https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
 
+## Contributing
+
+We welcome contributions from anyone interested in improving the project. To contribute to the model use the following steps:
+
+1. Fork the repository.
+2. Create a new branch for your changes:
+
+```bash
+git checkout -b feature/my-feature
+```
+
+3. Make your changes and commit them:
+
+```bash
+git add .
+git commit -m "Add my feature"
+```
+
+4. Push your changes to your forked repository:
+
+```bash
+git push origin feature/my-feature
+```
+
+5. Create a pull request from your forked repository back to the original repository.
+
+## Reporting Issues
+
+If you encounter any issues or problems while using segmentanygrain, we encourage you to report them to us. This helps us identify and address any bugs or areas for improvement.
+
+To report an issue, please follow these steps:
+
+1. **Check the Existing Issues:** Before submitting a new issue, search our issue tracker to see if the problem you're experiencing has already been reported. If you find a similar issue, you can add any additional information or comments to that existing issue.
+2. **Create a New Issue:** If you don't find an existing issue that matches your problem, create a new issue by clicking the "New issue" button on the issues page. Provide a clear and descriptive title for your issue, and include the following information in the description:
+    - A detailed description of the problem you're experiencing, including any error messages or unexpected behavior.
+    - The steps to reproduce the issue, if possible.
+    - Your operating system and the version of the software you're using.
+    - Any relevant logs or screenshots that could help us understand the problem.
+3. **Submit the Issue**: Once you've provided all the necessary information, click the "Submit new issue" button to create the issue. Our team will review the issue and respond as soon as possible.
+
+We appreciate you taking the time to report any issues you encounter. Your feedback helps us improve.
+
 ## Acknowledgements
 
 Thanks to Danny Stockli, Nick Howes, Kalinda Roberts, Jake Covault, Matt Malkowski, Raymond Luong, Wilson Bai, Rowan Martindale, and Sergey Fomel for discussions and/or helping with generating training data. Funding for this work came from the [Quantitative Clastics Laboratory industrial consortium](http://www.beg.utexas.edu/qcl) at the Bureau of Economic Geology, The University of Texas at Austin.
