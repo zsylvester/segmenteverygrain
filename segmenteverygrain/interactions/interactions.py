@@ -276,6 +276,8 @@ class Grain(object):
             Object representing this grain on the plot.
         '''
 
+        # Compute grain data if it hasn't been done already
+        data = self.measure() if self.data is None else self.data
         # Create patch (filled polygon)
         (patch,) = ax.fill(
             *(self.xy * scale),
@@ -451,7 +453,6 @@ class GrainPlot(object):
         self.grains = grains
         for grain in tqdm(grains):
             grain.image = image
-            grain.measure()
             grain.draw_patch(self.ax, self.scale)
         if blit:
             self.artists = [self.info,
