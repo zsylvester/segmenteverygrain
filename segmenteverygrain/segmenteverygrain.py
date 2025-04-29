@@ -1,17 +1,20 @@
+import itertools
+import warnings
+import os
+import json
 import sys
+from glob import glob
+
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-from matplotlib.patches import Polygon as mpl_Polygon
+
 from tqdm import tqdm, trange
 import networkx as nx
 import rasterio
 from rasterio.features import rasterize
-import warnings
-
 from skimage import measure
-from skimage.measure import regionprops, regionprops_table, label, find_contours
-from skimage.morphology import binary_erosion, binary_dilation
+from skimage.measure import regionprops, regionprops_table
 from skimage.segmentation import watershed
 from skimage.feature import peak_local_max
 
@@ -21,11 +24,7 @@ import scipy.ndimage as ndi
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import DBSCAN
 import rtree
-import itertools
-from glob import glob
-import os
 from PIL import Image
-import json
 
 import tensorflow as tf
 from keras import Model
