@@ -2116,11 +2116,20 @@ def read_polygons(fname):
 
 
 def get_area_weighted_distribution(grain_sizes, areas):
+    """
+    Generate an area-weighted distribution of grain sizes.
+    
+    Parameters:
+    grain_sizes (list): A list of grain sizes.
+    areas (list): A list of corresponding areas for the grain sizes.
+    
+    Returns:
+    list: An area-weighted list of grain sizes.
+    """
     area_weighted_grain_size = []
     mean_area = np.mean(areas)
-    for i in range(len(grain_sizes)):
-        for j in range(int(areas[i] / (0.5 * mean_area))):
-            area_weighted_grain_size.append(grain_sizes[i])
+    for grain_size, area in zip(grain_sizes, areas):
+        area_weighted_grain_size.extend([grain_size] * int(area / (0.5 * mean_area)))
     return area_weighted_grain_size
 
 
