@@ -702,7 +702,7 @@ class GrainPlot(object):
                 return
             box = None
         # Use prompts to find a grain
-        coords = segmenteverygrain.predict_from_prompts(
+        coords = predict_from_prompts(
             predictor=self.predictor,
             box=box,
             points=points,
@@ -1029,7 +1029,52 @@ class GrainPlot(object):
         self.fig.savefig(fn, bbox_inches='tight', pad_inches=0)
 
 
-# Load/save ---
+# Grain detection (replaces segmenteverygrain version) -----------------------
+
+def predict_from_prompts(predictor, box=None, points=None, point_labels=None):
+    """
+    Perform a point-prompt-based segmentation using the SAM model. 
+
+    Parameters
+    ----------
+        predictor
+            SAM predictor
+        image: numpy.ndarray
+            Input image
+        box: list, optional
+            Selection box coordinates, as [xmin, ymin, xmax, ymax]
+        points: list, optional
+            Prompt coordinates, as [(x1, y1), (x2, y2)...]
+        point_labels: list, optional
+            Bool values for each point, True if inside the object
+
+    Returns
+    -------
+        contour: list
+            Points along resulting contour, as [(x1, y1), (x2, y2)...]
+    """
+    # Format input
+    if points is not None:
+        points = np.array(points)
+        point_labels = np.array(point_labels)
+    if box is not None:
+        box = np.array(box)[None, :]
+    # Do segmentation
+    masks, _, _ = predictor.predict(
+        point_coords=points,
+        point_labels=point_labels,
+        box=box,
+        # TODO: Is multimask_output=True better when using only one prompt?
+        multimask_output=False
+    )
+    # Find and return points along contour of detected object
+    contours = skimage.measure.find_contours(masks[0], 0.5)
+    sx, sy = contours[0][:, 1], contours[0][:, 0]
+    return sx, sy
+
+
+# Input/output ---------------------------------------------------------------
+
 def load_image(fn: str) -> np.ndarray:
     ''' 
     Load an image from disk as a numpy array.
@@ -1238,7 +1283,8 @@ def save_mask(fn: str, grains: list, image: np.ndarray, scale: bool = False):
     keras.utils.save_img(fn, get_mask(grains, image), scale=scale)
 
 
-# Point count ---
+# Point count ----------------------------------------------------------------
+
 def make_grid(image: np.ndarray, spacing: int) -> tuple[list, list, list]:
     ''' 
     Construct a grid of measurement points given an image and spacing.
@@ -1315,6 +1361,8 @@ def filter_grains_by_props(grains: list, **props):
         filtered_grains = [g for g in filtered_grains if func(g.data[prop])]
     return filtered_grains
 
+
+# Measurements ---------------------------------------------------------------
 
 def measure_color(image: np.ndarray, polygon: shapely.Polygon) -> dict:
     '''
