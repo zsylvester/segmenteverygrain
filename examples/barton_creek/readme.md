@@ -1,0 +1,3 @@
+# Barton Creek Example Images
+
+The images in this folder were taken at Barton Creek, Austin, Texas. Photographs were captured using an iPhone 15 Pro under natural daylight conditions. The camera was positioned directly above the gravel surface to minimize distortion, and a scale bar was included in each image for reference. These images are intended for use as example data for grain segmentation and analysis with the `segmenteverygrain` package.
