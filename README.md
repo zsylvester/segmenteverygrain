@@ -44,6 +44,8 @@ pip install segmenteverygrain
 ```
 If you are using 'pip', you need to make sure that the  Python version is 3.9 (and not higher), so that all dependencies work correctly.
 
+Note that you need to clone the repository to get the model files in one go; otherwise you need to download the SAM and U-Net models manually and place them in the right folders.
+
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](environment.yml) file with conda (or mamba).
 
 We recommend that you install [conda or mamba](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) to manage your Python environments. Due to licensing restrictions on Aanconda, [miniforge](https://conda-forge.org/download) might be the best option as there are no strings attached and it allows you to rely on the `mamba` package solver, which is faster than `conda`. If you are using `mamba`, you can simply replace `conda` with `mamba` in the commands below.
