@@ -93,6 +93,12 @@ See the [Segment_every_grain.ipynb](Segment_every_grain.ipynb) notebook for an e
 
 The [Segment_every_grain_colab.ipynb](Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
 
+## Running times
+
+It takes 2 minutes and 40 seconds to run the full segmentation on a 3 megapixel (e.g., 1500x2000 pixels) image, on an Apple M2 Max laptop with 96 GB RAM. The same image takes the same amount of time to segment using Google Colab with a Nvidia A100 GPU.
+
+Obviously, large images take longer to process. The segmentation of the ~20 megapixel example image that is provided in the repository ('mair_et_al_L2_DJI_0382_image.jpg') takes ~20 minutes with both hardware configurations mentioned before. As the processing of large images is done in patches, the increase in computational time is roughly linear.
+
 ## Contributing
 
 We welcome contributions from anyone interested in improving the project. To contribute to the model use the following steps:
