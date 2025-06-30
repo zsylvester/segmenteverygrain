@@ -44,7 +44,7 @@ pip install segmenteverygrain
 ```
 If you are using 'pip', you need to make sure that the  Python version is 3.9 (and not higher), so that all dependencies work correctly.
 
-Note that you need to clone the repository to get the model files in one go; otherwise you need to download the SAM and U-Net models manually and place them in the right folders.
+Note that you need to clone the repository to get the U-Net model file and the example images in one go; otherwise you need to download these manually and place them in the right folders.
 
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](environment.yml) file with conda (or mamba).
 
