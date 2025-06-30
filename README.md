@@ -42,12 +42,11 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 ```
 pip install segmenteverygrain
 ```
+If you are using 'pip', you need to make sure that the  Python version is 3.9 (and not higher), so that all dependencies work correctly.
 
 The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](environment.yml) file with conda (or mamba).
 
-If you are starting from scratch (no software on your computer for Python package management and no git installed), here are some more detailed instructions to follow:
-
-First, download Anaconda at [https:www.anaconda.com/download](https:www.anaconda.com/download). \[This will install the Anaconda Distribution. Alternatively, if you are comfortable with the command line, you can [rely only on conda or mamba](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html). Currently [miniforge](https://conda-forge.org/download) might be the best option as it allows you to rely on the `mamba` package solver, which is faster than `conda`.\]
+We recommend that you install [conda or mamba](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) to manage your Python environments. Due to licensing restrictions on Aanconda, [miniforge](https://conda-forge.org/download) might be the best option as there are no strings attached and it allows you to rely on the `mamba` package solver, which is faster than `conda`. If you are using `mamba`, you can simply replace `conda` with `mamba` in the commands below.
 
 In Anaconda Prompt (Windows), or Terminal (Mac), enter the following to install pip and git packages:
 
