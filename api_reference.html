@@ -6,7 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
     <title>API Reference &#8212; segmenteverygrain 0.2.1 documentation</title>
-    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=d1102ebc" />
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
     <script src="_static/documentation_options.js?v=37f418d5"></script>
     <script src="_static/doctools.js?v=9a2dae69"></script>
@@ -317,7 +317,13 @@ of (lower_bound, upper_bound) representing the size range of each class.</p></li
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.get_area_weighted_distribution">
 <span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_area_weighted_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_sizes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">areas</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.get_area_weighted_distribution" title="Link to this definition">¶</a></dt>
-<dd></dd></dl>
+<dd><p>Generate an area-weighted distribution of grain sizes.</p>
+<p>Parameters:
+grain_sizes (list): A list of grain sizes.
+areas (list): A list of corresponding areas for the grain sizes.</p>
+<p>Returns:
+list: An area-weighted list of grain sizes.</p>
+</dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.get_grains_from_patches">
@@ -724,6 +730,7 @@ The third subplot shows the input image with the label overlayed.</p>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>All_Grains</strong> (<em>list</em>) – A list of grains represented as polygons.</p></li>
 <li><p><strong>image_pred</strong> (<em>numpy.ndarray</em>) – The Unet predictions for the entire image.</p></li>
+<li><p><strong>all_coords</strong> (<em>numpy.ndarray</em>) – The coordinates of the SAM prompts.</p></li>
 </ul>
 </p>
 </dd>

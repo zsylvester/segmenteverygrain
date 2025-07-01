@@ -1,4 +1,4 @@
-.. figure:: ../../gravel_example_mask.png
+.. image:: _static/images/gravel_example_mask.png
    :alt: grains detected in an image
    :align: left
 
