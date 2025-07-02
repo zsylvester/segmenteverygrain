@@ -220,6 +220,10 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.</p>
 </section>
+<section id="hardware-requirements">
+<h2>Hardware requirements<a class="headerlink" href="#hardware-requirements" title="Link to this heading">¶</a></h2>
+<p>For training a new U-Net model or fine tuning the existing one, GPU access is necessary. The easiest way of getting access to a powerful GPU is Google Colab. In inference mode, a moderately powerful computer with at least 16 GB of memory should be enough. That said, larger CPU speeds and more memory will significantly reduce inference time.</p>
+</section>
 </section>
 <section id="finetuning-the-u-net-model">
 <h1>Finetuning the U-Net model<a class="headerlink" href="#finetuning-the-u-net-model" title="Link to this heading">¶</a></h1>
@@ -250,6 +254,33 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 </pre></div>
 </div>
 </section>
+<section id="training-the-u-net-model-from-scratch">
+<h1>Training the U-Net model from scratch<a class="headerlink" href="#training-the-u-net-model-from-scratch" title="Link to this heading">¶</a></h1>
+<p>If you want to train a U-Net model from scratch, you can use the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Train_Unet_model.ipynb">Train_Unet_model.ipynb</a> notebook, which mostly consists of the following code:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">seg</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">Unet</span><span class="p">()</span> <span class="c1"># create model</span>
+<span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">Adam</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">])</span>
+</pre></div>
+</div>
+<p>If you place the training images and masks in the ‘images’ directory (the filenames are supposed to terminate with ‘_image.png’ and ‘_mask.png’), you can create the training dataset like this:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">input_dir</span> <span class="o">=</span> <span class="s2">&quot;../images/&quot;</span>
+<span class="n">patch_dir</span> <span class="o">=</span> <span class="s2">&quot;../patches/&quot;</span>
+<span class="n">image_dir</span><span class="p">,</span> <span class="n">mask_dir</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">patchify_training_data</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">patch_dir</span><span class="p">)</span>
+<span class="n">image_dir</span> <span class="o">=</span> <span class="s1">&#39;../patches/Patches/images&#39;</span>
+<span class="n">mask_dir</span> <span class="o">=</span> <span class="s1">&#39;../patches/Patches/labels&#39;</span>
+<span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">create_train_val_test_data</span><span class="p">(</span><span class="n">image_dir</span><span class="p">,</span> <span class="n">mask_dir</span><span class="p">,</span> <span class="n">augmentation</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Then you can train and test the model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">create_and_train_model</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The model can be saved using the Keras save method:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;seg_model.keras&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 44,533 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: <a class="reference external" href="https://zenodo.org/record/10058049">https://zenodo.org/record/10058049</a>. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function. The training accuracy was 0.937, the validation accuracy was 0.922, and the testing accuracy was 0.922 at the end of training. The model is available in the repository as ‘seg_model.keras’.</p>
+</section>
 
 
           </div>
@@ -279,9 +310,11 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 <li class="toctree-l2"><a class="reference internal" href="#grain-size-analysis">Grain size analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-results">Saving results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#large-image-processing">Large image processing</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#hardware-requirements">Hardware requirements</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="#finetuning-the-u-net-model">Finetuning the U-Net model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="#training-the-u-net-model-from-scratch">Training the U-Net model from scratch</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
 </ul>
 

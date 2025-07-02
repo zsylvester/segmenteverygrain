@@ -223,6 +223,11 @@ Just like before, the ``all_grains`` list contains shapely polygons of the grain
 See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb>`_ notebook for a complete example 
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.
 
+Hardware requirements
+~~~~~~~~~~~~~~~~~~~~~
+
+For training a new U-Net model or fine tuning the existing one, GPU access is necessary. The easiest way of getting access to a powerful GPU is Google Colab. In inference mode, a moderately powerful computer with at least 16 GB of memory should be enough. That said, larger CPU speeds and more memory will significantly reduce inference time.
+
 
 Finetuning the U-Net model
 --------------------------
@@ -266,3 +271,40 @@ If you want to use this new model to make predictions, you will need to load it 
 .. code-block:: python
 
    model = load_model("seg_model_finetuned.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+
+
+Training the U-Net model from scratch
+-------------------------------------
+
+If you want to train a U-Net model from scratch, you can use the `Train_Unet_model.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Train_Unet_model.ipynb>`_ notebook, which mostly consists of the following code:
+
+.. code-block:: python
+
+   import segmenteverygrain as seg
+   model = seg.Unet() # create model
+   model.compile(optimizer=Adam(), loss=seg.weighted_crossentropy, metrics=["accuracy"])
+
+If you place the training images and masks in the 'images' directory (the filenames are supposed to terminate with '_image.png' and '_mask.png'), you can create the training dataset like this:
+
+.. code-block:: python
+
+   input_dir = "../images/"
+   patch_dir = "../patches/"
+   image_dir, mask_dir = seg.patchify_training_data(input_dir, patch_dir)
+   image_dir = '../patches/Patches/images'
+   mask_dir = '../patches/Patches/labels'
+   train_dataset, val_dataset, test_dataset = seg.create_train_val_test_data(image_dir, mask_dir, augmentation=True)
+
+Then you can train and test the model:
+
+.. code-block:: python
+
+   model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, epochs=200)
+
+The model can be saved using the Keras save method:
+
+.. code-block:: python
+
+   model.save('seg_model.keras')
+
+The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 44,533 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/record/10058049. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function. The training accuracy was 0.937, the validation accuracy was 0.922, and the testing accuracy was 0.922 at the end of training. The model is available in the repository as 'seg_model.keras'.
