@@ -276,7 +276,7 @@ If you want to use this new model to make predictions, you will need to load it 
 Training the U-Net model from scratch
 -------------------------------------
 
-If you want to train a U-Net model from scratch, you can use the `Train_Unet_model.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Train_Unet_model.ipynb>`_ notebook, which mostly consists of the following code:
+If you want to train a U-Net model from scratch, you can use the `Train_Unet_model.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/Train_Unet_model.ipynb>`_ notebook, which mostly consists of the code snippets below.
 
 .. code-block:: python
 
