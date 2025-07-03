@@ -68,7 +68,7 @@ With the emergence of large image segmentation models trained on millions of ima
 `Segmenteverygrain` has been successfully used on:
 
 * images of boulder fields on asteroids [@Robin:2024];
-* photographs of gravel and cobbles on beaches [@Roberts:2024] and fluvial bars (\autoref{fig:2});  
+* photographs of gravel and cobbles on beaches [@Roberts:2024] and fluvial bars (\autoref{fig:2});
 * photomicrographs of sandstone (\autoref{fig:3}) and oolitic limestone thin sections;
 * photomicrographs of sand and detrital zircon grains.
 
