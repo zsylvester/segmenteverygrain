@@ -72,7 +72,7 @@ With the emergence of large image segmentation models trained on millions of ima
 * photomicrographs of sandstone (\autoref{fig:3}) and oolitic limestone thin sections;
 * photomicrographs of sand and detrital zircon grains.
 
-![Photo of fluvial gravel (A), output of the segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Major grain axis lengths are shown in blue, minor grain axis lengths in orange.\label{fig:2}](joss_paper_fig_2.jpg)
+![Photo of fluvial gravel (A), output of the segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Major grain axis lengths are shown in blue, minor grain axis lengths in orange. Photo taken by first author at Barton Creek, Texas. \label{fig:2}](joss_paper_fig_2.jpg)
  
 ![Photomicrograph of a sandstone in thin section (A), output of the \`Segmenteverygrain\` segmentation (B), size distributions of the major and minor grain axes (C), and the area-weighted size distributions (D). Photomicrograph from @Prodanovic:2019.\label{fig:3}](joss_paper_fig_3.jpg)
 
@@ -86,7 +86,7 @@ Grain area, major and minor axis lengths, and a number of other grain features a
 
 The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how to run `Segmenteverygrain` on a georeferenced image and save the results as a shapefile. This enables geospatial analyses of the coarse material, capturing variations in grain size across surfaces (\autoref{fig:4}).
  
-![(A) Orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach. (B) Orthoimagery overlain with segmented grains colored by Wentworth size classes.\label{fig:4}](joss_paper_fig_4.jpg)
+![(A) Orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach. (B) Orthoimagery overlain with segmented grains colored by Wentworth size classes. Data from @Roberts:2024. \label{fig:4}](joss_paper_fig_4.jpg)
 
 # Dependencies and availability
 
