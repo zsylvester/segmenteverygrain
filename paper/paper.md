@@ -90,7 +90,7 @@ The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how to ru
 
 # Dependencies and availability
 
-The `Segmenteverygrain` package is available from PyPI at [https://pypi.org/project/segmenteverygrain/](https://pypi.org/project/segmenteverygrain/). The dependencies include image processing and shape manipulation tools, such as `Pillow` [@Clark:2015], `scikit-image` [@Van_der_Walt:2014], `rasterio` [@Gillies:2013], and `shapely` [@Gillies:2007]. To identify and manipulate overlapping polygons, we rely on the `networkx` package [@Hagberg:2008]. The U-Net model is built using `tensorflow` [@Abadi:2015] and `keras` [@Chollet:2015]; parts of the ML workflow rely on the `scikit-learn` library [@Pedregosa:2011].
+The `Segmenteverygrain` package is available from PyPI at [https://pypi.org/project/segmenteverygrain/](https://pypi.org/project/segmenteverygrain/). The dependencies include image processing and shape manipulation tools, such as `Pillow` [@Clark:2015], `scikit-image` [@Van_der_Walt:2014], `rasterio` [@Gillies:2019], and `shapely` [@Gillies:2025]. To identify and manipulate overlapping polygons, we rely on the `networkx` package [@Hagberg:2008]. The U-Net model is built using `tensorflow` [@Abadi:2015] and `keras` [@Chollet:2015]; parts of the ML workflow rely on the `scikit-learn` library [@Pedregosa:2011].
 
 # Acknowledgements
 
