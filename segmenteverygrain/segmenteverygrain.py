@@ -1746,7 +1746,7 @@ def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersiz
     None
     """
     regions = regionprops(labels.astype("int"))
-    for ind in range(len(all_grains) - 1):
+    for ind in range(len(regions)):
         y0, x0 = regions[ind].centroid
         orientation = regions[ind].orientation
         x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].minor_axis_length
@@ -2159,6 +2159,27 @@ def plot_histogram_of_axis_lengths(
     ax : matplotlib.axes._subplots.AxesSubplot
         The axes object containing the plot.
     """
+    # Handle empty input data or NaN values
+    major_axis_length = np.array(major_axis_length)
+    minor_axis_length = np.array(minor_axis_length)
+    
+    # Remove NaN values
+    valid_major = major_axis_length[~np.isnan(major_axis_length)]
+    valid_minor = minor_axis_length[~np.isnan(minor_axis_length)]
+    
+    if len(valid_major) == 0 or len(valid_minor) == 0:
+        fig, ax = plt.subplots(figsize=(8, 6))
+        ax.text(0.5, 0.5, 'No valid grain data available', 
+                horizontalalignment='center', verticalalignment='center',
+                transform=ax.transAxes, fontsize=14)
+        ax.set_xlabel("grain axis length (mm)")
+        ax.set_ylabel("count")
+        return fig, ax
+    
+    # Use only valid data
+    major_axis_length = valid_major
+    minor_axis_length = valid_minor
+    
     if len(area) > 0:
         major_axis_length = get_area_weighted_distribution(major_axis_length, area)
         minor_axis_length = get_area_weighted_distribution(minor_axis_length, area)
@@ -2197,30 +2218,42 @@ def plot_histogram_of_axis_lengths(
     bounds = np.array(sorted(bounds)[::-1])
     if xlimits:
         bounds = bounds[(bounds >= phi_min) & (bounds <= phi_max)]
-    for i in range(len(bounds) - 1):
-        ax.text(
-            bounds[i] * 0.5 + bounds[i + 1] * 0.5 + 0.05,
-            y_loc,
-            matching_classes[i],
-            rotation="vertical",
+    
+    # Handle case where bounds is empty (no grains or data issues)
+    if len(bounds) > 0:
+        for i in range(len(bounds) - 1):
+            ax.text(
+                bounds[i] * 0.5 + bounds[i + 1] * 0.5 + 0.05,
+                y_loc,
+                matching_classes[i],
+                rotation="vertical",
+            )
+            ax.plot([bounds[i], bounds[i]], [0, max(n) + 0.1 * max(n)], "k", linewidth=0.3)
+        if xlimits:
+            ax.set_xlim(phi_max, phi_min)
+        else:
+            ax.set_xlim(bounds[0], bounds[-1])
+        ax.set_ylim(0, max(n) + 0.1 * max(n))
+        ax.set_xticks(np.arange(bounds[-1], bounds[0] + 1))
+        ax.set_xticklabels(
+            [np.round(2**i, 3) for i in range(-bounds[-1], -bounds[0] - 1, -1)]
         )
-        ax.plot([bounds[i], bounds[i]], [0, max(n) + 0.1 * max(n)], "k", linewidth=0.3)
-    if xlimits:
-        ax.set_xlim(phi_max, phi_min)
+        ax.set_xlabel("grain axis length")
+        ax.set_ylabel("count")
+        ax2 = ax.twiny()
+        ax2.set_xlim(ax.get_xlim())
+        ax2.set_xticks(bounds)
+        ax2.set_xticklabels([i for i in bounds])
+        ax2.set_xlabel("phi scale")
     else:
-        ax.set_xlim(bounds[0], bounds[-1])
-    ax.set_ylim(0, max(n) + 0.1 * max(n))
-    ax.set_xticks(np.arange(bounds[-1], bounds[0] + 1))
-    ax.set_xticklabels(
-        [np.round(2**i, 3) for i in range(-bounds[-1], -bounds[0] - 1, -1)]
-    )
-    ax.set_xlabel("grain axis length (mm)")
-    ax.set_ylabel("count")
-    ax2 = ax.twiny()
-    ax2.set_xlim(ax.get_xlim())
-    ax2.set_xticks(bounds)
-    ax2.set_xticklabels([i for i in bounds])
-    ax2.set_xlabel("phi scale")
+        # If no bounds, set basic limits based on phi values
+        if xlimits:
+            ax.set_xlim(phi_max, phi_min)
+        else:
+            ax.set_xlim(phi_max, phi_min)
+        ax.set_ylim(0, max(n) + 0.1 * max(n) if len(n) > 0 else 1)
+        ax.set_xlabel("grain axis length")
+        ax.set_ylabel("count")
     phi_major_sorted = np.sort(phi_major)
     ecdf_major = np.arange(1, len(phi_major_sorted) + 1) / len(phi_major_sorted)
     phi_minor_sorted = np.sort(phi_minor)
