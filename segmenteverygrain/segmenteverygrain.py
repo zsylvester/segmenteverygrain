@@ -634,7 +634,8 @@ def calculate_iou(poly1, poly2):
 
 def pick_most_similar_polygon(polygons):
     """
-    Picks the 'most similar' polygon from a list of polygons based on the average IoU scores.
+    Picks the 'most similar' polygon from a list of polygons based on IoU scores 
+    and polygon quality metrics (compactness, completeness).
 
     Parameters
     ----------
@@ -647,16 +648,62 @@ def pick_most_similar_polygon(polygons):
         The most similar polygon.
 
     """
+    # Calculate quality metrics for each polygon
+    def calculate_quality_score(poly):
+        """
+        Calculate a quality score for a polygon based on:
+        - Compactness (how circular/complete it is)
+        - Perimeter-to-area ratio
+        Higher score = better quality polygon
+        """
+        area = poly.area
+        perimeter = poly.length
+        
+        if area == 0 or perimeter == 0:
+            return 0
+        
+        # Isoperimetric quotient: measures how circular a shape is
+        # Perfect circle = 1, lower values indicate more elongated/irregular shapes
+        compactness = (4 * np.pi * area) / (perimeter ** 2)
+        
+        # Normalized area (larger polygons are often more complete)
+        max_area = max(p.area for p in polygons)
+        normalized_area = area / max_area if max_area > 0 else 0
+        
+        # Combine metrics: favor compact shapes and larger areas
+        quality_score = compactness * 0.7 + normalized_area * 0.3
+        
+        return quality_score
+    
     # Calculate the average IoU for each polygon
     avg_iou_scores = []
+    quality_scores = []
+    
     for i, poly1 in enumerate(polygons):
         iou_scores = []
         for j, poly2 in enumerate(polygons):
             if i != j:
                 iou_scores.append(calculate_iou(poly1, poly2))
-        avg_iou_scores.append(sum(iou_scores) / len(iou_scores))
-    # Find the polygon with the highest average IoU score
-    most_similar_index = avg_iou_scores.index(max(avg_iou_scores))
+        avg_iou_scores.append(sum(iou_scores) / len(iou_scores) if iou_scores else 0)
+        quality_scores.append(calculate_quality_score(poly1))
+
+    # Find candidates with highest IoU (within a tolerance)
+    max_iou = max(avg_iou_scores)
+    iou_threshold = max_iou * 0.6  # Allow 40% tolerance
+    candidates = [i for i, score in enumerate(avg_iou_scores) if score >= iou_threshold]
+
+    # Among candidates with similar IoU, pick the one with highest quality
+    if len(candidates) > 1:
+        # Pick based on combined IoU and quality score
+        def combined_score(idx):
+            # Normalize IoU score to [0, 1]
+            iou_norm = avg_iou_scores[idx] / max_iou if max_iou > 0 else 0
+            # Combine: 60% IoU, 40% quality
+            return iou_norm * 0.6 + quality_scores[idx] * 0.4
+        most_similar_index = max(candidates, key=combined_score)
+    else:
+        most_similar_index = candidates[0]
+        
     most_similar_polygon = polygons[most_similar_index]
     return most_similar_polygon
 
@@ -671,6 +718,7 @@ def sam_segmentation(
     plot_image=False,
     remove_edge_grains=False,
     remove_large_objects=False,
+    keep_edges=None,
 ):
     """
     Perform segmentation using the Segment Anything Model (SAM).
@@ -695,6 +743,9 @@ def sam_segmentation(
         Whether to remove grains that are touching the edge of the image. Default is False.
     remove_large_objects : bool, optional
         Whether to remove large objects. Default is False. This is useful when the segmentation result is not very good.
+    keep_edges : dict, optional
+        Dictionary specifying which edges to keep grains on: {'top': bool, 'bottom': bool, 'left': bool, 'right': bool}.
+        If None, all edges are treated according to remove_edge_grains. Default is None.
 
     Returns
     -------
@@ -720,19 +771,29 @@ def sam_segmentation(
         y = coords[i, 1]
         sx, sy, mask = one_point_prompt(x, y, image, predictor)
         if np.max(mask) > 0:
-            if (
-                remove_edge_grains
-                and np.sum(
-                    np.hstack(
-                        [mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T]
+            if remove_edge_grains:
+                # Determine which edges to check based on keep_edges
+                if keep_edges is None:
+                    # Check all edges
+                    edges_to_check = [mask[:4, :], mask[-4:, :], mask[:, :4].T, mask[:, -4:].T]
+                else:
+                    # Only check edges that are NOT on the outer boundary
+                    edges_to_check = []
+                    if not keep_edges.get('top', False):
+                        edges_to_check.append(mask[:4, :])
+                    if not keep_edges.get('bottom', False):
+                        edges_to_check.append(mask[-4:, :])
+                    if not keep_edges.get('left', False):
+                        edges_to_check.append(mask[:, :4].T)
+                    if not keep_edges.get('right', False):
+                        edges_to_check.append(mask[:, -4:].T)
+                
+                # Only keep grain if it doesn't touch the edges we're checking
+                if len(edges_to_check) == 0 or np.sum(np.hstack(edges_to_check)) == 0:
+                    all_grains = collect_polygon_from_mask(
+                        labels, mask, image_pred, all_grains, sx, sy
                     )
-                )
-                == 0
-            ):  # if the mask is not touching too much the edge of the image
-                all_grains = collect_polygon_from_mask(
-                    labels, mask, image_pred, all_grains, sx, sy
-                )
-            if not remove_edge_grains:
+            else:
                 all_grains = collect_polygon_from_mask(
                     labels, mask, image_pred, all_grains, sx, sy
                 )
@@ -958,9 +1019,7 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, image_pr
     all_grains : list
         List of merged polygons.
     """
-    for j in trange(
-        len(comps)
-    ):  # deal with the overlapping objects, one connected component at a time
+    for j in trange(len(comps)):  # deal with the overlapping objects, one connected component at a time
         polygons = []  # polygons in the connected component
         for i in comps[j]:
             polygons.append(all_grains[i])
@@ -1119,6 +1178,7 @@ def predict_large_image(
     patch_size=2000,
     overlap=300,
     remove_large_objects=False,
+    remove_edge_grains=True,
 ):
     """
     Predicts the location of grains in a large image using a patch-based approach.
@@ -1139,6 +1199,11 @@ def predict_large_image(
         The overlap between patches. Defaults to 300.
     remove_large_objects : bool, optional
         Whether to remove large objects from the segmentation. Defaults to False.
+    remove_edge_grains : bool, optional
+        Whether to remove grains touching the edges. When False, grains are kept
+        only if they touch the outer edges of the full image, but removed if they
+        touch internal patch boundaries. When True, all edge-touching grains are
+        removed. Defaults to True.
 
     Returns
     -------
@@ -1165,9 +1230,10 @@ def predict_large_image(
             patch = image[
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ]
+            # use the Unet model to predict the mask on the patch:
             patch_pred = predict_image(
                 patch, model, I=256
-            )  # use the Unet model to predict the mask on the patch
+            )
 
             # Define the weights for blending the overlapping regions
             weights = np.ones_like(patch_pred)
@@ -1188,6 +1254,17 @@ def predict_large_image(
             if (
                 len(coords) > 0
             ):  # run the SAM algorithm only if there are grains in the patch
+                # Determine which edges of this patch are on the outer boundary of the full image
+                keep_edges = None
+                if not remove_edge_grains:
+                    # When remove_edge_grains=False, we want to keep grains on outer edges only
+                    keep_edges = {
+                        'top': i == 0,  # Keep top edge grains only if this is the first row
+                        'bottom': i + patch_size >= img_height,  # Keep bottom edge grains only if this is the last row
+                        'left': j == 0,  # Keep left edge grains only if this is the first column
+                        'right': j + patch_size >= img_width,  # Keep right edge grains only if this is the last column
+                    }
+                    
                 all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
                     sam,
                     patch,
@@ -1196,8 +1273,9 @@ def predict_large_image(
                     labels,
                     min_area=min_area,
                     plot_image=False,
-                    remove_edge_grains=True,
+                    remove_edge_grains=not remove_edge_grains if keep_edges else remove_edge_grains,
                     remove_large_objects=remove_large_objects,
+                    keep_edges=keep_edges,
                 )
                 for grain in all_grains:
                     All_Grains += [
@@ -2238,7 +2316,7 @@ def plot_histogram_of_axis_lengths(
         ax.set_xticklabels(
             [np.round(2**i, 3) for i in range(-bounds[-1], -bounds[0] - 1, -1)]
         )
-        ax.set_xlabel("grain axis length")
+        ax.set_xlabel("grain axis length (mm)")
         ax.set_ylabel("count")
         ax2 = ax.twiny()
         ax2.set_xlim(ax.get_xlim())

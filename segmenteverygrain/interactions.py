@@ -29,6 +29,9 @@ logger = logging.getLogger(__name__)
 # Speed up rendering a little?
 mplstyle.use('fast')
 
+# Default colormap for grain visualization
+DEFAULT_COLORMAP = 'tab20'
+
 # HACK: Bypass large image restriction
 Image.MAX_IMAGE_PIXELS = None
 
@@ -90,7 +93,7 @@ class Grain(object):
         }
         self.selected_props = {
             'alpha': 1.0,
-            'facecolor': 'lime'
+            'facecolor': 'gold'
         }
         self.axes = []
         self.patch = None
@@ -249,11 +252,11 @@ class Grain(object):
         orientation = data['orientation']
         x = x0 - np.sin(orientation) * 0.5 * data['major_axis_length'] * scale
         y = y0 - np.cos(orientation) * 0.5 * data['major_axis_length'] * scale
-        axes += ax.plot((x0, x), (y0, y), '-k')
+        axes += ax.plot((x0, x), (y0, y), '-k', zorder=1e10)
         # Minor axis
         x = x0 + np.cos(orientation) * 0.5 * data['minor_axis_length'] * scale
         y = y0 - np.sin(orientation) * 0.5 * data['minor_axis_length'] * scale
-        axes += ax.plot((x0, x), (y0, y), '-k')
+        axes += ax.plot((x0, x), (y0, y), '-k', zorder=1e10)
         # Save and return list of drawn artists
         self.axes = axes
         return axes
@@ -295,7 +298,29 @@ class Grain(object):
 
 
 class GrainPlot(object):
-    ''' Interactive plot to create, delete, and merge grains. '''
+    ''' 
+    Interactive plot to create, delete, and merge grains.
+    
+    Mouse Controls:
+    - Left-click on mask-free area: Create grain immediately (auto-create)
+    - Left-click on existing grain: Select/unselect grain
+    - Right-click on mask-free area: Add background prompt and create grain
+    - Alt + Left-click: Add foreground prompt (hold Alt for multiple prompts)
+    - Alt + Right-click: Add background prompt (hold Alt for multiple prompts)
+    - Shift+Left-click: Show grain measurement info (alternative to middle-click)
+    - Shift+Left-drag: Draw scale bar line (red line shows the scale reference)
+    - Middle-click: Show grain measurement info
+    
+    Keyboard Controls:
+    - Alt (hold): Enable multiple prompt mode (click to place prompts, release Alt to create)
+    - M: Merge selected grains
+    - Shift (hold): Enable scale bar drawing mode
+    - Ctrl (hold): Hide all grain segmentations temporarily
+    - C: Create grain from existing prompts (alternative to auto-create)
+    - D/Delete: Delete selected grains
+    - Z: Undo last created grain
+    - Escape: Clear all selections and prompts
+    '''
 
     def __init__(self,
                  grains: list = [],
@@ -307,6 +332,8 @@ class GrainPlot(object):
                  minspan: int = 10,          # px
                  image_alpha: float = 1.,
                  image_max_size: tuple[float, float] = IMAGE_MAX_SIZE,
+                 color_palette: str = DEFAULT_COLORMAP,  # Matplotlib colormap name
+                 color_by: str = None,       # Property to color grains by ('major_axis_length', 'minor_axis_length', 'area', etc.)
                  **kwargs):
         '''
         Parameters
@@ -330,16 +357,33 @@ class GrainPlot(object):
         image_max_size : (y, x)
             Images larger than this will be downscaled for display.
             Grain creation and measurement will still use the full image.
+        color_palette : str, default 'tab20'
+            Name of any valid matplotlib colormap for grain visualization 
+            (e.g., 'tab20', 'Set3', 'Paired', 'viridis', 'magma', 'plasma', 
+            'twilight', 'hsv', etc.). Colors are randomly sampled from the 
+            colormap for visual variety unless color_by is specified.
+            See matplotlib's colormap reference for all available options.
+        color_by : str, optional
+            Property to use for coloring grains. If specified, grains will be
+            colored based on the values of this property using the colormap.
+            Common options: 'major_axis_length', 'minor_axis_length', 'area',
+            'perimeter', 'orientation'. If None (default), colors are randomly
+            sampled from the colormap.
         kwargs : dict
             Keyword arguments to pass to plt.figure().
         '''
         logger.info('Creating GrainPlot...')
+        
+        # Store color palette and color_by selection for later use
+        self.color_palette = color_palette
+        self.color_by = color_by
 
         # Events
         self.cids = []
         self.events = {
             'button_press_event': self.onclick,
             'button_release_event': self.onclickup,
+            'motion_notify_event': self.onmotion,
             'draw_event': self.ondraw,
             'key_press_event': self.onkey,
             'key_release_event': self.onkeyup,
@@ -347,6 +391,7 @@ class GrainPlot(object):
 
         # Interaction history
         self.ctrl_down = False
+        self.alt_down = False  # Track if 'Alt' key is held for multiple prompts
         self.last_pick = (0, 0)
         self.points = []
         self.point_labels = []
@@ -396,7 +441,7 @@ class GrainPlot(object):
             minspany=minspan,
             useblit=True,                 # Always try to use blitting
             props={
-                'facecolor': 'lime',
+                'facecolor': 'gold',
                 'edgecolor': 'black',
                 'alpha': 0.2,
                 'fill': True},
@@ -410,29 +455,12 @@ class GrainPlot(object):
             self.box_selector.update = self.update
             self.box_selector.update_background = lambda *args: None
 
-        # Scale bar selector
+        # Scale bar (drawn as a line)
         self.px_per_m = px_per_m
         self.scale_m = scale_m
-        self.scale_selector = mwidgets.RectangleSelector(
-            self.ax,
-            onselect=self.onscale,
-            minspanx=minspan,
-            minspany=minspan,
-            useblit=True,
-            props={
-                'facecolor': 'blue',
-                'edgecolor': 'black',
-                'alpha': 0.2,
-                'fill': True},
-            spancoords='pixels',
-            button=[2],
-            interactive=True,
-            state_modifier_keys={})
-        self.scale_selector.set_active(True)
-        # Replace RectangleSelector update methods to avoid redundant blitting
-        if blit:
-            self.scale_selector.update = self.update
-            self.scale_selector.update_background = lambda *args: None
+        self.scale_line = None  # Will hold the matplotlib Line2D object
+        self.scale_drawing = False  # Track if currently drawing scale line
+        self.scale_start = None  # Starting point of scale line
 
         # Info box
         self.info = self.ax.annotate(
@@ -446,20 +474,128 @@ class GrainPlot(object):
             animated=blit)
         self.info_grain = None
         self.info_grain_candidate = None
-
+        
+        # Generate colors from the selected colormap
+        if color_by:
+            logger.info(f'Generating colors from "{color_palette}" colormap based on "{color_by}".')
+            grain_colors = self._generate_colors_by_property(grains, color_palette, color_by)
+        else:
+            logger.info(f'Generating colors from "{color_palette}" colormap.')
+            grain_colors = self._generate_colors(len(grains), color_palette)
+        
         # Draw grains and initialize plot
         logger.info('Drawing grains.')
         self.grains = grains
-        for grain in tqdm(grains, desc='Measuring and drawing grains'):
+        for i, grain in enumerate(tqdm(grains, desc='Measuring and drawing grains')):
             grain.image = image
             grain.measure()
+            # Set the grain's color before drawing
+            grain.default_props['facecolor'] = grain_colors[i]
             grain.draw_patch(self.ax, self.scale)
         if blit:
             self.artists = [self.info,
-                            *self.box_selector.artists,
-                            *self.scale_selector.artists]
+                            *self.box_selector.artists]
             self.canvas.draw()
+        
+        # Add keyboard shortcuts to the window title
+        shortcuts_title = (
+            'GrainPlot | Click=Auto-create, Alt+Click=Multi-prompt, Shift+Drag=Scale, '
+            'D=Delete, M=Merge, Z=Undo, Esc=Clear, Ctrl=Hide'
+        )
+        self.fig.canvas.manager.set_window_title(shortcuts_title)
+        
         logger.info('GrainPlot created!')
+
+    # Color generation -------------------------------------------------------
+    def _generate_colors(self, n_grains: int, cmap_name: str) -> list:
+        '''
+        Generate colors for grains from the specified matplotlib colormap.
+        
+        Parameters
+        ----------
+        n_grains : int
+            Number of colors to generate
+        cmap_name : str
+            Name of the matplotlib colormap to use (e.g., 'tab20', 'Set3', 
+            'viridis', 'magma', etc.). Any valid matplotlib colormap name 
+            can be used.
+            
+        Returns
+        -------
+        colors : list
+            List of RGBA color tuples
+        '''
+        try:
+            # Get the colormap
+            cmap = plt.cm.get_cmap(cmap_name)
+            # Generate random indices for variety (similar to plot_image_w_colorful_grains)
+            color_indices = np.random.randint(0, cmap.N, n_grains)
+            colors = [cmap(i) for i in color_indices]
+            return colors
+        except ValueError:
+            # If colormap name is invalid, fall back to default
+            logger.warning(f'Unknown colormap "{cmap_name}", using "{DEFAULT_COLORMAP}"')
+            cmap = plt.cm.get_cmap(DEFAULT_COLORMAP)
+            color_indices = np.random.randint(0, cmap.N, n_grains)
+            colors = [cmap(i) for i in color_indices]
+            return colors
+    
+    def _generate_colors_by_property(self, grains: list, cmap_name: str, property_name: str) -> list:
+        '''
+        Generate colors for grains based on a property value using a colormap.
+        
+        Parameters
+        ----------
+        grains : list
+            List of Grain objects
+        cmap_name : str
+            Name of the matplotlib colormap to use
+        property_name : str
+            Name of the grain property to use for coloring (e.g., 'major_axis_length')
+            
+        Returns
+        -------
+        colors : list
+            List of RGBA color tuples mapped to property values
+        '''
+        try:
+            # Get the colormap
+            cmap = plt.cm.get_cmap(cmap_name)
+            
+            # Extract property values from grains
+            # First ensure all grains are measured
+            property_values = []
+            for grain in grains:
+                if grain.data is None:
+                    grain.measure()
+                
+                # Get the property value
+                if property_name in grain.data:
+                    property_values.append(grain.data[property_name])
+                else:
+                    logger.warning(f'Property "{property_name}" not found in grain data, using 0')
+                    property_values.append(0)
+            
+            property_values = np.array(property_values)
+            
+            # Normalize values to [0, 1] range
+            if len(property_values) > 0 and np.ptp(property_values) > 0:
+                normalized_values = (property_values - np.min(property_values)) / np.ptp(property_values)
+            else:
+                # If all values are the same, use middle of colormap
+                normalized_values = np.full(len(property_values), 0.5)
+            
+            # Map normalized values to colors
+            colors = [cmap(val) for val in normalized_values]
+            
+            logger.info(f'Color range: {property_name} from {np.min(property_values):.3f} to {np.max(property_values):.3f}')
+            
+            return colors
+            
+        except ValueError as e:
+            # If colormap name is invalid, fall back to random colors
+            logger.warning(f'Error generating colors by property: {e}, using random colors')
+            return self._generate_colors(len(grains), DEFAULT_COLORMAP)
 
     # Display helpers --------------------------------------------------------
     def _clear_before(self, f: object) -> object:
@@ -495,9 +631,11 @@ class GrainPlot(object):
         # TODO: More efficient to maintain this list elsewhere?
         info_grain = self.info_grain
         info_patch = [info_grain.patch] if info_grain is not None else []
+        scale_line = [self.scale_line] if self.scale_line is not None else []
         artists = ([g.patch for g in self.selected_grains]
                    + info_patch
                    + self.points
+                   + scale_line
                    + self.artists)
         for a in artists:
             self.ax.draw_artist(a)
@@ -505,38 +643,123 @@ class GrainPlot(object):
         self.canvas.blit(self.ax.bbox)
 
     def draw_axes(self):
-        ''' Draw the major and minor axes on each grain patch. '''
+        ''' 
+        Draw the major and minor axes on each grain patch.
+        
+        This method collects all axis data first, then plots them all at once
+        on top of the grain masks to ensure proper z-ordering.
+        
+        Note: Call this after deactivate() to draw axes on top of grain masks.
+        '''
+        # First, make sure all grain patches are non-animated so they render normally
         for grain in self.grains:
-            grain.draw_axes(self.ax, self.scale)
+            grain.patch.set_animated(False)
+        
+        # Force a full canvas draw to render all grain patches
+        self.canvas.draw()
+        
+        # Collect all centroid and axis line data
+        centroids_x = []
+        centroids_y = []
+        major_lines = []
+        minor_lines = []
+        
+        for grain in self.grains:
+            # Compute grain data if it hasn't been done already
+            data = grain.measure() if grain.data is None else grain.data
+            
+            # Centroid coordinates
+            x0 = data['centroid-1'] * self.scale
+            y0 = data['centroid-0'] * self.scale
+            centroids_x.append(x0)
+            centroids_y.append(y0)
+            
+            # Major axis line
+            orientation = data['orientation']
+            x_major = x0 - np.sin(orientation) * 0.5 * data['major_axis_length'] * self.scale
+            y_major = y0 - np.cos(orientation) * 0.5 * data['major_axis_length'] * self.scale
+            major_lines.append([(x0, y0), (x_major, y_major)])
+            
+            # Minor axis line
+            x_minor = x0 + np.cos(orientation) * 0.5 * data['minor_axis_length'] * self.scale
+            y_minor = y0 - np.sin(orientation) * 0.5 * data['minor_axis_length'] * self.scale
+            minor_lines.append([(x0, y0), (x_minor, y_minor)])
+        
+        # Plot all centroids at once on top (high zorder)
+        self.ax.plot(centroids_x, centroids_y, '.k', markersize=3, zorder=1000)
+        
+        # Plot all major axes
+        for line in major_lines:
+            self.ax.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]], 
+                        '-k', linewidth=1, zorder=1000)
+        
+        # Plot all minor axes
+        for line in minor_lines:
+            self.ax.plot([line[0][0], line[1][0]], [line[0][1], line[1][1]], 
+                        '-k', linewidth=1, zorder=1000)
+        
+        # Force another draw to render the axes
+        self.canvas.draw()
+    
+    def get_grains(self) -> list:
+        ''' 
+        Get the current list of grains.
+        
+        This returns the live grain list that reflects all interactive edits
+        (created, deleted, merged grains). You can use this to save the current
+        state without needing to write to disk first.
+        
+        Returns
+        -------
+        grains : list
+            Current list of Grain objects, including all edits.
+        '''
+        return self.grains
 
     # Measurements -----------------------------------------------------------
-    def onscale(self,
-                eclick: mpl.backend_bases.MouseEvent,
-                erelease: mpl.backend_bases.MouseEvent):
+    def draw_scale_line(self, start, end):
         '''
-        Update displayed units based on the selected scale bar length.
+        Draw a scale bar line and calculate the scale based on its length.
 
         Parameters
         ----------
-        eclick: MouseEvent
-            Details for mouse button down event.
-        erelease: MouseEvent
-            Details for mouse button release event.
+        start: tuple
+            Starting point (x, y) of the scale line.
+        end: tuple
+            Ending point (x, y) of the scale line.
         '''
-        # Get length of selection box diagonal in pixels
-        x = abs(erelease.xdata - eclick.xdata)
-        y = abs(erelease.ydata - eclick.ydata)
-        px = np.sqrt(x * x + y * y)
-        # Verify that the selection is big enough
+        # Calculate line length in pixels
+        dx = end[0] - start[0]
+        dy = end[1] - start[1]
+        px = np.sqrt(dx * dx + dy * dy)
+        
+        # Verify that the line is big enough
         if px < self.minspan:
-            self.scale_selector.clear()
+            logger.warning(f'Scale line too short ({px:.1f} < {self.minspan})')
             return
+        
+        # Remove old scale line if it exists
+        if self.scale_line is not None:
+            self.scale_line.remove()
+        
+        # Draw a red line to mark the scale bar
+        self.scale_line = self.ax.plot(
+            [start[0], end[0]],
+            [start[1], end[1]],
+            'r-',  # Red solid line
+            linewidth=3,
+            animated=self.blit,
+            zorder=1000  # Draw on top of everything
+        )[0]
+        
         # Convert to pixels per meter using a known scale bar length
         px_per_m = px / self.scale_m / self.scale
         self.px_per_m = px_per_m
-        logger.info(f'Scale set to {px_per_m:f} pixels per meter.')
+        logger.info(f'Scale set to {px_per_m:.2f} pixels per meter.')
+        
         # Update the info box using the new units
         self.update_info(self.info_grain)
+        self.update()
 
     def clear_info(self):
         ''' Clear the grain info box. '''
@@ -707,6 +930,15 @@ class GrainPlot(object):
             box=box,
             points=points,
             point_labels=point_labels)
+        
+        # Check if SAM failed to produce a valid mask
+        if coords[0] is None or coords[1] is None:
+            logger.warning('SAM failed to produce a valid mask from prompts')
+            # Clear prompts and return without creating a grain
+            self.clear_all()
+            self.update()
+            return None
+        
         # Scale and record new grain (on plot, data, and undo list)
         new_grain = Grain(coords, self.image)
         new_grain.draw_patch(self.ax, self.scale)
@@ -745,12 +977,12 @@ class GrainPlot(object):
 
     def hide_grains(self, hide: bool = True):
         ''' 
-        Hide or unhide selected grains.
+        Hide or unhide all grains.
 
         Parameters
         ----------
         hide : bool
-            Whether to hide (True) or unhide (False) the selected grains.
+            Whether to hide (True) or unhide (False) all grains.
 
         Returns
         -------
@@ -762,8 +994,8 @@ class GrainPlot(object):
             self.clear_box()
             self.clear_info()
             self.clear_points()
-        # Show/hide selected grains
-        for grain in self.selected_grains:
+        # Show/hide all grains
+        for grain in self.grains:
             grain.patch.set_visible(not hide)
         # Update background
         if self.blit:
@@ -819,12 +1051,21 @@ class GrainPlot(object):
         '''
         Handle clicking anywhere on plot.
         Places foreground or background prompts for grain creation.
+        Shift + Left drag draws a scale bar line.
 
         Parameters
         ----------
         event : MouseEvent
             Event details
         '''
+        # If shift is held and left button, start drawing scale line
+        if event.key == 'shift' and event.button == 1 and event.inaxes == self.ax:
+            # Deactivate box selector to prevent rectangle from being drawn
+            self.box_selector.set_active(False)
+            self.scale_drawing = True
+            self.scale_start = (event.xdata, event.ydata)
+            return
+        
         # Ignore click if:
         # - It's in a different axes
         # - It's a double-click
@@ -846,9 +1087,17 @@ class GrainPlot(object):
         coords = (event.xdata, event.ydata)
         if button == 1:
             self.set_point(coords, True)
+            # If 'Alt' key is NOT held, auto-create grain immediately
+            if not self.alt_down:
+                self.create_grain()
+                return  # create_grain() calls update()
         # Right click: Background prompt
         elif button == 3:
             self.set_point(coords, False)
+            # If 'Alt' key is NOT held, auto-create grain immediately
+            if not self.alt_down:
+                self.create_grain()
+                return  # create_grain() calls update()
         # Only update display if something happened
         else:
             # Forget any grain previously picked with scrollwheel click
@@ -859,20 +1108,60 @@ class GrainPlot(object):
     def onclickup(self, event: mpl.backend_bases.MouseEvent):
         '''
         Handle click release events anywhere on plot.
-        Displays info about any grain indicated with a middle click.
+        Completes scale bar line drawing if in progress.
+        Displays info about any grain indicated with middle-click or Shift+left-click.
 
         Parameters
         ----------
         event : MouseEvent
             Event details
         '''
-        # Only respond to scrollwheel release without dragging
-        if (event.button != 2
+        # Complete scale line drawing if in progress
+        if self.scale_drawing and event.button == 1 and event.inaxes == self.ax:
+            self.scale_drawing = False
+            scale_end = (event.xdata, event.ydata)
+            self.draw_scale_line(self.scale_start, scale_end)
+            self.scale_start = None
+            return
+        
+        # Respond to middle-click OR shift+left-click release without dragging
+        is_info_click = (event.button == 2) or (event.button == 1 and event.key == 'shift')
+        
+        if (not is_info_click
                 or self.last_pick != (round(event.xdata), round(event.ydata))):
             return
         # Update info box and display
         self.update_info(self.info_grain_candidate)
         self.update()
+
+    def onmotion(self, event: mpl.backend_bases.MouseEvent):
+        '''
+        Handle mouse motion events.
+        Updates the scale line preview while dragging.
+
+        Parameters
+        ----------
+        event : MouseEvent
+            Event details
+        '''
+        # Update scale line preview if currently drawing
+        if self.scale_drawing and event.inaxes == self.ax:
+            # Remove old preview line if it exists
+            if self.scale_line is not None:
+                self.scale_line.remove()
+            
+            # Draw preview line from start to current position
+            self.scale_line = self.ax.plot(
+                [self.scale_start[0], event.xdata],
+                [self.scale_start[1], event.ydata],
+                'r-',  # Red solid line
+                linewidth=3,
+                animated=self.blit,
+                zorder=1000  # Draw on top of everything
+            )[0]
+            
+            # Update display
+            self.update()
 
     def ondraw(self, event: mpl.backend_bases.DrawEvent):
         ''' 
@@ -889,13 +1178,14 @@ class GrainPlot(object):
     def onkey(self, event: mpl.backend_bases.KeyEvent):
         '''
         Handle key presses as follows:
-        c: Create a grain from existing prompts.
+        c: Create a grain from existing prompts (alternative to auto-create).
         d: Delete a selected grain.
-        m: Create a new grain by merging selected grains.
+        alt (hold): Allow placing multiple prompts before creating grain.
+        m: Merge selected grains.
         z: Undo the most recently created grain.
-        control (hold): Temporarily hide selected grains.
+        control (hold): Temporarily hide all grains.
         escape: Remove all selections, prompts, and info.
-        shift: Activate grain selection box prompt.
+        shift: Activate scale bar selector and grain selection box.
 
         Parameters
         ----------
@@ -916,7 +1206,12 @@ class GrainPlot(object):
             self.create_grain()
         elif key == 'd' or key == 'delete':
             self.delete_grains()
+        elif key == 'alt':
+            # Set flag to allow multiple prompts
+            self.alt_down = True
+            return  # Don't update, just set the flag
         elif key == 'm':
+            # Merge selected grains
             self.merge_grains()
         elif key == 'z':
             self.undo_grain()
@@ -926,7 +1221,9 @@ class GrainPlot(object):
         elif key == 'escape':
             self.clear_all()
         elif key == 'shift':
-            self.toggle_box(True)
+            # Don't activate box selector on shift press - it will be handled
+            # in onclick if needed. This allows shift+drag for scale line drawing.
+            pass
         # Only update display if something happened
         else:
             return
@@ -935,7 +1232,7 @@ class GrainPlot(object):
     def onkeyup(self, event: mpl.backend_bases.KeyEvent):
         ''' 
         Handle key releases.
-        Unhides hidden grains or deactivates box selector.
+        Unhides hidden grains, creates grain from multiple prompts, or deactivates selectors.
 
         Parameters
         ----------
@@ -950,13 +1247,15 @@ class GrainPlot(object):
         if key == 'control':
             self.ctrl_down = False
             self.hide_grains(False)
+        elif key == 'alt':
+            # Release 'Alt' key: create grain from accumulated prompts if any exist
+            self.alt_down = False
+            if len(self.points) > 0:
+                self.create_grain()
+                return  # create_grain() calls update()
         elif key == 'shift':
-            # Deactivate box selector
-            self.toggle_box(False)
-            # Cancel box if too small (based on minspan)
-            xmin, xmax, ymin, ymax = self.box_selector.extents
-            if min(abs(xmax - xmin), abs(ymax - ymin)) < self.minspan:
-                self.box_selector.clear()
+            # Nothing to do on shift release - scale line drawing is handled in onclickup
+            pass
         # Only update display if something happened
         else:
             return
@@ -966,7 +1265,8 @@ class GrainPlot(object):
         '''
         Handle clicking on an existing grain.
         Left-click: Select/unselect the grain.
-        Middle-click: Show measurement info for indicated grain.
+        Middle-click OR Shift+Left-click: Show measurement info for indicated grain.
+        Right-click: Ignored (passes through to onclick for background prompts).
 
         Parameters
         ----------
@@ -984,17 +1284,29 @@ class GrainPlot(object):
                 or self.ctrl_down
                 or self.box_selector.get_active()):
             return
+        
+        # Get button type
+        button = mouseevent.button
+        
+        # Right-click: Don't handle here - let it pass through to onclick for background prompts
+        if button == 3:
+            return
+        
         # Save click location for reference by onclick / onclickup
         self.last_pick = (round(mouseevent.xdata), round(mouseevent.ydata))
+        
         # Left-click: Select grain if no point prompts exist
-        button = mouseevent.button
         if button == 1 and len(self.points) == 0:
-            # Add/remove selected grain to/from selection list
-            grain = event.artist.grain
-            if grain.select():
-                self.selected_grains.append(grain)
+            # Shift+Left-click: Show info (alternative to middle-click)
+            if mouseevent.key == 'shift':
+                self.info_grain_candidate = event.artist.grain
             else:
-                self.selected_grains.remove(grain)
+                # Regular left-click: Add/remove selected grain to/from selection list
+                grain = event.artist.grain
+                if grain.select():
+                    self.selected_grains.append(grain)
+                else:
+                    self.selected_grains.remove(grain)
         # Middle-click: Save grain to show info if click is not dragged
         elif button == 2:
             self.info_grain_candidate = event.artist.grain
@@ -1027,9 +1339,6 @@ class GrainPlot(object):
             Filename for output image. File type is determined by extension.
         '''
         self.fig.savefig(fn, bbox_inches='tight', pad_inches=0)
-
-
-# Grain detection (replaces segmenteverygrain version) -----------------------
 
 def predict_from_prompts(predictor, box=None, points=None, point_labels=None):
     """
@@ -1067,9 +1376,40 @@ def predict_from_prompts(predictor, box=None, points=None, point_labels=None):
         # TODO: Is multimask_output=True better when using only one prompt?
         multimask_output=False
     )
-    # Find and return points along contour of detected object
-    contours = skimage.measure.find_contours(masks[0], 0.5)
-    sx, sy = contours[0][:, 1], contours[0][:, 0]
+    
+    # Get mask and handle edge grains using padding technique
+    mask = masks[0].astype(bool)
+    
+    # Check if mask touches any edge of the image
+    touches_edge = (
+        np.any(mask[0, :])
+        or np.any(mask[-1, :])
+        or np.any(mask[:, 0])
+        or np.any(mask[:, -1])
+    )
+    
+    if touches_edge:
+        # Pad the mask with 1 pixel border to allow proper contour detection
+        # This is the same technique used in segmenteverygrain.one_point_prompt
+        mask = np.pad(mask, 1, mode="constant")
+        contours = skimage.measure.find_contours(mask.astype(float), 0.5)
+        if len(contours) == 0:
+            # No contours found - return None to indicate failure
+            return None, None
+        sx, sy = contours[0][:, 1], contours[0][:, 0]
+        # Adjust coordinates back to account for padding
+        if np.any(mask[1, :]):
+            sy = sy - 1
+        if np.any(mask[:, 1]):
+            sx = sx - 1
+    else:
+        # Standard contour detection for non-edge grains
+        contours = skimage.measure.find_contours(mask.astype(float), 0.5)
+        if len(contours) == 0:
+            # No contours found - return None to indicate failure
+            return None, None
+        sx, sy = contours[0][:, 1], contours[0][:, 0]
+    
     return sx, sy
 
 
@@ -1106,7 +1446,22 @@ def polygons_to_grains(polygons: list, image: np.ndarray = None) -> list:
     list
         Grain objects created from provided polygons.
     '''
-    return [Grain(np.array(p.exterior.xy), image) for p in polygons]
+    grains = []
+    for p in polygons:
+        # Skip invalid or empty polygons
+        if p is None or p.is_empty or not p.is_valid:
+            logger.warning(f'Skipping invalid polygon: {p}')
+            continue
+        # Skip polygons with too few coordinates
+        if len(p.exterior.coords) < 3:
+            logger.warning(f'Skipping polygon with insufficient points: {len(p.exterior.coords)}')
+            continue
+        try:
+            grains.append(Grain(np.array(p.exterior.xy), image))
+        except Exception as e:
+            logger.warning(f'Failed to create grain from polygon: {e}')
+            continue
+    return grains
 
 
 def load_grains(fn: str, image: np.ndarray = None) -> list:
@@ -1384,13 +1739,58 @@ def measure_color(image: np.ndarray, polygon: shapely.Polygon) -> dict:
         for the red channel, and similarly for green (1) and blue (2) channels.
         This is meant to match the output of skimage.measure.regionprops.
     '''
+    # Get image dimensions
+    img_height, img_width = image.shape[:2]
+    
     # Rasterize polygon into a mask
     bounds = np.array(polygon.bounds)
     xmin, ymin = np.ceil(bounds[:2]).astype(np.int32)
     xmax, ymax = np.floor(bounds[2:]).astype(np.int32)
+    
+    # Clip bounds to image dimensions
+    xmin = max(0, min(xmin, img_width - 1))
+    ymin = max(0, min(ymin, img_height - 1))
+    xmax = max(0, min(xmax, img_width))
+    ymax = max(0, min(ymax, img_height))
+    
+    # Check if bounds are valid
+    if xmax <= xmin or ymax <= ymin:
+        logger.warning(f'Polygon bounds are outside image dimensions or invalid: bounds=({xmin},{ymin},{xmax},{ymax}), image=({img_height},{img_width})')
+        # Return default values
+        return {
+            'max_intensity-0': 0,
+            'min_intensity-0': 0,
+            'mean_intensity-0': 0,
+            'max_intensity-1': 0,
+            'min_intensity-1': 0,
+            'mean_intensity-1': 0,
+            'max_intensity-2': 0,
+            'min_intensity-2': 0,
+            'mean_intensity-2': 0
+        }
+    
     h, w = ymax - ymin, xmax - xmin
+    
+    # Clip polygon to image bounds before rasterizing
+    image_bounds = shapely.box(0, 0, img_width, img_height)
+    clipped_polygon = polygon.intersection(image_bounds)
+    
+    if clipped_polygon.is_empty:
+        logger.warning(f'Polygon is completely outside image bounds')
+        return {
+            'max_intensity-0': 0,
+            'min_intensity-0': 0,
+            'mean_intensity-0': 0,
+            'max_intensity-1': 0,
+            'min_intensity-1': 0,
+            'mean_intensity-1': 0,
+            'max_intensity-2': 0,
+            'min_intensity-2': 0,
+            'mean_intensity-2': 0
+        }
+    
     mask = rasterio.features.rasterize(
-        [(polygon, 1)],
+        [(clipped_polygon, 1)],
         out_shape=(h, w),
         transform=rasterio.transform.from_bounds(
             xmin, ymax, xmax, ymin, w, h),
@@ -1399,6 +1799,22 @@ def measure_color(image: np.ndarray, polygon: shapely.Polygon) -> dict:
 
     # Extract pixel coordinates within the polygon
     y, x = np.where(mask == 1)
+    
+    # Additional safety check
+    if len(y) == 0 or len(x) == 0:
+        logger.warning(f'No pixels found within polygon after clipping')
+        return {
+            'max_intensity-0': 0,
+            'min_intensity-0': 0,
+            'mean_intensity-0': 0,
+            'max_intensity-1': 0,
+            'min_intensity-1': 0,
+            'mean_intensity-1': 0,
+            'max_intensity-2': 0,
+            'min_intensity-2': 0,
+            'mean_intensity-2': 0
+        }
+    
     pixels = image[y + ymin, x + xmin]
 
     # Return information about each color channel
