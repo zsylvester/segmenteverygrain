@@ -634,8 +634,7 @@ def calculate_iou(poly1, poly2):
 
 def pick_most_similar_polygon(polygons):
     """
-    Picks the 'most similar' polygon from a list of polygons based on IoU scores 
-    and polygon quality metrics (compactness, completeness).
+    Picks the 'most similar' polygon from a list of polygons based on the average IoU scores.
 
     Parameters
     ----------
@@ -648,62 +647,16 @@ def pick_most_similar_polygon(polygons):
         The most similar polygon.
 
     """
-    # Calculate quality metrics for each polygon
-    def calculate_quality_score(poly):
-        """
-        Calculate a quality score for a polygon based on:
-        - Compactness (how circular/complete it is)
-        - Perimeter-to-area ratio
-        Higher score = better quality polygon
-        """
-        area = poly.area
-        perimeter = poly.length
-        
-        if area == 0 or perimeter == 0:
-            return 0
-        
-        # Isoperimetric quotient: measures how circular a shape is
-        # Perfect circle = 1, lower values indicate more elongated/irregular shapes
-        compactness = (4 * np.pi * area) / (perimeter ** 2)
-        
-        # Normalized area (larger polygons are often more complete)
-        max_area = max(p.area for p in polygons)
-        normalized_area = area / max_area if max_area > 0 else 0
-        
-        # Combine metrics: favor compact shapes and larger areas
-        quality_score = compactness * 0.7 + normalized_area * 0.3
-        
-        return quality_score
-    
     # Calculate the average IoU for each polygon
     avg_iou_scores = []
-    quality_scores = []
-    
     for i, poly1 in enumerate(polygons):
         iou_scores = []
         for j, poly2 in enumerate(polygons):
             if i != j:
                 iou_scores.append(calculate_iou(poly1, poly2))
-        avg_iou_scores.append(sum(iou_scores) / len(iou_scores) if iou_scores else 0)
-        quality_scores.append(calculate_quality_score(poly1))
-
-    # Find candidates with highest IoU (within a tolerance)
-    max_iou = max(avg_iou_scores)
-    iou_threshold = max_iou * 0.6  # Allow 40% tolerance
-    candidates = [i for i, score in enumerate(avg_iou_scores) if score >= iou_threshold]
-
-    # Among candidates with similar IoU, pick the one with highest quality
-    if len(candidates) > 1:
-        # Pick based on combined IoU and quality score
-        def combined_score(idx):
-            # Normalize IoU score to [0, 1]
-            iou_norm = avg_iou_scores[idx] / max_iou if max_iou > 0 else 0
-            # Combine: 60% IoU, 40% quality
-            return iou_norm * 0.6 + quality_scores[idx] * 0.4
-        most_similar_index = max(candidates, key=combined_score)
-    else:
-        most_similar_index = candidates[0]
-        
+        avg_iou_scores.append(sum(iou_scores) / len(iou_scores))
+    # Find the polygon with the highest average IoU score
+    most_similar_index = avg_iou_scores.index(max(avg_iou_scores))
     most_similar_polygon = polygons[most_similar_index]
     return most_similar_polygon
 
