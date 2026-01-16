@@ -101,104 +101,114 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 </section>
 <section id="interactive-editing-of-results">
 <h2>Interactive editing of results<a class="headerlink" href="#interactive-editing-of-results" title="Link to this heading">¶</a></h2>
-<p>After the initial segmentation, you can interactively edit the results to delete unwanted grains or merge grains that should be combined:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">grain_inds</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">cid1</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span>
-    <span class="s2">&quot;button_press_event&quot;</span><span class="p">,</span>
-    <span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">onclick2</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">,</span> <span class="n">grain_inds</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">),</span>
-<span class="p">)</span>
-<span class="n">cid2</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span>
-    <span class="s2">&quot;key_press_event&quot;</span><span class="p">,</span>
-    <span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">onpress2</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">,</span> <span class="n">grain_inds</span><span class="p">,</span> <span class="n">fig</span><span class="o">=</span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span><span class="o">=</span><span class="n">ax</span><span class="p">),</span>
-<span class="p">)</span>
+<p>After the initial segmentation, you can interactively edit the results using the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code> class from the <code class="docutils literal notranslate"><span class="pre">interactions</span></code> module. This provides a modern, interactive interface for deleting, merging, and adding grains.</p>
+<p>First, convert the polygons to <code class="docutils literal notranslate"><span class="pre">Grain</span></code> objects and set up the SAM predictor:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain.interactions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">si</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">segment_anything</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamPredictor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
+
+<span class="c1"># Convert polygons to Grain objects</span>
+<span class="n">grains</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">polygons_to_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+<span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">grains</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Measuring detected grains&#39;</span><span class="p">):</span>
+    <span class="n">g</span><span class="o">.</span><span class="n">measure</span><span class="p">()</span>
+
+<span class="c1"># Set up SAM predictor for adding new grains</span>
+<span class="n">predictor</span> <span class="o">=</span> <span class="n">SamPredictor</span><span class="p">(</span><span class="n">sam</span><span class="p">)</span>
+<span class="n">predictor</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>Interactive controls:</p>
+<p>Then create the interactive plot:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">plot</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">GrainPlot</span><span class="p">(</span>
+    <span class="n">grains</span><span class="p">,</span>
+    <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+    <span class="n">predictor</span><span class="o">=</span><span class="n">predictor</span><span class="p">,</span>
+    <span class="n">blit</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>                      <span class="c1"># Use blitting for faster rendering</span>
+    <span class="n">color_palette</span><span class="o">=</span><span class="s1">&#39;tab20b&#39;</span><span class="p">,</span>         <span class="c1"># Matplotlib colormap for grain colors</span>
+    <span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">12</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>                <span class="c1"># Figure size in inches</span>
+    <span class="n">scale_m</span><span class="o">=</span><span class="mi">500</span><span class="o">*</span><span class="mf">1e-6</span><span class="p">,</span>               <span class="c1"># Length of scale bar in meters (for unit conversion)</span>
+    <span class="n">px_per_m</span><span class="o">=</span><span class="mf">1.0</span><span class="p">,</span>                   <span class="c1"># Pixels per meter (will be updated if scale bar is drawn)</span>
+<span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Interactive controls (also shown in the figure title bar):</p>
+<p><strong>Mouse controls:</strong></p>
 <ul class="simple">
-<li><p>Click on a grain that you want to remove and press the ‘x’ key</p></li>
-<li><p>Click on two grains that you want to merge and press the ‘m’ key (they have to be the last two grains you clicked on)</p></li>
-<li><p>Press the ‘g’ key to hide the grain masks; press the ‘g’ key again to show the grain masks</p></li>
+<li><p><strong>Left-click on existing grain</strong>: Select/unselect the grain</p></li>
+<li><p><strong>Left-click in grain-free area</strong>: Place foreground prompt for instant grain creation (auto-create)</p></li>
+<li><p><strong>Alt + Left-click</strong>: Place foreground prompt for multi-prompt grain creation (hold Alt, click multiple times, release Alt to create)</p></li>
+<li><p><strong>Alt + Right-click</strong>: Place background prompt for multi-prompt creation</p></li>
+<li><p><strong>Shift + Left-drag</strong>: Draw a scale bar line (red line) for unit conversion</p></li>
+<li><p><strong>Middle-click</strong> or <strong>Shift + Left-click on grain</strong>: Show grain measurement info</p></li>
 </ul>
-<p>After editing, disconnect the event handlers and update the grain data:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_disconnect</span><span class="p">(</span><span class="n">cid1</span><span class="p">)</span>
-<span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_disconnect</span><span class="p">(</span><span class="n">cid2</span><span class="p">)</span>
-<span class="n">all_grains</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask_all</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">get_grains_from_patches</span><span class="p">(</span><span class="n">ax</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
+<p><strong>Keyboard controls:</strong></p>
+<ul class="simple">
+<li><p><strong>d</strong> or <strong>Delete</strong>: Delete selected (highlighted) grains</p></li>
+<li><p><strong>m</strong>: Merge selected grains (must be touching)</p></li>
+<li><p><strong>z</strong>: Undo (delete the most recently created grain)</p></li>
+<li><p><strong>Ctrl</strong> (hold): Temporarily hide all grain masks</p></li>
+<li><p><strong>Esc</strong>: Remove all prompts and unselect all grains</p></li>
+<li><p><strong>c</strong>: Create grain from existing prompts (alternative to auto-create)</p></li>
+</ul>
+<p>After editing, retrieve the updated grains and deactivate the interactive features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">grains</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">get_grains</span><span class="p">()</span>  <span class="c1"># Get the edited list of grains</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">deactivate</span><span class="p">()</span>           <span class="c1"># Turn off interactive features</span>
+
+<span class="c1"># Optionally draw the major and minor axes on each grain</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">draw_axes</span><span class="p">()</span>
 </pre></div>
 </div>
 </section>
-<section id="adding-new-grains">
-<h2>Adding new grains<a class="headerlink" href="#adding-new-grains" title="Link to this heading">¶</a></h2>
-<p>You can also add new grains using the Segment Anything Model:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segment_anything</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamPredictor</span>
-
-<span class="n">predictor</span> <span class="o">=</span> <span class="n">SamPredictor</span><span class="p">(</span><span class="n">sam</span><span class="p">)</span>
-<span class="n">predictor</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>  <span class="c1"># this can take a while</span>
-<span class="n">coords</span> <span class="o">=</span> <span class="p">[]</span>
-<span class="n">cid3</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span>
-    <span class="s2">&quot;button_press_event&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">onclick</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">predictor</span><span class="p">)</span>
-<span class="p">)</span>
-<span class="n">cid4</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span>
-    <span class="s2">&quot;key_press_event&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">onpress</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">ax</span><span class="p">,</span> <span class="n">fig</span><span class="p">)</span>
-<span class="p">)</span>
+<section id="scale-bar-and-unit-conversion">
+<h2>Scale bar and unit conversion<a class="headerlink" href="#scale-bar-and-unit-conversion" title="Link to this heading">¶</a></h2>
+<p>To convert measurements from pixels to real-world units, you can either:</p>
+<ol class="arabic simple">
+<li><p><strong>Specify the scale when creating the plot</strong> using the <code class="docutils literal notranslate"><span class="pre">px_per_m</span></code> parameter (pixels per meter).</p></li>
+<li><p><strong>Draw a scale bar interactively</strong>: Hold <code class="docutils literal notranslate"><span class="pre">Shift</span></code> and drag the mouse to draw a line on a known reference object. The <code class="docutils literal notranslate"><span class="pre">scale_m</span></code> parameter specifies the real-world length of this reference object in meters.</p></li>
+</ol>
+<p>After drawing a scale bar, the pixel-to-meter conversion is automatically updated:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Retrieve the scale after drawing a scale bar</span>
+<span class="n">px_per_m</span> <span class="o">=</span> <span class="n">plot</span><span class="o">.</span><span class="n">px_per_m</span>
 </pre></div>
 </div>
-<p>Interactive controls for adding grains:</p>
-<ul class="simple">
-<li><p>Click on an unsegmented grain that you want to add</p></li>
-<li><p>Press the ‘x’ key to delete the last grain you added</p></li>
-<li><p>Press the ‘m’ key to merge the last two grains that you added</p></li>
-<li><p>Right click outside the grain (but inside the most recent mask) to restrict the grain to a smaller mask</p></li>
-</ul>
 </section>
 <section id="grain-size-analysis">
 <h2>Grain size analysis<a class="headerlink" href="#grain-size-analysis" title="Link to this heading">¶</a></h2>
-<p>To perform grain size analysis, you first need to establish the scale of your image by clicking on a scale bar:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cid5</span> <span class="o">=</span> <span class="n">fig</span><span class="o">.</span><span class="n">canvas</span><span class="o">.</span><span class="n">mpl_connect</span><span class="p">(</span>
-    <span class="s2">&quot;button_press_event&quot;</span><span class="p">,</span> <span class="k">lambda</span> <span class="n">event</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">click_for_scale</span><span class="p">(</span><span class="n">event</span><span class="p">,</span> <span class="n">ax</span><span class="p">)</span>
-<span class="p">)</span>
-</pre></div>
-</div>
-<p>Click on one end of the scale bar with the left mouse button and on the other end with the right mouse button. Then calculate the scale:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">n_of_units</span> <span class="o">=</span> <span class="mf">10.0</span>  <span class="c1"># length of scale bar in real units (e.g., centimeters)</span>
-<span class="n">units_per_pixel</span> <span class="o">=</span> <span class="n">n_of_units</span> <span class="o">/</span> <span class="n">scale_bar_length_pixels</span>  <span class="c1"># from the output above</span>
-</pre></div>
-</div>
-<p>Calculate grain properties and create a dataframe:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">skimage.measure</span><span class="w"> </span><span class="kn">import</span> <span class="n">regionprops_table</span>
-<span class="kn">import</span><span class="w"> </span><span class="nn">pandas</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">pd</span>
+<p>Generate a summary dataframe and histogram of grain measurements:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Get summary dataframe with all grain measurements</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">get_summary</span><span class="p">(</span><span class="n">grains</span><span class="p">,</span> <span class="n">px_per_m</span><span class="o">=</span><span class="n">plot</span><span class="o">.</span><span class="n">px_per_m</span><span class="p">)</span>
 
-<span class="n">props</span> <span class="o">=</span> <span class="n">regionprops_table</span><span class="p">(</span>
-    <span class="n">labels</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s2">&quot;int&quot;</span><span class="p">),</span>
-    <span class="n">intensity_image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
-    <span class="n">properties</span><span class="o">=</span><span class="p">(</span>
-        <span class="s2">&quot;label&quot;</span><span class="p">,</span> <span class="s2">&quot;area&quot;</span><span class="p">,</span> <span class="s2">&quot;centroid&quot;</span><span class="p">,</span> <span class="s2">&quot;major_axis_length&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;minor_axis_length&quot;</span><span class="p">,</span> <span class="s2">&quot;orientation&quot;</span><span class="p">,</span> <span class="s2">&quot;perimeter&quot;</span><span class="p">,</span>
-        <span class="s2">&quot;max_intensity&quot;</span><span class="p">,</span> <span class="s2">&quot;mean_intensity&quot;</span><span class="p">,</span> <span class="s2">&quot;min_intensity&quot;</span><span class="p">,</span>
-    <span class="p">),</span>
+<span class="c1"># Create histogram of major and minor axis lengths</span>
+<span class="n">hist</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">plot_histogram_of_axis_lengths</span><span class="p">(</span>
+    <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;major_axis_length&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>  <span class="c1"># Convert to mm</span>
+    <span class="n">summary</span><span class="p">[</span><span class="s1">&#39;minor_axis_length&#39;</span><span class="p">]</span> <span class="o">*</span> <span class="mi">1000</span><span class="p">,</span>
+    <span class="n">binsize</span><span class="o">=</span><span class="mf">0.25</span>
 <span class="p">)</span>
-<span class="n">grain_data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">props</span><span class="p">)</span>
-
-<span class="c1"># Convert pixel measurements to real units</span>
-<span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;major_axis_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;major_axis_length&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">units_per_pixel</span>
-<span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;minor_axis_length&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;minor_axis_length&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">units_per_pixel</span>
-<span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;perimeter&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;perimeter&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">units_per_pixel</span>
-<span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">grain_data</span><span class="p">[</span><span class="s2">&quot;area&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">values</span> <span class="o">*</span> <span class="n">units_per_pixel</span><span class="o">**</span><span class="mi">2</span>
 </pre></div>
 </div>
 </section>
 <section id="saving-results">
 <h2>Saving results<a class="headerlink" href="#saving-results" title="Link to this heading">¶</a></h2>
-<p>Save the grain data and masks:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">cv2</span>
+<p>The <code class="docutils literal notranslate"><span class="pre">interactions</span></code> module provides convenient functions for saving all results:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">out_fn</span> <span class="o">=</span> <span class="s2">&quot;./examples/output/my_image&quot;</span>  <span class="c1"># Base filename (without extension)</span>
 
-<span class="c1"># Save grain data to CSV</span>
-<span class="n">grain_data</span><span class="o">.</span><span class="n">to_csv</span><span class="p">(</span><span class="n">fname</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;.csv&quot;</span><span class="p">)</span>
+<span class="c1"># Save grain shapes as GeoJSON</span>
+<span class="n">si</span><span class="o">.</span><span class="n">save_grains</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_grains.geojson&#39;</span><span class="p">,</span> <span class="n">grains</span><span class="p">)</span>
 
-<span class="c1"># Save mask as PNG</span>
-<span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">fname</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_mask.png&quot;</span><span class="p">,</span> <span class="n">mask_all</span><span class="p">)</span>
+<span class="c1"># Save the plot with grain overlays</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_grains.jpg&#39;</span><span class="p">)</span>
 
-<span class="c1"># Save processed image as PNG</span>
-<span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="n">fname</span><span class="p">[:</span><span class="o">-</span><span class="mi">4</span><span class="p">]</span> <span class="o">+</span> <span class="s2">&quot;_image.png&quot;</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">cvtColor</span><span class="p">(</span><span class="n">image</span><span class="p">,</span> <span class="n">cv2</span><span class="o">.</span><span class="n">COLOR_BGR2RGB</span><span class="p">))</span>
+<span class="c1"># Save grain measurements as CSV</span>
+<span class="n">summary</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">save_summary</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_summary.csv&#39;</span><span class="p">,</span> <span class="n">grains</span><span class="p">,</span> <span class="n">px_per_m</span><span class="o">=</span><span class="n">plot</span><span class="o">.</span><span class="n">px_per_m</span><span class="p">)</span>
+
+<span class="c1"># Save histogram as image</span>
+<span class="n">si</span><span class="o">.</span><span class="n">save_histogram</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_summary.jpg&#39;</span><span class="p">,</span> <span class="n">summary</span><span class="o">=</span><span class="n">summary</span><span class="p">)</span>
+
+<span class="c1"># Save binary mask for training (0-1 values)</span>
+<span class="n">si</span><span class="o">.</span><span class="n">save_mask</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_mask.png&#39;</span><span class="p">,</span> <span class="n">grains</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+
+<span class="c1"># Save human-readable mask (0-255 values)</span>
+<span class="n">si</span><span class="o">.</span><span class="n">save_mask</span><span class="p">(</span><span class="n">out_fn</span> <span class="o">+</span> <span class="s1">&#39;_mask2.jpg&#39;</span><span class="p">,</span> <span class="n">grains</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -206,19 +216,131 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <h2>Large image processing<a class="headerlink" href="#large-image-processing" title="Link to this heading">¶</a></h2>
 <p>If you want to detect grains in large images, you should use the <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> function, which will split the image into patches and run the Unet and SAM segmentations on each patch:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
+<span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain.interactions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">si</span>
+
 <span class="n">Image</span><span class="o">.</span><span class="n">MAX_IMAGE_PIXELS</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># needed for very large images</span>
 
+<span class="n">fname</span> <span class="o">=</span> <span class="s2">&quot;./examples/my_large_image.jpg&quot;</span>
+<span class="n">image</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">load_image</span><span class="p">(</span><span class="n">fname</span><span class="p">)</span>
+
 <span class="n">all_grains</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">all_coords</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">predict_large_image</span><span class="p">(</span>
-    <span class="n">fname</span><span class="p">,</span> <span class="n">model</span><span class="p">,</span> <span class="n">sam</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">patch_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span> <span class="n">overlap</span><span class="o">=</span><span class="mi">200</span>
+    <span class="n">fname</span><span class="p">,</span> <span class="n">unet</span><span class="p">,</span> <span class="n">sam</span><span class="p">,</span>
+    <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Keep grains on outer edges of the full image</span>
 <span class="p">)</span>
 </pre></div>
 </div>
 <p>Just like before, the <code class="docutils literal notranslate"><span class="pre">all_grains</span></code> list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">rasterize_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">large_image</span><span class="p">)</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">rasterize_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
+<p>To interactively edit the results, convert to Grain objects and use GrainPlot:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">grains</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">polygons_to_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">)</span>
+<span class="n">predictor</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
+
+<span class="n">plot</span> <span class="o">=</span> <span class="n">si</span><span class="o">.</span><span class="n">GrainPlot</span><span class="p">(</span>
+    <span class="n">grains</span><span class="p">,</span>
+    <span class="n">image</span><span class="o">=</span><span class="n">image</span><span class="p">,</span>
+    <span class="n">predictor</span><span class="o">=</span><span class="n">predictor</span><span class="p">,</span>
+    <span class="n">color_palette</span><span class="o">=</span><span class="s1">&#39;tab20b&#39;</span><span class="p">,</span>
+<span class="p">)</span>
+<span class="n">plot</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.</p>
+</section>
+</section>
+<section id="grain-extraction-and-clustering">
+<h1>Grain extraction and clustering<a class="headerlink" href="#grain-extraction-and-clustering" title="Link to this heading">¶</a></h1>
+<p>The <code class="docutils literal notranslate"><span class="pre">grain_utils</span></code> module provides functions for extracting individual grain images and clustering them for classification tasks.</p>
+<section id="extracting-individual-grains">
+<h2>Extracting individual grains<a class="headerlink" href="#extracting-individual-grains" title="Link to this heading">¶</a></h2>
+<p>Extract standardized, square images of individual grains suitable for machine learning:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_all_grains</span><span class="p">,</span> <span class="n">extract_grain_image</span>
+
+<span class="c1"># Extract all grains as standardized 224x224 images</span>
+<span class="n">grain_images</span><span class="p">,</span> <span class="n">grain_masks</span><span class="p">,</span> <span class="n">grain_preds</span> <span class="o">=</span> <span class="n">extract_all_grains</span><span class="p">(</span>
+    <span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">target_size</span><span class="o">=</span><span class="mi">224</span>
+<span class="p">)</span>
+
+<span class="c1"># Or extract a single grain</span>
+<span class="n">grain_img</span><span class="p">,</span> <span class="n">grain_mask</span><span class="p">,</span> <span class="n">grain_pred</span><span class="p">,</span> <span class="n">orig_size</span> <span class="o">=</span> <span class="n">extract_grain_image</span><span class="p">(</span>
+    <span class="n">all_grains</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">target_size</span><span class="o">=</span><span class="mi">224</span><span class="p">,</span> <span class="n">pad</span><span class="o">=</span><span class="mi">10</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="feature-extraction">
+<h2>Feature extraction<a class="headerlink" href="#feature-extraction" title="Link to this heading">¶</a></h2>
+<p>Extract deep learning features using pre-trained CNNs for clustering or classification:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">extract_vgg16_features</span><span class="p">,</span> <span class="n">extract_color_features</span>
+
+<span class="c1"># Extract VGG16 features (4096-dimensional)</span>
+<span class="n">features</span><span class="p">,</span> <span class="n">model</span> <span class="o">=</span> <span class="n">extract_vgg16_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">model_name</span><span class="o">=</span><span class="s1">&#39;VGG16&#39;</span><span class="p">)</span>
+
+<span class="c1"># Or extract color-based features</span>
+<span class="n">color_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">&#39;hsv&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="clustering-grains">
+<h2>Clustering grains<a class="headerlink" href="#clustering-grains" title="Link to this heading">¶</a></h2>
+<p>Cluster grains based on their features:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">cluster_grains</span><span class="p">,</span> <span class="n">create_clustered_grain_montage</span>
+
+<span class="c1"># Cluster using K-means with PCA dimensionality reduction</span>
+<span class="n">labels</span><span class="p">,</span> <span class="n">reduced_features</span><span class="p">,</span> <span class="n">pca</span><span class="p">,</span> <span class="n">clusterer</span> <span class="o">=</span> <span class="n">cluster_grains</span><span class="p">(</span>
+    <span class="n">features</span><span class="p">,</span> <span class="n">n_clusters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">25</span>
+<span class="p">)</span>
+
+<span class="c1"># Create a visual montage of clustered grains</span>
+<span class="n">montage</span><span class="p">,</span> <span class="n">cluster_info</span> <span class="o">=</span> <span class="n">create_clustered_grain_montage</span><span class="p">(</span>
+    <span class="n">labels</span><span class="p">,</span> <span class="n">grain_images</span><span class="p">,</span> <span class="n">grid_cols</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span> <span class="n">draw_boundaries</span><span class="o">=</span><span class="kc">True</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="interactive-grain-selection-and-labeling">
+<h2>Interactive grain selection and labeling<a class="headerlink" href="#interactive-grain-selection-and-labeling" title="Link to this heading">¶</a></h2>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">ClusterMontageSelector</span></code> for quality control (removing bad grains or clusters):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterMontageSelector</span>
+
+<span class="n">selector</span> <span class="o">=</span> <span class="n">ClusterMontageSelector</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">grain_images</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">)</span>
+<span class="n">selector</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>  <span class="c1"># Interactive mode</span>
+
+<span class="c1"># After selection, get filtered results</span>
+<span class="n">filtered_grains</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">get_filtered_grains</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Use the <code class="docutils literal notranslate"><span class="pre">ClusterMontageLabeler</span></code> for labeling grains with custom categories:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClusterMontageLabeler</span>
+
+<span class="n">labeler</span> <span class="o">=</span> <span class="n">ClusterMontageLabeler</span><span class="p">(</span>
+    <span class="n">labels</span><span class="p">,</span> <span class="n">grain_images</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">,</span>
+    <span class="n">label_names</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;quartz&#39;</span><span class="p">,</span> <span class="s1">&#39;feldspar&#39;</span><span class="p">,</span> <span class="s1">&#39;lithic&#39;</span><span class="p">,</span> <span class="s1">&#39;other&#39;</span><span class="p">]</span>
+<span class="p">)</span>
+<span class="n">labeler</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>  <span class="c1"># Interactive mode</span>
+
+<span class="c1"># Export labels</span>
+<span class="n">labeler</span><span class="o">.</span><span class="n">export_labels</span><span class="p">(</span><span class="s1">&#39;grain_labels.csv&#39;</span><span class="p">)</span>
+<span class="n">labeler</span><span class="o">.</span><span class="n">save_labeled_images</span><span class="p">(</span><span class="s1">&#39;labeled_grains/&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="visualizing-classified-grains">
+<h2>Visualizing classified grains<a class="headerlink" href="#visualizing-classified-grains" title="Link to this heading">¶</a></h2>
+<p>Plot grains colored by their classification:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="kn">import</span> <span class="n">plot_classified_grains</span>
+
+<span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plot_classified_grains</span><span class="p">(</span>
+    <span class="n">image</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">,</span> <span class="n">classifications</span><span class="p">,</span>
+    <span class="n">class_colors</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;quartz&#39;</span><span class="p">:</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;feldspar&#39;</span><span class="p">:</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;other&#39;</span><span class="p">:</span> <span class="s1">&#39;green&#39;</span><span class="p">}</span>
+<span class="p">)</span>
+</pre></div>
+</div>
 </section>
 <section id="hardware-requirements">
 <h2>Hardware requirements<a class="headerlink" href="#hardware-requirements" title="Link to this heading">¶</a></h2>
@@ -306,10 +428,18 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 <li class="toctree-l2"><a class="reference internal" href="#quality-control-of-u-net-prediction">Quality control of U-Net prediction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#sam-segmentation">SAM segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#interactive-editing-of-results">Interactive editing of results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="#adding-new-grains">Adding new grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#scale-bar-and-unit-conversion">Scale bar and unit conversion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#grain-size-analysis">Grain size analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#saving-results">Saving results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#large-image-processing">Large image processing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="#grain-extraction-and-clustering">Grain extraction and clustering</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#extracting-individual-grains">Extracting individual grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#feature-extraction">Feature extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#clustering-grains">Clustering grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#interactive-grain-selection-and-labeling">Interactive grain selection and labeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#visualizing-classified-grains">Visualizing classified grains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="#hardware-requirements">Hardware requirements</a></li>
 </ul>
 </li>

@@ -47,6 +47,9 @@ with this approach, but the segmentations that are created tend to be of high qu
 <p><code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> also includes a set of functions that make it possible to clean up the segmentation results: delete and
 merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and
 added to a dataset of grain images. These images then can be used to improve the Unet model.</p>
+<p>The package includes an <code class="docutils literal notranslate"><span class="pre">interactions</span></code> module with the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code> class for interactive editing of grain segmentations,
+and a <code class="docutils literal notranslate"><span class="pre">grain_utils</span></code> module for extracting individual grain images, feature extraction using pre-trained CNNs, and clustering
+grains for classification tasks.</p>
 <section id="installation">
 <h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
@@ -74,56 +77,27 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#quality-control-of-u-net-prediction">Quality control of U-Net prediction</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#sam-segmentation">SAM segmentation</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#interactive-editing-of-results">Interactive editing of results</a></li>
-<li class="toctree-l2"><a class="reference internal" href="getting_started.html#adding-new-grains">Adding new grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#scale-bar-and-unit-conversion">Scale bar and unit conversion</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#grain-size-analysis">Grain size analysis</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#saving-results">Saving results</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#large-image-processing">Large image processing</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#grain-extraction-and-clustering">Grain extraction and clustering</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#extracting-individual-grains">Extracting individual grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#feature-extraction">Feature extraction</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#clustering-grains">Clustering grains</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#interactive-grain-selection-and-labeling">Interactive grain selection and labeling</a></li>
+<li class="toctree-l2"><a class="reference internal" href="getting_started.html#visualizing-classified-grains">Visualizing classified grains</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#hardware-requirements">Hardware requirements</a></li>
 </ul>
 </li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#finetuning-the-u-net-model">Finetuning the U-Net model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#training-the-u-net-model-from-scratch">Training the U-Net model from scratch</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a><ul>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.calculate_iou"><code class="docutils literal notranslate"><span class="pre">calculate_iou()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.classify_points"><code class="docutils literal notranslate"><span class="pre">classify_points()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.click_for_scale"><code class="docutils literal notranslate"><span class="pre">click_for_scale()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.collect_polygon_from_mask"><code class="docutils literal notranslate"><span class="pre">collect_polygon_from_mask()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.compute_curvature"><code class="docutils literal notranslate"><span class="pre">compute_curvature()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.convert_to_large_image_coords"><code class="docutils literal notranslate"><span class="pre">convert_to_large_image_coords()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_and_train_model"><code class="docutils literal notranslate"><span class="pre">create_and_train_model()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_labeled_image"><code class="docutils literal notranslate"><span class="pre">create_labeled_image()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.create_train_val_test_data"><code class="docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.extract_patch"><code class="docutils literal notranslate"><span class="pre">extract_patch()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_connected_components"><code class="docutils literal notranslate"><span class="pre">find_connected_components()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_grain_size_classes"><code class="docutils literal notranslate"><span class="pre">find_grain_size_classes()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.find_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">find_overlapping_polygons()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.get_area_weighted_distribution"><code class="docutils literal notranslate"><span class="pre">get_area_weighted_distribution()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.get_grains_from_patches"><code class="docutils literal notranslate"><span class="pre">get_grains_from_patches()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.label_grains"><code class="docutils literal notranslate"><span class="pre">label_grains()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.load_and_preprocess"><code class="docutils literal notranslate"><span class="pre">load_and_preprocess()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.merge_overlapping_polygons"><code class="docutils literal notranslate"><span class="pre">merge_overlapping_polygons()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick"><code class="docutils literal notranslate"><span class="pre">onclick()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick2"><code class="docutils literal notranslate"><span class="pre">onclick2()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onclick_large_image"><code class="docutils literal notranslate"><span class="pre">onclick_large_image()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.one_point_prompt"><code class="docutils literal notranslate"><span class="pre">one_point_prompt()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress"><code class="docutils literal notranslate"><span class="pre">onpress()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.onpress2"><code class="docutils literal notranslate"><span class="pre">onpress2()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.patchify_training_data"><code class="docutils literal notranslate"><span class="pre">patchify_training_data()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.pick_most_similar_polygon"><code class="docutils literal notranslate"><span class="pre">pick_most_similar_polygon()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_grain_axes_and_centroids"><code class="docutils literal notranslate"><span class="pre">plot_grain_axes_and_centroids()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_histogram_of_axis_lengths"><code class="docutils literal notranslate"><span class="pre">plot_histogram_of_axis_lengths()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_image_w_colorful_grains"><code class="docutils literal notranslate"><span class="pre">plot_image_w_colorful_grains()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.plot_images_and_labels"><code class="docutils literal notranslate"><span class="pre">plot_images_and_labels()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image"><code class="docutils literal notranslate"><span class="pre">predict_image()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_image_tile"><code class="docutils literal notranslate"><span class="pre">predict_image_tile()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.predict_large_image"><code class="docutils literal notranslate"><span class="pre">predict_large_image()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.rasterize_grains"><code class="docutils literal notranslate"><span class="pre">rasterize_grains()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.read_polygons"><code class="docutils literal notranslate"><span class="pre">read_polygons()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.sam_segmentation"><code class="docutils literal notranslate"><span class="pre">sam_segmentation()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.save_polygons"><code class="docutils literal notranslate"><span class="pre">save_polygons()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.two_point_prompt"><code class="docutils literal notranslate"><span class="pre">two_point_prompt()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.Unet"><code class="docutils literal notranslate"><span class="pre">Unet()</span></code></a></li>
-<li class="toctree-l2"><a class="reference internal" href="api_reference.html#segmenteverygrain.weighted_crossentropy"><code class="docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#interactive-editing-interactions-module">Interactive Editing (interactions module)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#grain-extraction-and-clustering-grain-utils-module">Grain Extraction and Clustering (grain_utils module)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="api_reference.html#core-segmentation-functions">Core Segmentation Functions</a></li>
 </ul>
 </li>
 </ul>
@@ -150,6 +124,7 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 <h3>Navigation</h3>
 <ul>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#grain-extraction-and-clustering">Grain extraction and clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#finetuning-the-u-net-model">Finetuning the U-Net model</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#training-the-u-net-model-from-scratch">Training the U-Net model from scratch</a></li>
 <li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>

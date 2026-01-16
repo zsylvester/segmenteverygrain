@@ -86,119 +86,130 @@ The ``all_grains`` list contains shapely polygons of the grains detected in the 
 Interactive editing of results
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-After the initial segmentation, you can interactively edit the results to delete unwanted grains or merge grains that should be combined:
+After the initial segmentation, you can interactively edit the results using the ``GrainPlot`` class from the ``interactions`` module. This provides a modern, interactive interface for deleting, merging, and adding grains.
+
+First, convert the polygons to ``Grain`` objects and set up the SAM predictor:
 
 .. code-block:: python
 
-   grain_inds = []
-   cid1 = fig.canvas.mpl_connect(
-       "button_press_event",
-       lambda event: seg.onclick2(event, all_grains, grain_inds, ax=ax),
-   )
-   cid2 = fig.canvas.mpl_connect(
-       "key_press_event",
-       lambda event: seg.onpress2(event, all_grains, grain_inds, fig=fig, ax=ax),
-   )
-
-Interactive controls:
-
-* Click on a grain that you want to remove and press the 'x' key
-* Click on two grains that you want to merge and press the 'm' key (they have to be the last two grains you clicked on)
-* Press the 'g' key to hide the grain masks; press the 'g' key again to show the grain masks
-
-After editing, disconnect the event handlers and update the grain data:
-
-.. code-block:: python
-
-   fig.canvas.mpl_disconnect(cid1)
-   fig.canvas.mpl_disconnect(cid2)
-   all_grains, labels, mask_all = seg.get_grains_from_patches(ax, image)
-
-Adding new grains
-~~~~~~~~~~~~~~~~~
-
-You can also add new grains using the Segment Anything Model:
-
-.. code-block:: python
-
+   import segmenteverygrain.interactions as si
    from segment_anything import SamPredictor
-   
+   from tqdm import tqdm
+
+   # Convert polygons to Grain objects
+   grains = si.polygons_to_grains(all_grains, image=image)
+   for g in tqdm(grains, desc='Measuring detected grains'):
+       g.measure()
+
+   # Set up SAM predictor for adding new grains
    predictor = SamPredictor(sam)
-   predictor.set_image(image)  # this can take a while
-   coords = []
-   cid3 = fig.canvas.mpl_connect(
-       "button_press_event", lambda event: seg.onclick(event, ax, coords, image, predictor)
-   )
-   cid4 = fig.canvas.mpl_connect(
-       "key_press_event", lambda event: seg.onpress(event, ax, fig)
-   )
+   predictor.set_image(image)
 
-Interactive controls for adding grains:
+Then create the interactive plot:
 
-* Click on an unsegmented grain that you want to add
-* Press the 'x' key to delete the last grain you added
-* Press the 'm' key to merge the last two grains that you added
-* Right click outside the grain (but inside the most recent mask) to restrict the grain to a smaller mask
+.. code-block:: python
+
+   plot = si.GrainPlot(
+       grains,
+       image=image,
+       predictor=predictor,
+       blit=True,                      # Use blitting for faster rendering
+       color_palette='tab20b',         # Matplotlib colormap for grain colors
+       figsize=(12, 8),                # Figure size in inches
+       scale_m=500*1e-6,               # Length of scale bar in meters (for unit conversion)
+       px_per_m=1.0,                   # Pixels per meter (will be updated if scale bar is drawn)
+   )
+   plot.activate()
+
+Interactive controls (also shown in the figure title bar):
+
+**Mouse controls:**
+
+* **Left-click on existing grain**: Select/unselect the grain
+* **Left-click in grain-free area**: Place foreground prompt for instant grain creation (auto-create)
+* **Alt + Left-click**: Place foreground prompt for multi-prompt grain creation (hold Alt, click multiple times, release Alt to create)
+* **Alt + Right-click**: Place background prompt for multi-prompt creation
+* **Shift + Left-drag**: Draw a scale bar line (red line) for unit conversion
+* **Middle-click** or **Shift + Left-click on grain**: Show grain measurement info
+
+**Keyboard controls:**
+
+* **d** or **Delete**: Delete selected (highlighted) grains
+* **m**: Merge selected grains (must be touching)
+* **z**: Undo (delete the most recently created grain)
+* **Ctrl** (hold): Temporarily hide all grain masks
+* **Esc**: Remove all prompts and unselect all grains
+* **c**: Create grain from existing prompts (alternative to auto-create)
+
+After editing, retrieve the updated grains and deactivate the interactive features:
+
+.. code-block:: python
+
+   grains = plot.get_grains()  # Get the edited list of grains
+   plot.deactivate()           # Turn off interactive features
+
+   # Optionally draw the major and minor axes on each grain
+   plot.draw_axes()
+
+Scale bar and unit conversion
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To convert measurements from pixels to real-world units, you can either:
+
+1. **Specify the scale when creating the plot** using the ``px_per_m`` parameter (pixels per meter).
+
+2. **Draw a scale bar interactively**: Hold ``Shift`` and drag the mouse to draw a line on a known reference object. The ``scale_m`` parameter specifies the real-world length of this reference object in meters.
+
+After drawing a scale bar, the pixel-to-meter conversion is automatically updated:
+
+.. code-block:: python
+
+   # Retrieve the scale after drawing a scale bar
+   px_per_m = plot.px_per_m
 
 Grain size analysis
 ~~~~~~~~~~~~~~~~~~~
 
-To perform grain size analysis, you first need to establish the scale of your image by clicking on a scale bar:
+Generate a summary dataframe and histogram of grain measurements:
 
 .. code-block:: python
 
-   cid5 = fig.canvas.mpl_connect(
-       "button_press_event", lambda event: seg.click_for_scale(event, ax)
+   # Get summary dataframe with all grain measurements
+   summary = si.get_summary(grains, px_per_m=plot.px_per_m)
+
+   # Create histogram of major and minor axis lengths
+   hist = seg.plot_histogram_of_axis_lengths(
+       summary['major_axis_length'] * 1000,  # Convert to mm
+       summary['minor_axis_length'] * 1000,
+       binsize=0.25
    )
-
-Click on one end of the scale bar with the left mouse button and on the other end with the right mouse button. Then calculate the scale:
-
-.. code-block:: python
-
-   n_of_units = 10.0  # length of scale bar in real units (e.g., centimeters)
-   units_per_pixel = n_of_units / scale_bar_length_pixels  # from the output above
-
-Calculate grain properties and create a dataframe:
-
-.. code-block:: python
-
-   from skimage.measure import regionprops_table
-   import pandas as pd
-   
-   props = regionprops_table(
-       labels.astype("int"),
-       intensity_image=image,
-       properties=(
-           "label", "area", "centroid", "major_axis_length", 
-           "minor_axis_length", "orientation", "perimeter",
-           "max_intensity", "mean_intensity", "min_intensity",
-       ),
-   )
-   grain_data = pd.DataFrame(props)
-   
-   # Convert pixel measurements to real units
-   grain_data["major_axis_length"] = grain_data["major_axis_length"].values * units_per_pixel
-   grain_data["minor_axis_length"] = grain_data["minor_axis_length"].values * units_per_pixel
-   grain_data["perimeter"] = grain_data["perimeter"].values * units_per_pixel
-   grain_data["area"] = grain_data["area"].values * units_per_pixel**2
 
 Saving results
 ~~~~~~~~~~~~~~
 
-Save the grain data and masks:
+The ``interactions`` module provides convenient functions for saving all results:
 
 .. code-block:: python
 
-   import cv2
-   
-   # Save grain data to CSV
-   grain_data.to_csv(fname[:-4] + ".csv")
-   
-   # Save mask as PNG
-   cv2.imwrite(fname[:-4] + "_mask.png", mask_all)
-   
-   # Save processed image as PNG
-   cv2.imwrite(fname[:-4] + "_image.png", cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
+   out_fn = "./examples/output/my_image"  # Base filename (without extension)
+
+   # Save grain shapes as GeoJSON
+   si.save_grains(out_fn + '_grains.geojson', grains)
+
+   # Save the plot with grain overlays
+   plot.savefig(out_fn + '_grains.jpg')
+
+   # Save grain measurements as CSV
+   summary = si.save_summary(out_fn + '_summary.csv', grains, px_per_m=plot.px_per_m)
+
+   # Save histogram as image
+   si.save_histogram(out_fn + '_summary.jpg', summary=summary)
+
+   # Save binary mask for training (0-1 values)
+   si.save_mask(out_fn + '_mask.png', grains, image, scale=False)
+
+   # Save human-readable mask (0-255 values)
+   si.save_mask(out_fn + '_mask2.jpg', grains, image, scale=True)
 
 Large image processing
 ~~~~~~~~~~~~~~~~~~~~~~
@@ -208,20 +219,148 @@ If you want to detect grains in large images, you should use the ``predict_large
 .. code-block:: python
 
    from PIL import Image
+   import segmenteverygrain.interactions as si
+
    Image.MAX_IMAGE_PIXELS = None  # needed for very large images
-   
+
+   fname = "./examples/my_large_image.jpg"
+   image = si.load_image(fname)
+
    all_grains, image_pred, all_coords = seg.predict_large_image(
-       fname, model, sam, min_area=400.0, patch_size=2000, overlap=200
+       fname, unet, sam,
+       min_area=400.0,
+       patch_size=2000,
+       overlap=200,
+       remove_edge_grains=False  # Keep grains on outer edges of the full image
    )
 
 Just like before, the ``all_grains`` list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:
 
 .. code-block:: python
 
-   labels = seg.rasterize_grains(all_grains, large_image)
+   labels = seg.rasterize_grains(all_grains, image)
 
-See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb>`_ notebook for a complete example 
+To interactively edit the results, convert to Grain objects and use GrainPlot:
+
+.. code-block:: python
+
+   grains = si.polygons_to_grains(all_grains, image=image)
+   predictor.set_image(image)
+
+   plot = si.GrainPlot(
+       grains,
+       image=image,
+       predictor=predictor,
+       color_palette='tab20b',
+   )
+   plot.activate()
+
+See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/Segment_every_grain.ipynb>`_ notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.
+
+
+Grain extraction and clustering
+-------------------------------
+
+The ``grain_utils`` module provides functions for extracting individual grain images and clustering them for classification tasks.
+
+Extracting individual grains
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Extract standardized, square images of individual grains suitable for machine learning:
+
+.. code-block:: python
+
+   from segmenteverygrain import extract_all_grains, extract_grain_image
+
+   # Extract all grains as standardized 224x224 images
+   grain_images, grain_masks, grain_preds = extract_all_grains(
+       all_grains, image, image_pred, target_size=224
+   )
+
+   # Or extract a single grain
+   grain_img, grain_mask, grain_pred, orig_size = extract_grain_image(
+       all_grains[0], image, image_pred, target_size=224, pad=10
+   )
+
+Feature extraction
+~~~~~~~~~~~~~~~~~~
+
+Extract deep learning features using pre-trained CNNs for clustering or classification:
+
+.. code-block:: python
+
+   from segmenteverygrain import extract_vgg16_features, extract_color_features
+
+   # Extract VGG16 features (4096-dimensional)
+   features, model = extract_vgg16_features(grain_images, model_name='VGG16')
+
+   # Or extract color-based features
+   color_features = extract_color_features(grain_images, color_space='hsv')
+
+Clustering grains
+~~~~~~~~~~~~~~~~~
+
+Cluster grains based on their features:
+
+.. code-block:: python
+
+   from segmenteverygrain import cluster_grains, create_clustered_grain_montage
+
+   # Cluster using K-means with PCA dimensionality reduction
+   labels, reduced_features, pca, clusterer = cluster_grains(
+       features, n_clusters=10, n_components=25
+   )
+
+   # Create a visual montage of clustered grains
+   montage, cluster_info = create_clustered_grain_montage(
+       labels, grain_images, grid_cols=20, draw_boundaries=True
+   )
+
+Interactive grain selection and labeling
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Use the ``ClusterMontageSelector`` for quality control (removing bad grains or clusters):
+
+.. code-block:: python
+
+   from segmenteverygrain import ClusterMontageSelector
+
+   selector = ClusterMontageSelector(labels, grain_images, all_grains)
+   selector.activate()  # Interactive mode
+
+   # After selection, get filtered results
+   filtered_grains = selector.get_filtered_grains()
+
+Use the ``ClusterMontageLabeler`` for labeling grains with custom categories:
+
+.. code-block:: python
+
+   from segmenteverygrain import ClusterMontageLabeler
+
+   labeler = ClusterMontageLabeler(
+       labels, grain_images, all_grains,
+       label_names=['quartz', 'feldspar', 'lithic', 'other']
+   )
+   labeler.activate()  # Interactive mode
+
+   # Export labels
+   labeler.export_labels('grain_labels.csv')
+   labeler.save_labeled_images('labeled_grains/')
+
+Visualizing classified grains
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Plot grains colored by their classification:
+
+.. code-block:: python
+
+   from segmenteverygrain import plot_classified_grains
+
+   fig, ax = plot_classified_grains(
+       image, all_grains, classifications,
+       class_colors={'quartz': 'blue', 'feldspar': 'red', 'other': 'green'}
+   )
 
 Hardware requirements
 ~~~~~~~~~~~~~~~~~~~~~
