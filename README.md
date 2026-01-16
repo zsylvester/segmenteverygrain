@@ -96,7 +96,7 @@ The interactive editing interface (`GrainPlot`) provides the following controls:
 - **z**: Undo last created grain
 - **Ctrl** (hold): Temporarily hide grain masks
 
-The last section of the notebook illustrates the use of the 'predict_large_image' function that is recommended for large images (e.g., larger than 2000x3000 pixels). The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using this approach. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
+The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using `segmenteverygrain`. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
 
 <img src="docs/miocene_sst_large_1.jpeg" width="600">
 
