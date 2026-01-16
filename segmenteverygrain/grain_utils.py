@@ -355,6 +355,132 @@ def extract_vgg16_features(grain_images, model_name='VGG16', layer_name='fc2',
     
     return features, feature_model
 
+def extract_color_features(grain_images, color_space='rgb', mask_background=True,
+                          background_threshold=10):
+    """
+    Extract color-based features from grain images for clustering.
+    
+    This function computes color statistics from grain images, optionally masking
+    out the background. Features include mean, standard deviation, and histogram
+    statistics for each color channel.
+    
+    Parameters
+    ----------
+    grain_images : list or numpy.ndarray
+        List of grain images, each of shape (H, W, 3)
+    color_space : str
+        Color space to use for feature extraction:
+        - 'rgb': RGB color space (default)
+        - 'hsv': HSV color space (better for color-based clustering)
+        - 'lab': LAB color space (perceptually uniform)
+        - 'all': Concatenate features from all color spaces
+    mask_background : bool
+        If True, excludes very dark pixels (assumed to be background) from 
+        color statistics (default: True)
+    background_threshold : int
+        Pixels with all channels below this value are considered background
+        (default: 10, only used if mask_background=True)
+    
+    Returns
+    -------
+    features : numpy.ndarray
+        Color feature matrix of shape (n_grains, n_features)
+        Features per channel: mean, std, median, min, max, 25th percentile, 75th percentile
+        - RGB: 21 features (7 per channel × 3 channels)
+        - HSV: 21 features (7 per channel × 3 channels)
+        - LAB: 21 features (7 per channel × 3 channels)
+        - all: 63 features (concatenation of RGB, HSV, LAB)
+    
+    Examples
+    --------
+    >>> # Extract RGB color features
+    >>> color_features = extract_color_features(grain_images, color_space='rgb')
+    >>> print(color_features.shape)
+    (336, 21)
+    
+    >>> # Use HSV for better color discrimination
+    >>> hsv_features = extract_color_features(grain_images, color_space='hsv')
+    >>> labels, _, _, _ = cluster_grains(hsv_features, n_clusters=5, n_components=None)
+    
+    >>> # Use all color spaces for comprehensive features
+    >>> all_features = extract_color_features(grain_images, color_space='all')
+    >>> print(all_features.shape)
+    (336, 63)
+    """
+    from skimage import color as skcolor
+    
+    grain_images = np.array(grain_images)
+    n_grains = len(grain_images)
+    
+    def compute_channel_stats(img_channel, mask=None):
+        """Compute statistics for a single channel"""
+        if mask is not None:
+            values = img_channel[mask]
+        else:
+            values = img_channel.flatten()
+        
+        if len(values) == 0:
+            # If no valid pixels, return zeros
+            return np.zeros(7)
+        
+        return np.array([
+            np.mean(values),
+            np.std(values),
+            np.median(values),
+            np.min(values),
+            np.max(values),
+            np.percentile(values, 25),
+            np.percentile(values, 75)
+        ])
+    
+    def extract_features_from_colorspace(images, space_name):
+        """Extract features from a specific color space"""
+        features_list = []
+        
+        for img in images:
+            # Convert to float for color space conversions
+            img_float = img.astype(float) / 255.0
+            
+            # Create background mask if needed
+            if mask_background:
+                bg_mask = ~np.all(img < background_threshold, axis=-1)
+            else:
+                bg_mask = None
+            
+            # Convert color space
+            if space_name == 'rgb':
+                img_converted = img_float
+            elif space_name == 'hsv':
+                img_converted = skcolor.rgb2hsv(img_float)
+            elif space_name == 'lab':
+                img_converted = skcolor.rgb2lab(img_float)
+            else:
+                raise ValueError(f"Unknown color space: {space_name}")
+            
+            # Extract statistics for each channel
+            channel_features = []
+            for c in range(3):
+                stats = compute_channel_stats(img_converted[:, :, c], bg_mask)
+                channel_features.extend(stats)
+            
+            features_list.append(channel_features)
+        
+        return np.array(features_list)
+    
+    # Extract features based on requested color space
+    if color_space.lower() == 'all':
+        rgb_features = extract_features_from_colorspace(grain_images, 'rgb')
+        hsv_features = extract_features_from_colorspace(grain_images, 'hsv')
+        lab_features = extract_features_from_colorspace(grain_images, 'lab')
+        features = np.hstack([rgb_features, hsv_features, lab_features])
+    else:
+        features = extract_features_from_colorspace(grain_images, color_space.lower())
+    
+    print(f"Extracted {features.shape[1]} color features from {n_grains} grains "
+          f"using {color_space.upper()} color space")
+    
+    return features
+
 def cluster_grains(features, n_clusters=10, method='kmeans', n_components=25, 
                    random_state=42, **kwargs):
     """

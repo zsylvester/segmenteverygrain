@@ -37,6 +37,7 @@ from .grain_utils import (
     ClusterMontageSelector,
     ClusterMontageLabeler,
     plot_classified_grains,
+    extract_color_features,
 )
 
 __version__ = "0.2.3"
