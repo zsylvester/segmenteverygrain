@@ -16,9 +16,13 @@ To deal with these issues, 'segmenteverygrain' relies on a Unet-style, patch-bas
 first-pass segmentation which is then used to generate prompts for the SAM-based segmentation. Some of the grains will be missed 
 with this approach, but the segmentations that are created tend to be of high quality.
 
-``segmenteverygrain`` also includes a set of functions that make it possible to clean up the segmentation results: delete and 
-merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and 
+``segmenteverygrain`` also includes a set of functions that make it possible to clean up the segmentation results: delete and
+merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and
 added to a dataset of grain images. These images then can be used to improve the Unet model.
+
+The package includes an ``interactions`` module with the ``GrainPlot`` class for interactive editing of grain segmentations,
+and a ``grain_utils`` module for extracting individual grain images, feature extraction using pre-trained CNNs, and clustering
+grains for classification tasks.
 
 Installation
 ------------
