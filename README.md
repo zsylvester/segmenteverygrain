@@ -96,6 +96,14 @@ The interactive editing interface (`GrainPlot`) provides the following controls:
 - **z**: Undo last created grain
 - **Ctrl** (hold): Temporarily hide grain masks
 
+This screen recording shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts; the red dots are background prompts.
+
+<div align="center">
+  <video src="https://github.com/zsylvester/segmenteverygrain/blob/master/seg_new_editing_interface_optimized.mp4" width="100%" autoplay muted loop playsinline>
+    <p>Your browser does not support the video tag. Here is a <a href="https://github.com/zsylvester/segmenteverygrain/blob/master/seg_new_editing_interface_optimized.mp4">link to the video</a> instead.</p>
+  </video>
+</div>
+
 The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using `segmenteverygrain`. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
 
 <img src="docs/miocene_sst_large_1.jpeg" width="600">
