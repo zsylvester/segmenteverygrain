@@ -96,15 +96,15 @@ The interactive editing interface (`GrainPlot`) provides the following controls:
 - **z**: Undo last created grain
 - **Ctrl** (hold): Temporarily hide grain masks
 
-This screen recording shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts; the red dots are background prompts.
+The screen recording below shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts; the red dots are background prompts.
 
 https://github.com/user-attachments/assets/9884c6cd-0b53-45f2-8c87-33e7f4665714
 
 The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using `segmenteverygrain`. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
 
-<img src="docs/miocene_sst_large_1.jpeg" width="600">
+<img src="docs/miocene_sst_large_1.jpeg" width="800">
 
-<img src="docs/miocene_sst_large_2.jpeg" width="600">
+<img src="docs/miocene_sst_large_2.jpeg" width="800">
 
  If the base Unet model does not work well on a specific type of image, it is a good idea to generate some new training data (a few small images are usually enough) and to fine tune the base model so that it works better on the new image type. This can be done by running the cells in the last section ('Finetuning the base model') of the [Segment_every_grain.ipynb](Segment_every_grain.ipynb) notebook.
 
