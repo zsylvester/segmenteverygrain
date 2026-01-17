@@ -89,14 +89,15 @@ See the [Segment_every_grain.ipynb](Segment_every_grain.ipynb) notebook for an e
 The interactive editing interface (`GrainPlot`) provides the following controls:
 - **Left-click** on grain-free area: Instant grain creation
 - **Left-click** on existing grain: Select/unselect
-- **Alt + click**: Multi-prompt grain creation
+- **Alt + Left-click**: Foreground prompt for multi-prompt grain creation
+- **Alt + Right-click**: Background prompt for multi-prompt grain creation
 - **Shift + drag**: Draw scale bar for unit conversion
 - **d**: Delete selected grains
 - **m**: Merge selected grains
 - **z**: Undo last created grain
 - **Ctrl** (hold): Temporarily hide grain masks
 
-The screen recording below shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts; the red dots are background prompts.
+The screen recording below shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts (Alt + Left-click); the red dots are background prompts (Alt + Right-click).
 
 https://github.com/user-attachments/assets/9884c6cd-0b53-45f2-8c87-33e7f4665714
 
