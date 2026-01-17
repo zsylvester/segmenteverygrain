@@ -84,7 +84,7 @@ conda activate segmenteverygrain
 
 ## Getting started
 
-See the [Segment_every_grain.ipynb](Segment_every_grain.ipynb) notebook for an example of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result using the `GrainPlot` class, and saving the grain data and the mask.
+See the [Segment_every_grain.ipynb](notebooks/Segment_every_grain.ipynb) notebook for an example of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result using the `GrainPlot` class, and saving the grain data and the mask.
 
 The interactive editing interface (`GrainPlot`) provides the following controls:
 - **Left-click** on grain-free area: Instant grain creation
@@ -107,7 +107,7 @@ The images below illustrate how a relatively large thin-section image of a sands
 
 <img src="docs/miocene_sst_large_2.jpeg" width="100%">
 
- If the base Unet model does not work well on a specific type of image, it is a good idea to generate some new training data (a few small images are usually enough) and to fine tune the base model so that it works better on the new image type. This can be done by running the cells in the last section ('Finetuning the base model') of the [Segment_every_grain.ipynb](Segment_every_grain.ipynb) notebook.
+ If the base Unet model does not work well on a specific type of image, it is a good idea to generate some new training data (a few small images are usually enough) and to fine tune the base model so that it works better on the new image type. This can be done by running the cells in the last section ('Finetuning the base model') of the [Segment_every_grain.ipynb](notebooks/Segment_every_grain.ipynb) notebook.
 
 ## Grain extraction and clustering
 
@@ -121,7 +121,7 @@ The `grain_utils` module provides tools for extracting individual grain images a
 
 See the documentation for detailed examples.
 
-The [Segment_every_grain_colab.ipynb](Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
+The [Segment_every_grain_colab.ipynb](notebooks/Segment_every_grain_colab.ipynb) has been adjusted so that the segmentation can be tested in Google Colab. That said, the interactivity in Colab is not as smooth as in a local notebook.
 
 ## Running times
 

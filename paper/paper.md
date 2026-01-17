@@ -84,7 +84,7 @@ The `predict_large_image` function can be used to run the segmentation of larger
 
 Grain area, major and minor axis lengths, and a number of other grain features are stored in a dataframe. The distributions of major- and minor grain axis lengths are plotted; they can be weighted by grain areas, so that they are more consistent with grain size distributions that come from sieving, point counting, or Wolman counts [@Taylor:2022].
 
-The `Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how to run `Segmenteverygrain` on a georeferenced image and save the results as a shapefile. This enables geospatial analyses of the coarse material, capturing variations in grain size across surfaces (\autoref{fig:4}).
+The `notebooks/Segment_every_grain_w_georeferencing.ipynb` notebook demonstrates how to run `Segmenteverygrain` on a georeferenced image and save the results as a shapefile. This enables geospatial analyses of the coarse material, capturing variations in grain size across surfaces (\autoref{fig:4}).
  
 ![(A) Orthoimagery from ground-based structure-from motion survey of mixed sand and gravel beach. (B) Orthoimagery overlain with segmented grains colored by Wentworth size classes. Data from @Roberts:2024. \label{fig:4}](joss_paper_fig_4.jpg)
 
