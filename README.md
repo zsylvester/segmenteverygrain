@@ -98,8 +98,7 @@ The interactive editing interface (`GrainPlot`) provides the following controls:
 
 This screen recording shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts; the red dots are background prompts.
 
-  <video src="https://raw.githubusercontent.com/zsylvester/segmenteverygrain/main/seg_new_editing_interface_optimized.mp4">
-  </video>
+[Interface for editing grains](https://raw.githubusercontent.com/zsylvester/segmenteverygrain/main/seg_new_editing_interface_optimized.mp4)
 
 The images below illustrate how a relatively large thin-section image of a sandstone can be segmented using `segmenteverygrain`. Image from [Digital Rocks Portal](https://www.digitalrocksportal.org/projects/244).
 
