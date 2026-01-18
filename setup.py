@@ -8,7 +8,7 @@ so that it will be useful for determining grain size and grain shape, a common t
 
 setuptools.setup(
     name="segmenteverygrain",
-    version="0.2.3",
+    version="0.2.4",
     author="Zoltan Sylvester",
     author_email="zoltan.sylvester@beg.utexas.edu",
     description="a SAM-based model for segmenting grains in images of grains",
