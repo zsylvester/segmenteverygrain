@@ -36,7 +36,7 @@
 <h1>Getting started<a class="headerlink" href="#getting-started" title="Link to this heading">¶</a></h1>
 <div class="toctree-wrapper compound">
 </div>
-<p>The best way to use the <cite>segmenteverygrain</cite> package is to run the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook.</p>
+<p>The best way to use the <cite>segmenteverygrain</cite> package is to run the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook.</p>
 <p>The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result, and saving the grain data and the mask. The text below summarizes the steps that you need to take to run the segmentation.</p>
 <section id="loading-the-models">
 <h2>Loading the models<a class="headerlink" href="#loading-the-models" title="Link to this heading">¶</a></h2>
@@ -249,7 +249,7 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <span class="n">plot</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
 </pre></div>
 </div>
-<p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
+<p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.</p>
 </section>
 </section>
@@ -349,7 +349,7 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 </section>
 <section id="finetuning-the-u-net-model">
 <h1>Finetuning the U-Net model<a class="headerlink" href="#finetuning-the-u-net-model" title="Link to this heading">¶</a></h1>
-<p>The last section of the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.</p>
+<p>The last section of the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">image_dir</span><span class="p">,</span> <span class="n">mask_dir</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">patchify_training_data</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">patch_dir</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -378,7 +378,7 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 </section>
 <section id="training-the-u-net-model-from-scratch">
 <h1>Training the U-Net model from scratch<a class="headerlink" href="#training-the-u-net-model-from-scratch" title="Link to this heading">¶</a></h1>
-<p>If you want to train a U-Net model from scratch, you can use the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/Train_Unet_model.ipynb">Train_Unet_model.ipynb</a> notebook, which mostly consists of the code snippets below.</p>
+<p>If you want to train a U-Net model from scratch, you can use the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Train_Unet_model.ipynb">Train_Unet_model.ipynb</a> notebook, which mostly consists of the code snippets below.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">seg</span>
 <span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">Unet</span><span class="p">()</span> <span class="c1"># create model</span>
 <span class="n">model</span><span class="o">.</span><span class="n">compile</span><span class="p">(</span><span class="n">optimizer</span><span class="o">=</span><span class="n">Adam</span><span class="p">(),</span> <span class="n">loss</span><span class="o">=</span><span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">,</span> <span class="n">metrics</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;accuracy&quot;</span><span class="p">])</span>

@@ -4,7 +4,7 @@ Getting started
 .. toctree::
    :caption: Getting started
 
-The best way to use the `segmenteverygrain` package is to run the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb>`_ notebook.
+The best way to use the `segmenteverygrain` package is to run the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb>`_ notebook.
 
 The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result, and saving the grain data and the mask. The text below summarizes the steps that you need to take to run the segmentation.
 
@@ -255,7 +255,7 @@ To interactively edit the results, convert to Grain objects and use GrainPlot:
    )
    plot.activate()
 
-See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/Segment_every_grain.ipynb>`_ notebook for a complete example
+See the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb>`_ notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.
 
 
@@ -371,7 +371,7 @@ For training a new U-Net model or fine tuning the existing one, GPU access is ne
 Finetuning the U-Net model
 --------------------------
 
-The last section of the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/segmenteverygrain/Segment_every_grain.ipynb>`_ notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.
+The last section of the `Segment_every_grain.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb>`_ notebook shows how to finetune the U-Net model. The first step is to create patches (usually 256x256 pixels in size) from the images and the corresponding masks that you want to use for training.
 
 .. code-block:: python
 
@@ -415,7 +415,7 @@ If you want to use this new model to make predictions, you will need to load it 
 Training the U-Net model from scratch
 -------------------------------------
 
-If you want to train a U-Net model from scratch, you can use the `Train_Unet_model.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/Train_Unet_model.ipynb>`_ notebook, which mostly consists of the code snippets below.
+If you want to train a U-Net model from scratch, you can use the `Train_Unet_model.ipynb <https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Train_Unet_model.ipynb>`_ notebook, which mostly consists of the code snippets below.
 
 .. code-block:: python
 
