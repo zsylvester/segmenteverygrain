@@ -261,7 +261,7 @@ class Grain(object):
         self.axes = axes
         return axes
 
-    def draw_patch(self, ax: mpl.axes.Axes, scale: float = 1.) -> mpatches.Polygon:
+    def draw_patch(self, ax: mpl.axes.Axes, scale: float = 1., animated: bool = True) -> mpatches.Polygon:
         '''
         Draw this grain on the provided matplotlib axes and save the result.
 
@@ -271,6 +271,9 @@ class Grain(object):
             Axes instance on which to draw this grain.
         scale : float
             Scaling factor, useful with downscaled GrainPlots.
+        animated : bool
+            Whether the patch should be animated (for blitting). Set to False
+            for environments that don't support blitting (e.g., Colab).
 
         Returns
         -------
@@ -286,7 +289,7 @@ class Grain(object):
             edgecolor='black',
             linewidth=2.0,
             picker=True,
-            animated=True,
+            animated=animated,
             **self.default_props)
         # HACK: Save reference to parent grain within the patch itself
         patch.grain = self
@@ -491,7 +494,7 @@ class GrainPlot(object):
             grain.measure()
             # Set the grain's color before drawing
             grain.default_props['facecolor'] = grain_colors[i]
-            grain.draw_patch(self.ax, self.scale)
+            grain.draw_patch(self.ax, self.scale, animated=blit)
         if blit:
             self.artists = [self.info,
                             *self.box_selector.artists]
@@ -941,7 +944,7 @@ class GrainPlot(object):
         
         # Scale and record new grain (on plot, data, and undo list)
         new_grain = Grain(coords, self.image)
-        new_grain.draw_patch(self.ax, self.scale)
+        new_grain.draw_patch(self.ax, self.scale, animated=self.blit)
         self.grains.append(new_grain)
         self.created_grains.append(new_grain)
         # Clear prompts and update background
@@ -1028,7 +1031,7 @@ class GrainPlot(object):
             return
         # Make new merged grain
         new_grain = Grain(poly.exterior.xy, self.image)
-        new_grain.draw_patch(self.ax, self.scale)
+        new_grain.draw_patch(self.ax, self.scale, animated=self.blit)
         self.grains.append(new_grain)
         self.created_grains.append(new_grain)
         # Delete old constituent grains (since they are still selected)
