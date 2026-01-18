@@ -40,4 +40,4 @@ from .grain_utils import (
     extract_color_features,
 )
 
-__version__ = "0.2.4"
+__version__ = "0.2.5"
