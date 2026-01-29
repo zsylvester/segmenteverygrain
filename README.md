@@ -175,6 +175,28 @@ We appreciate you taking the time to report any issues you encounter. Your feedb
 
 [Dave Matthews](https://github.com/dirtbirb) wrote the `interactions` module from scratch and, by doing this, made the interactive part of `segmenteverygrain` much faster and more user friendly. Thanks to Danny Stockli, Nick Howes, Kalinda Roberts, Jake Covault, Matt Malkowski, Raymond Luong, Wilson Bai, Rowan Martindale, and Sergey Fomel for discussions and/or helping with generating training data. Funding for this work came from the [Quantitative Clastics Laboratory industrial consortium](http://www.beg.utexas.edu/qcl) at the Bureau of Economic Geology, The University of Texas at Austin.
 
+## Citation
+
+If you use `segmenteverygrain` in your research, please cite the following paper:
+
+Sylvester, Z., Stockli, D. F., Howes, N., Roberts, K., Malkowski, M. A., Poros, Z., Martindale, R. C., & Bai, W. (2025). Segmenteverygrain: A Python module for segmentation of grains in images. *Journal of Open Source Software*, 10(112), 7953. https://doi.org/10.21105/joss.07953
+
+BibTeX:
+```bibtex
+@article{Sylvester2025,
+  doi = {10.21105/joss.07953},
+  url = {https://doi.org/10.21105/joss.07953},
+  year = {2025},
+  publisher = {The Open Journal},
+  volume = {10},
+  number = {112},
+  pages = {7953},
+  author = {Sylvester, Zoltán and Stockli, Daniel F. and Howes, Nick and Roberts, Kalinda and Malkowski, Matthew A. and Poros, Zsófia and Martindale, Rowan C. and Bai, Wilson},
+  title = {Segmenteverygrain: A Python module for segmentation of grains in images},
+  journal = {Journal of Open Source Software}
+}
+```
+
 ## License
 
 `segmenteverygrain` is licensed under the [Apache License 2.0](https://github.com/zsylvester/segmenteverygrain/blob/master/LICENSE.txt).
