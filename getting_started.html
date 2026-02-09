@@ -7,9 +7,10 @@
 
     <title>Getting started &#8212; segmenteverygrain 0.2.1 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
-    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=12dfc556" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
     <script src="_static/documentation_options.js?v=37f418d5"></script>
-    <script src="_static/doctools.js?v=9a2dae69"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
@@ -47,13 +48,13 @@
 </pre></div>
 </div>
 <p>This assumes that you are using Keras 3 and ‘seg_model.keras’ was saved using Keras 3. Older models created with a <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> version that was based on Keras 2 do not work with with the latest version of the package.</p>
-<p>The Segment Anything model can be downloaded from this <a class="reference external" href="https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth">link</a>. You can also download it programmatically:</p>
+<p>The SAM 2.1 model can be downloaded from this <a class="reference external" href="https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt">link</a>. You can also download it programmatically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
 
-<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;./models/sam_vit_h_4b8939.pth&quot;</span><span class="p">):</span>
-    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth&quot;</span>
-    <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;./models/sam_vit_h_4b8939.pth&quot;</span><span class="p">)</span>
+<span class="k">if</span> <span class="ow">not</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">exists</span><span class="p">(</span><span class="s2">&quot;./models/sam2.1_hiera_large.pt&quot;</span><span class="p">):</span>
+    <span class="n">url</span> <span class="o">=</span> <span class="s2">&quot;https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt&quot;</span>
+    <span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">url</span><span class="p">,</span> <span class="s2">&quot;./models/sam2.1_hiera_large.pt&quot;</span><span class="p">)</span>
 </pre></div>
 </div>
 </section>
@@ -91,8 +92,11 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <section id="sam-segmentation">
 <h2>SAM segmentation<a class="headerlink" href="#sam-segmentation" title="Link to this heading">¶</a></h2>
 <p>Here is an example showing how to run the SAM segmentation on an image, using the outputs from the U-Net model:</p>
-<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">segment_anything</span><span class="w"> </span><span class="kn">import</span> <span class="n">sam_model_registry</span>
-<span class="n">sam</span> <span class="o">=</span> <span class="n">sam_model_registry</span><span class="p">[</span><span class="s2">&quot;default&quot;</span><span class="p">](</span><span class="n">checkpoint</span><span class="o">=</span><span class="s2">&quot;sam_vit_h_4b8939.pth&quot;</span><span class="p">)</span> <span class="c1"># load the SAM model</span>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">torch</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sam2.build_sam</span><span class="w"> </span><span class="kn">import</span> <span class="n">build_sam2</span>
+<span class="c1"># Auto-detect device: CUDA for NVIDIA, MPS for Apple Silicon, CPU as fallback</span>
+<span class="n">device</span> <span class="o">=</span> <span class="s2">&quot;cuda&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">cuda</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;mps&quot;</span> <span class="k">if</span> <span class="n">torch</span><span class="o">.</span><span class="n">backends</span><span class="o">.</span><span class="n">mps</span><span class="o">.</span><span class="n">is_available</span><span class="p">()</span> <span class="k">else</span> <span class="s2">&quot;cpu&quot;</span>
+<span class="n">sam</span> <span class="o">=</span> <span class="n">build_sam2</span><span class="p">(</span><span class="s2">&quot;configs/sam2.1/sam2.1_hiera_l.yaml&quot;</span><span class="p">,</span> <span class="s2">&quot;sam2.1_hiera_large.pt&quot;</span><span class="p">,</span> <span class="n">device</span><span class="o">=</span><span class="n">device</span><span class="p">)</span> <span class="c1"># load the SAM 2.1 model</span>
 <span class="n">all_grains</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">mask_all</span><span class="p">,</span> <span class="n">grain_data</span><span class="p">,</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">sam_segmentation</span><span class="p">(</span><span class="n">sam</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">coords</span><span class="p">,</span> <span class="n">labels</span><span class="p">,</span> <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span> <span class="n">plot_image</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">remove_large_objects</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -104,7 +108,7 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <p>After the initial segmentation, you can interactively edit the results using the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code> class from the <code class="docutils literal notranslate"><span class="pre">interactions</span></code> module. This provides a modern, interactive interface for deleting, merging, and adding grains.</p>
 <p>First, convert the polygons to <code class="docutils literal notranslate"><span class="pre">Grain</span></code> objects and set up the SAM predictor:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain.interactions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">si</span>
-<span class="kn">from</span><span class="w"> </span><span class="nn">segment_anything</span><span class="w"> </span><span class="kn">import</span> <span class="n">SamPredictor</span>
+<span class="kn">from</span><span class="w"> </span><span class="nn">sam2.sam2_image_predictor</span><span class="w"> </span><span class="kn">import</span> <span class="n">SAM2ImagePredictor</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">tqdm</span><span class="w"> </span><span class="kn">import</span> <span class="n">tqdm</span>
 
 <span class="c1"># Convert polygons to Grain objects</span>
@@ -112,8 +116,8 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">tqdm</span><span class="p">(</span><span class="n">grains</span><span class="p">,</span> <span class="n">desc</span><span class="o">=</span><span class="s1">&#39;Measuring detected grains&#39;</span><span class="p">):</span>
     <span class="n">g</span><span class="o">.</span><span class="n">measure</span><span class="p">()</span>
 
-<span class="c1"># Set up SAM predictor for adding new grains</span>
-<span class="n">predictor</span> <span class="o">=</span> <span class="n">SamPredictor</span><span class="p">(</span><span class="n">sam</span><span class="p">)</span>
+<span class="c1"># Set up SAM 2.1 predictor for adding new grains</span>
+<span class="n">predictor</span> <span class="o">=</span> <span class="n">SAM2ImagePredictor</span><span class="p">(</span><span class="n">sam</span><span class="p">)</span>
 <span class="n">predictor</span><span class="o">.</span><span class="n">set_image</span><span class="p">(</span><span class="n">image</span><span class="p">)</span>
 </pre></div>
 </div>
@@ -420,7 +424,16 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 
 
 
-<h3>Navigation</h3>
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <ul class="current">
 <li class="toctree-l1 current"><a class="current reference internal" href="#">Getting started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="#loading-the-models">Loading the models</a></li>
@@ -457,16 +470,6 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
   </ul></li>
 </ul>
 </div>
-<search id="searchbox" style="display: none" role="search">
-  <h3 id="searchlabel">Quick search</h3>
-    <div class="searchformwrapper">
-    <form class="search" action="search.html" method="get">
-      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
-      <input type="submit" value="Go" />
-    </form>
-    </div>
-</search>
-<script>document.getElementById('searchbox').style.display = "block"</script>
 
 
 
@@ -483,8 +486,8 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
       &#169;2024, Zoltan Sylvester.
       
       |
-      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 7.4.7</a>
-      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 0.7.16</a>
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
       
       |
       <a href="_sources/getting_started.rst.txt"
