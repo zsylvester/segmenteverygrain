@@ -8,7 +8,7 @@ so that it will be useful for determining grain size and grain shape, a common t
 
 setuptools.setup(
     name="segmenteverygrain",
-    version="0.2.5",
+    version="0.3.0",
     author="Zoltan Sylvester",
     author_email="zoltan.sylvester@beg.utexas.edu",
     description="a SAM-based model for segmenting grains in images of grains",
@@ -16,6 +16,7 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/zsylvester/segmenteverygrain",
+    python_requires='>=3.10',
     packages=['segmenteverygrain'],
     install_requires=['numpy','matplotlib',
         'scipy','pillow','scikit-image','tqdm','opencv-python',
@@ -23,6 +24,9 @@ setuptools.setup(
         'scikit-learn','rtree','pandas','geopandas','keras'],
     classifiers=[
         "Programming Language :: Python :: 3",
+        "Programming Language :: Python :: 3.10",
+        "Programming Language :: Python :: 3.11",
+        "Programming Language :: Python :: 3.12",
         'Intended Audience :: Science/Research',
         "License :: OSI Approved :: Apache Software License",
         "Operating System :: OS Independent",
