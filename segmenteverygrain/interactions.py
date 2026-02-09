@@ -12,7 +12,7 @@ import matplotlib.widgets as mwidgets
 import numpy as np
 import pandas as pd
 import rasterio.features
-import segment_anything
+import sam2.sam2_image_predictor
 import shapely
 import skimage
 from tqdm import tqdm
@@ -328,7 +328,7 @@ class GrainPlot(object):
     def __init__(self,
                  grains: list = [],
                  image: np.ndarray = None,
-                 predictor: segment_anything.SamPredictor = None,
+                 predictor: sam2.sam2_image_predictor.SAM2ImagePredictor = None,
                  blit: bool = True,
                  px_per_m: float = 1.,       # px/m
                  scale_m: float = 1.,        # m
@@ -345,8 +345,8 @@ class GrainPlot(object):
             List of grains with xy data to plot over the backround image.
         image : np.ndarray
             Image under analysis, displayed behind identified grains.
-        predictor : segment_anything.SamPredictor
-            SAM predictor used to create new grains.
+        predictor : sam2.sam2_image_predictor.SAM2ImagePredictor
+            SAM 2.1 predictor used to create new grains.
         blit : bool, default True
             Whether to use blitting (much faster, potentially buggy).
         px_per_m : float, default 1.0

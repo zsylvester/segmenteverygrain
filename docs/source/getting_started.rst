@@ -21,16 +21,16 @@ To load the U-Net model, you can use the 'load_model' function from Keras. The U
 
 This assumes that you are using Keras 3 and 'seg_model.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with with the latest version of the package.
 
-The Segment Anything model can be downloaded from this `link <https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth>`_. You can also download it programmatically:
+The SAM 2.1 model can be downloaded from this `link <https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 
 .. code-block:: python
 
    import os
    import urllib.request
-   
-   if not os.path.exists("./models/sam_vit_h_4b8939.pth"):
-       url = "https://dl.fbaipublicfiles.com/segment_anything/sam_vit_h_4b8939.pth"
-       urllib.request.urlretrieve(url, "./models/sam_vit_h_4b8939.pth")
+
+   if not os.path.exists("./models/sam2.1_hiera_large.pt"):
+       url = "https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt"
+       urllib.request.urlretrieve(url, "./models/sam2.1_hiera_large.pt")
 
 Running the segmentation
 ~~~~~~~~~~~~~~~~~~~~~~~~
@@ -76,8 +76,11 @@ Here is an example showing how to run the SAM segmentation on an image, using th
 
 .. code-block:: python
 
-   from segment_anything import sam_model_registry
-   sam = sam_model_registry["default"](checkpoint="sam_vit_h_4b8939.pth") # load the SAM model
+   import torch
+   from sam2.build_sam import build_sam2
+   # Auto-detect device: CUDA for NVIDIA, MPS for Apple Silicon, CPU as fallback
+   device = "cuda" if torch.cuda.is_available() else "mps" if torch.backends.mps.is_available() else "cpu"
+   sam = build_sam2("configs/sam2.1/sam2.1_hiera_l.yaml", "sam2.1_hiera_large.pt", device=device) # load the SAM 2.1 model
    all_grains, labels, mask_all, grain_data, fig, ax = seg.sam_segmentation(sam, image, image_pred, coords, labels, min_area=400.0, plot_image=True, remove_edge_grains=False, remove_large_objects=False)
 
 The ``all_grains`` list contains shapely polygons of the grains detected in the image. ``labels`` is an image that contains the labels of the grains. 
@@ -93,7 +96,7 @@ First, convert the polygons to ``Grain`` objects and set up the SAM predictor:
 .. code-block:: python
 
    import segmenteverygrain.interactions as si
-   from segment_anything import SamPredictor
+   from sam2.sam2_image_predictor import SAM2ImagePredictor
    from tqdm import tqdm
 
    # Convert polygons to Grain objects
@@ -101,8 +104,8 @@ First, convert the polygons to ``Grain`` objects and set up the SAM predictor:
    for g in tqdm(grains, desc='Measuring detected grains'):
        g.measure()
 
-   # Set up SAM predictor for adding new grains
-   predictor = SamPredictor(sam)
+   # Set up SAM 2.1 predictor for adding new grains
+   predictor = SAM2ImagePredictor(sam)
    predictor.set_image(image)
 
 Then create the interactive plot:

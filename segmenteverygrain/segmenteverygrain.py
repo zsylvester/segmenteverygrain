@@ -36,7 +36,7 @@ from keras.utils import load_img
 from keras.saving import load_model
 from keras.optimizers import Adam
 
-from segment_anything import SamPredictor
+from sam2.sam2_image_predictor import SAM2ImagePredictor
 
 
 def predict_image_tile(im_tile, model):
@@ -380,7 +380,7 @@ def one_point_prompt(x, y, image, predictor, ax=False):
         sx = []
         sy = []
         mask = np.zeros_like(image[:, :, 0])
-    return sx, sy, mask
+    return sx, sy, mask.astype(bool)
 
 
 def two_point_prompt(x1, y1, x2, y2, image, predictor, ax=False):
@@ -678,7 +678,7 @@ def sam_segmentation(
 
     Parameters
     ----------
-    sam : SamPredictor
+    sam : SAM2ImagePredictor
         The SAM model.
     image : numpy.ndarray
         The input image.
@@ -715,7 +715,7 @@ def sam_segmentation(
     ax : matplotlib.axes.Axes or None
         The axes object if plot_image is True, otherwise None.
     """
-    predictor = SamPredictor(sam)
+    predictor = SAM2ImagePredictor(sam)
     predictor.set_image(image)
     all_grains = []
     print("creating masks using SAM...")
@@ -1142,7 +1142,7 @@ def predict_large_image(
         The file path of the input image.
     model : tensorflow.keras.Model
         The Unet model used for the preliminary grain prediction.
-    sam : SamPredictor
+    sam : SAM2ImagePredictor
         The SAM model used for grain segmentation.
     min_area : int
         The minimum area threshold for valid grains.
@@ -1326,7 +1326,7 @@ def onclick(event, ax, coords, image, predictor):
         A list to store the coordinates of the clicked points.
     image : numpy.ndarray
         The image data.
-    predictor : SamPredictor
+    predictor : SAM2ImagePredictor
         The predictor object for segmentation.
 
     Returns

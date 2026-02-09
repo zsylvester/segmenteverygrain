@@ -9,7 +9,7 @@ segmenteverygrain
 ``segmenteverygrain`` is a Python package that aims to detect grains (or grain-like objects) in images. 
 The goal is to develop a machine learning model that does a reasonably good job at detecting most of the grains in a photo, so that it is 
 useful for determining grain size and grain shape, a common task in geomorphology and sedimentary geology. ``segmenteverygrain`` 
-relies on the `Segment Anything Model (SAM) <https://github.com/facebookresearch/segment-anything>`_, developed by Meta, 
+relies on `SAM 2.1 <https://github.com/facebookresearch/sam2>`_ (Segment Anything Model 2.1), developed by Meta, 
 for getting high-quality outlines of the grains. However, SAM requires prompts for every object detected and, when used in 
 'everything' mode, it tends to be slow and results in many overlapping masks and non-grain (background) objects. 
 To deal with these issues, 'segmenteverygrain' relies on a Unet-style, patch-based convolutional neural network to create a 

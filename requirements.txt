@@ -16,5 +16,5 @@ rtree
 tensorflow
 torch
 torchvision
-segment-anything
+sam2
 segmenteverygrain

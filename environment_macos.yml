@@ -4,7 +4,7 @@ channels:
   - conda-forge
 
 dependencies:
-  - python=3.9
+  - python=3.10
   - numpy
   - matplotlib
   - pyqt
@@ -22,9 +22,9 @@ dependencies:
     - rasterio
     - opencv-python
     - rtree
-    - tensorflow-macos
+    - tensorflow<=2.18.1
     - tensorflow-metal
     - torch
     - torchvision
-    - segment-anything
+    - sam2
     - segmenteverygrain

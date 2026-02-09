@@ -9,7 +9,7 @@
 
 ## Description
 
-'segmenteverygrain' is a Python package that aims to detect grains (or grain-like objects) in images. The goal is to develop an ML model that does a reasonably good job at detecting most of the grains in a photo, so that it will be useful for determining grain size and grain shape, a common task in geomorphology and sedimentary geology. 'segmenteverygrain' relies on the [Segment Anything Model (SAM)](https://github.com/facebookresearch/segment-anything), developed by Meta, for getting high-quality outlines of the grains. However, SAM requires prompts for every object detected and, when used in 'everything' mode, it tends to be slow and results in many overlapping masks and non-grain (background) objects. To deal with these issues, 'segmenteverygrain' relies on a Unet-style, patch-based convolutional neural network to create a first-pass segmentation which is then used to generate prompts for the SAM-based segmentation. Some of the grains will be missed with this approach, but the segmentations that are created tend to be of high quality.
+'segmenteverygrain' is a Python package that aims to detect grains (or grain-like objects) in images. The goal is to develop an ML model that does a reasonably good job at detecting most of the grains in a photo, so that it will be useful for determining grain size and grain shape, a common task in geomorphology and sedimentary geology. 'segmenteverygrain' relies on [SAM 2.1](https://github.com/facebookresearch/sam2) (Segment Anything Model 2.1), developed by Meta, for getting high-quality outlines of the grains. However, SAM requires prompts for every object detected and, when used in 'everything' mode, it tends to be slow and results in many overlapping masks and non-grain (background) objects. To deal with these issues, 'segmenteverygrain' relies on a Unet-style, patch-based convolutional neural network to create a first-pass segmentation which is then used to generate prompts for the SAM-based segmentation. Some of the grains will be missed with this approach, but the segmentations that are created tend to be of high quality.
 
 'segmenteverygrain' also includes a set of functions that make it possible to clean up the segmentation results: delete and merge objects by clicking on them, and adding grains that were not segmented automatically. The QC-d masks can be saved and added to a dataset of grain images. These images then can be used to improve the Unet model. Many of the images used in the dataset are from the [sedinet](https://github.com/DigitalGrainSize/SediNet) project.
 
@@ -28,7 +28,7 @@
 - shapely
 - tensorflow
 - pytorch
-- segment-anything
+- sam2
 - rtree
 - tqdm
 
@@ -42,7 +42,7 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 ```
 pip install segmenteverygrain
 ```
-If you are using 'pip', you need to make sure that the  Python version is 3.9 (and not higher), so that all dependencies work correctly.
+If you are using 'pip', you need to make sure that the Python version is 3.10 or higher, so that all dependencies work correctly.
 
 Note that you need to clone the repository to get the U-Net model file and the example images in one go; otherwise you need to download these manually and place them in the right folders.
 
