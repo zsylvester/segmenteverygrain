@@ -1,4 +1,5 @@
 # SAM checkpoints (very large!)
+*.pt
 *.pth
 
 # IDE settings
