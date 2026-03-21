@@ -173,7 +173,7 @@ def predict_image(image, model, I):
     return image_pred
 
 
-def label_grains(image, image_pred, dbs_max_dist=20.0):
+def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
     """
     Label grains in semantic segmentation result and generate prompts for SAM model.
 
@@ -185,6 +185,9 @@ def label_grains(image, image_pred, dbs_max_dist=20.0):
         semantic segmentation result
     dbs_max_dist : float
         DBSCAN distance parameter; decreasing it results in more SAM prompts and longer processing times
+    min_grain_area : int
+        minimum area (in pixels) of a connected component in the grain prediction to generate a prompt;
+        smaller regions are considered noise and skipped
 
     Returns
     -------
@@ -205,6 +208,7 @@ def label_grains(image, image_pred, dbs_max_dist=20.0):
         labels_simple, intensity_image=image, properties=("label", "area", "centroid")
     )
     grain_data_simple = pd.DataFrame(props)
+    grain_data_simple = grain_data_simple[grain_data_simple["area"] >= min_grain_area]  # filter out small noisy regions
     coords_simple = np.vstack(
         (grain_data_simple["centroid-1"], grain_data_simple["centroid-0"])
     ).T  # use the centroids of the Unet grains as 'simple' prompts
@@ -259,6 +263,7 @@ def label_grains(image, image_pred, dbs_max_dist=20.0):
             ),
         )
         grain_data = pd.DataFrame(props)
+        grain_data = grain_data[grain_data["area"] >= min_grain_area]  # filter out small noisy regions
         if len(grain_data) > 0:
             coords = np.vstack(
                 (grain_data["centroid-1"].values, grain_data["centroid-0"].values)
@@ -1130,8 +1135,11 @@ def predict_large_image(
     min_area,
     patch_size=2000,
     overlap=300,
+    dbs_max_dist=20.0,
+    min_grain_area=50,
     remove_large_objects=False,
     remove_edge_grains=True,
+    keep_edges=None,
 ):
     """
     Predicts the location of grains in a large image using a patch-based approach.
@@ -1203,7 +1211,7 @@ def predict_large_image(
             image_pred[
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ] += (patch_pred * weights)
-            labels, coords = label_grains(patch, patch_pred, dbs_max_dist=20.0)
+            labels, coords = label_grains(patch, patch_pred, dbs_max_dist=dbs_max_dist, min_grain_area=min_grain_area)
             if (
                 len(coords) > 0
             ):  # run the SAM algorithm only if there are grains in the patch
@@ -1217,7 +1225,7 @@ def predict_large_image(
                         'left': j == 0,  # Keep left edge grains only if this is the first column
                         'right': j + patch_size >= img_width,  # Keep right edge grains only if this is the last column
                     }
-                    
+
                 all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
                     sam,
                     patch,
