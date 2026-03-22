@@ -458,6 +458,10 @@ class GrainPlot(object):
             self.box_selector.update = self.update
             self.box_selector.update_background = lambda *args: None
 
+        # Coverage mask overlay
+        self.coverage_overlay = None  # imshow artist for the overlay
+        self.coverage_visible = False
+
         # Scale bar (drawn as a line)
         self.px_per_m = px_per_m
         self.scale_m = scale_m
@@ -503,7 +507,7 @@ class GrainPlot(object):
         # Add keyboard shortcuts to the window title
         shortcuts_title = (
             'GrainPlot | Click=Auto-create, Alt+Click=Multi-prompt, Shift+Drag=Scale, '
-            'D=Delete, M=Merge, Z=Undo, Esc=Clear, Ctrl=Hide'
+            'D=Delete, M=Merge, Z=Undo, H=Coverage, Esc=Clear, Ctrl=Hide'
         )
         self.fig.canvas.manager.set_window_title(shortcuts_title)
         
@@ -1010,6 +1014,43 @@ class GrainPlot(object):
             grain.select()
         return hide
 
+    def toggle_coverage_mask(self):
+        '''
+        Toggle a coverage mask overlay that highlights unsegmented areas in red.
+        Segmented areas (covered by grain polygons) are shown as transparent.
+        '''
+        if self.coverage_visible and self.coverage_overlay is not None:
+            # Turn off the overlay
+            self.coverage_overlay.remove()
+            self.coverage_overlay = None
+            self.coverage_visible = False
+        else:
+            # Build a binary mask from all grain polygons
+            h, w = self.display_image.shape[:2]
+            polys = []
+            for grain in self.grains:
+                scaled_xy = grain.xy * self.scale
+                # rasterio expects [(polygon, value)] with polygon as shapely geometry
+                poly = shapely.Polygon(zip(scaled_xy[0], scaled_xy[1]))
+                if poly.is_valid:
+                    polys.append((poly, 1))
+            if polys:
+                segmented = rasterio.features.rasterize(
+                    polys, out_shape=(h, w), dtype='uint8')
+            else:
+                segmented = np.zeros((h, w), dtype='uint8')
+            # Create RGBA overlay: red where unsegmented, transparent where segmented
+            overlay = np.zeros((h, w, 4), dtype=np.uint8)
+            unsegmented = segmented == 0
+            overlay[unsegmented, 0] = 255  # red channel
+            overlay[unsegmented, 3] = 140  # alpha (~55%)
+            self.coverage_overlay = self.ax.imshow(overlay, zorder=500)
+            self.coverage_visible = True
+        # Redraw
+        if self.blit:
+            self.canvas.draw()
+        self.update()
+
     def merge_grains(self) -> Grain:
         ''' 
         Attempt to merge all selected grains.
@@ -1184,6 +1225,7 @@ class GrainPlot(object):
         c: Create a grain from existing prompts (alternative to auto-create).
         d: Delete a selected grain.
         alt (hold): Allow placing multiple prompts before creating grain.
+        h: Toggle coverage mask (highlights unsegmented areas in red).
         m: Merge selected grains.
         z: Undo the most recently created grain.
         control (hold): Temporarily hide all grains.
@@ -1221,6 +1263,10 @@ class GrainPlot(object):
         elif key == 'control':
             self.ctrl_down = True
             self.hide_grains()
+        elif key == 'h':
+            if not self.coverage_visible:
+                self.toggle_coverage_mask()
+            return  # Don't call update() again, toggle already redraws
         elif key == 'escape':
             self.clear_all()
         elif key == 'shift':
@@ -1256,6 +1302,10 @@ class GrainPlot(object):
             if len(self.points) > 0:
                 self.create_grain()
                 return  # create_grain() calls update()
+        elif key == 'h':
+            if self.coverage_visible:
+                self.toggle_coverage_mask()
+                return  # toggle already redraws
         elif key == 'shift':
             # Nothing to do on shift release - scale line drawing is handled in onclickup
             pass

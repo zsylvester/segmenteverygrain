@@ -213,10 +213,8 @@ def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
         (grain_data_simple["centroid-1"], grain_data_simple["centroid-0"])
     ).T  # use the centroids of the Unet grains as 'simple' prompts
     coords_simple = coords_simple.astype("int32")
-    background_probs = image_pred[:, :, 0][coords_simple[:, 1], coords_simple[:, 0]]
-    inds = np.where(background_probs < 0.3)[
-        0
-    ]  # get rid of prompts that are likely to be background
+    # Only keep prompts whose centroid falls inside the binary grain mask
+    inds = np.where(grains[coords_simple[:, 1], coords_simple[:, 0]])[0]
     coords_simple = coords_simple[inds, :]
 
     bounds = image_pred[:, :, 2].copy()  # grain boundary prediction
@@ -239,8 +237,9 @@ def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
         coords = peak_local_max(
             distance, footprint=np.ones((3, 3)), labels=bounds.astype("bool")
         )
-        background_probs = image_pred[:, :, 0][coords[:, 0], coords[:, 1]]
-        inds = np.where(background_probs < 0.3)[0]
+        # coords from peak_local_max are (row, col) order
+        # Only keep peaks that fall inside the binary grain mask
+        inds = np.where(grains[coords[:, 0], coords[:, 1]])[0]
         coords = coords[inds, :]
         mask = np.zeros(distance.shape, dtype=bool)
         mask[tuple(coords.T)] = True
@@ -281,10 +280,8 @@ def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
                 xy = np.mean(coords[np.where(db_labels == i)[0]], axis=0)
                 coords_ws = np.vstack((coords_ws, xy))
             coords_ws = coords_ws.astype("int32")
-            background_probs = image_pred[:, :, 0][coords_ws[:, 1], coords_ws[:, 0]]
-            inds = np.where(background_probs < 0.3)[
-                0
-            ]  # get rid of prompts that are likely to be background
+            # Only keep prompts whose centroid falls inside the binary grain mask
+            inds = np.where(grains[coords_ws[:, 1], coords_ws[:, 0]])[0]
             coords_ws = coords_ws[inds, :]
             all_coords = np.vstack((coords_ws, coords_simple))
         else:
@@ -1259,6 +1256,10 @@ def predict_large_image(
     All_Grains = merge_overlapping_polygons(
         All_Grains, new_grains, comps, min_area, patch_pred
     )
+    # Final filter: remove prompts that fall outside the grain mask in the blended prediction
+    blended_grains = image_pred[:, :, 1] >= 0.5
+    inds = np.where(blended_grains[all_coords[:, 1], all_coords[:, 0]])[0]
+    all_coords = all_coords[inds, :]
     return All_Grains, image_pred, all_coords
 
 
