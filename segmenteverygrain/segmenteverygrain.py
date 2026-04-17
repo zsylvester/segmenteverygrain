@@ -2269,3 +2269,49 @@ def find_grain_size_classes(grain_size_classes, value1, value2, xlimits=None):
             if upper_bound not in bounds:
                 bounds.append(upper_bound)
     return matching_classes, bounds
+
+
+def save_training_masks(image, image_pred, mask_all, out_stem):
+    """
+    Save the source image, UNet prediction mask, and SAM output mask to disk
+    in the format expected by the UNet training pipeline (grayscale PNG with
+    pixel values 0 = background, 1 = grain interior, 2 = grain boundary).
+
+    The saved filenames follow the ``*image*`` / ``*mask*`` convention used by
+    ``patchify_training_data``, so the outputs can be fed directly into the
+    training workflow.
+
+    Parameters
+    ----------
+    image : numpy.ndarray
+        The original RGB image, shape (H, W, 3), uint8.
+    image_pred : numpy.ndarray
+        UNet softmax output, shape (H, W, 3), float.  Channel order is
+        [background, interior, boundary].  The argmax over channels is taken
+        to produce the integer mask.
+    mask_all : numpy.ndarray
+        SAM segmentation mask, shape (H, W), already in 0/1/2 format as
+        returned by ``sam_segmentation`` or ``create_labeled_image``.
+    out_stem : str
+        File-path stem for the outputs (no extension).  Three files will be
+        written:
+        ``<out_stem>_image.png``     – source image (RGB)
+        ``<out_stem>_unet_mask.png`` – argmax of UNet prediction (0/1/2)
+        ``<out_stem>_sam_mask.png``  – SAM output mask (0/1/2)
+
+    Returns
+    -------
+    None
+    """
+    os.makedirs(os.path.dirname(out_stem) or ".", exist_ok=True)
+
+    # Source image
+    Image.fromarray(image.astype(np.uint8)).save(out_stem + "_image.png")
+
+    # UNet mask: argmax over the three class-probability channels → 0 / 1 / 2
+    unet_mask = np.argmax(image_pred, axis=2).astype(np.uint8)
+    Image.fromarray(unet_mask).save(out_stem + "_unet_mask.png")
+
+    # SAM mask: already in 0 / 1 / 2 format
+    sam_mask = mask_all.astype(np.uint8)
+    Image.fromarray(sam_mask).save(out_stem + "_sam_mask.png")
