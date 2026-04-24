@@ -41,13 +41,20 @@
 <p>The notebook goes through the steps of loading the models, running the segmentation, interactively updating the result, and saving the grain data and the mask. The text below summarizes the steps that you need to take to run the segmentation.</p>
 <section id="loading-the-models">
 <h2>Loading the models<a class="headerlink" href="#loading-the-models" title="Link to this heading">¶</a></h2>
-<p>To load the U-Net model, you can use the ‘load_model’ function from Keras. The U-Net model is saved in the ‘seg_model.keras’ file.</p>
+<p>To load the U-Net model, you can use the ‘load_model’ function from Keras. The U-Net model is saved in the ‘seg_model_smooth_labels.keras’ file.</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">seg</span>
 <span class="kn">from</span><span class="w"> </span><span class="nn">keras.saving</span><span class="w"> </span><span class="kn">import</span> <span class="n">load_model</span>
-<span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;seg_model.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
+<span class="n">model</span> <span class="o">=</span> <span class="n">load_model</span><span class="p">(</span><span class="s2">&quot;seg_model_smooth_labels.keras&quot;</span><span class="p">,</span> <span class="n">custom_objects</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;weighted_crossentropy&#39;</span><span class="p">:</span> <span class="n">seg</span><span class="o">.</span><span class="n">weighted_crossentropy</span><span class="p">})</span>
 </pre></div>
 </div>
-<p>This assumes that you are using Keras 3 and ‘seg_model.keras’ was saved using Keras 3. Older models created with a <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> version that was based on Keras 2 do not work with with the latest version of the package.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>As of v0.4.0, the U-Net model outputs raw logits (pre-softmax). Softmax is applied
+automatically at inference time in <code class="docutils literal notranslate"><span class="pre">predict_image_tile</span></code>. Models trained with v0.3.0
+and earlier (e.g. <code class="docutils literal notranslate"><span class="pre">seg_model.keras</span></code>) are <strong>incompatible</strong> with this version — use
+<code class="docutils literal notranslate"><span class="pre">seg_model_smooth_labels.keras</span></code> or retrain your custom models.</p>
+</div>
+<p>This assumes that you are using Keras 3 and ‘seg_model_smooth_labels.keras’ was saved using Keras 3. Older models created with a <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> version that was based on Keras 2 do not work with the latest version of the package.</p>
 <p>The SAM 2.1 model can be downloaded from this <a class="reference external" href="https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt">link</a>. You can also download it programmatically:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">urllib.request</span>
@@ -218,7 +225,7 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 </section>
 <section id="large-image-processing">
 <h2>Large image processing<a class="headerlink" href="#large-image-processing" title="Link to this heading">¶</a></h2>
-<p>If you want to detect grains in large images, you should use the <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> function, which will split the image into patches and run the Unet and SAM segmentations on each patch:</p>
+<p>If you want to detect grains in large images, you should use the <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> function, which will split the image into patches and run the segmentation on each patch:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain.interactions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">si</span>
 
@@ -236,6 +243,22 @@ Grains should be well defined in the image and not too small (e.g., only a few p
 <span class="p">)</span>
 </pre></div>
 </div>
+<p>You can also run the segmentation using the U-Net only, without SAM refinement. This is
+significantly faster and avoids the need to load the SAM model:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">all_coords</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">predict_large_image</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">,</span> <span class="n">unet</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
+    <span class="n">use_sam</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">dilation</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>        <span class="c1"># expand grain labels to recover boundary pixels</span>
+    <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>When <code class="docutils literal notranslate"><span class="pre">use_sam=False</span></code>, grain labeling is performed once on the full blended U-Net
+prediction (rather than per patch), so grains that straddle patch boundaries are handled
+correctly. The <code class="docutils literal notranslate"><span class="pre">dilation</span></code> parameter expands each grain label by the specified number of
+pixels, compensating for the boundary channel that the U-Net predicts between grains.</p>
 <p>Just like before, the <code class="docutils literal notranslate"><span class="pre">all_grains</span></code> list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">rasterize_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </pre></div>
@@ -357,7 +380,7 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">image_dir</span><span class="p">,</span> <span class="n">mask_dir</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">patchify_training_data</span><span class="p">(</span><span class="n">input_dir</span><span class="p">,</span> <span class="n">patch_dir</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The <code class="docutils literal notranslate"><span class="pre">input_dir</span></code> should contain the images and masks that you want to use for training. These files should have ‘image’ and ‘mask’ in their filenames, for example, ‘sample1_image.png’ and ‘sample1_mask.png’. An example image can be found <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_image.jpeg">here</a>; and the corresponding mask is <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_mask.png">here</a>.</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">input_dir</span></code> should contain the images and masks that you want to use for training. These files should have ‘image’ and ‘mask’ in their filenames, for example, ‘sample1_image.png’ and ‘sample1_mask.png’. An <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_image.jpeg">example image</a> and the corresponding <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_mask.png">mask</a> are available in the repository.</p>
 <p>The mask is an 8-bit image and should contain only three numbers: 0, 1, and 2. 0 is the background, 1 is the grain, and 2 is the grain boundary. Usually the mask is generated using the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> workflow, that is, by running the U-Net segmentation first, the SAM segmentation second, and then cleaning up the result. That said, when the U-Net ouputs are of low quality, it might be a good idea to generate the masks directly with SAM. Once you have a good mask, you can save it using <code class="docutils literal notranslate"><span class="pre">cv2.imwrite</span></code> (see also the example notebook):</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">cv2</span><span class="o">.</span><span class="n">imwrite</span><span class="p">(</span><span class="s1">&#39;sample1_mask.png&#39;</span><span class="p">,</span> <span class="n">mask</span><span class="p">)</span>
 </pre></div>
@@ -371,6 +394,12 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">create_and_train_model</span><span class="p">(</span><span class="n">train_dataset</span><span class="p">,</span> <span class="n">val_dataset</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">,</span> <span class="n">model_file</span><span class="o">=</span><span class="s1">&#39;seg_model.keras&#39;</span><span class="p">,</span> <span class="n">epochs</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
 </pre></div>
 </div>
+<p>You can also evaluate the model separately on any dataset to get per-class IoU scores:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">results</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">evaluate_model</span><span class="p">(</span><span class="n">model</span><span class="p">,</span> <span class="n">test_dataset</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This prints test loss, accuracy, mean IoU, and per-class IoU (background, grain, boundary),
+and returns them as a dictionary.</p>
 <p>If you are happy with the finetuned model, you will want to save it:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;seg_model_finetuned.keras&#39;</span><span class="p">)</span>
 </pre></div>
@@ -405,7 +434,7 @@ of how the models can be loaded and used for segmenting an image and QC-ing the 
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s1">&#39;seg_model.keras&#39;</span><span class="p">)</span>
 </pre></div>
 </div>
-<p>The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 44,533 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: <a class="reference external" href="https://zenodo.org/records/15786086">https://zenodo.org/records/15786086</a>. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function. The training accuracy was 0.937, the validation accuracy was 0.922, and the testing accuracy was 0.922 at the end of training. The model is available in the repository as ‘seg_model.keras’.</p>
+<p>The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: <a class="reference external" href="https://zenodo.org/records/15786086">https://zenodo.org/records/15786086</a>. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as ‘seg_model_smooth_labels.keras’.</p>
 </section>
 
 

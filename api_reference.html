@@ -240,6 +240,7 @@ Displays info about any grain indicated with middle-click or Shift+left-click.</
 c: Create a grain from existing prompts (alternative to auto-create).
 d: Delete a selected grain.
 alt (hold): Allow placing multiple prompts before creating grain.
+h: Toggle coverage mask (highlights unsegmented areas in red).
 m: Merge selected grains.
 z: Undo the most recently created grain.
 control (hold): Temporarily hide all grains.
@@ -337,6 +338,13 @@ If not provided, will toggle current active status.</p>
 <dd class="field-odd"><p>bool</p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="segmenteverygrain.GrainPlot.toggle_coverage_mask">
+<span class="sig-name descname"><span class="pre">toggle_coverage_mask</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.GrainPlot.toggle_coverage_mask" title="Link to this definition">¶</a></dt>
+<dd><p>Toggle a coverage mask overlay that highlights unsegmented areas in red.
+Segmented areas (covered by grain polygons) are shown as transparent.</p>
 </dd></dl>
 
 <dl class="py method">
@@ -998,8 +1006,8 @@ Example: {‘quartz’: ‘blue’, ‘feldspar’: ‘red’, ‘other’: ‘g
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">ClusterMontageSelector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(20,</span> <span class="pre">15)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">224</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_thickness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">ClusterMontageSelector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(20,</span> <span class="pre">15)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">224</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_thickness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Interactive selector for clustered grain montage.</p>
 <p>Allows interactive selection and removal of entire clusters or individual grains
 for quality control. Click on a cluster to select/deselect all grains in it,
@@ -1021,8 +1029,8 @@ or Shift+Click to select/deselect individual grains.</p>
 </dd>
 </dl>
 <dl class="py attribute">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.selected_grain_indices">
-<span class="sig-name descname"><span class="pre">selected_grain_indices</span></span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.selected_grain_indices" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">selected_grain_indices</span></span></dt>
 <dd><p>Set of grain indices that are selected for removal</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1032,8 +1040,8 @@ or Shift+Click to select/deselect individual grains.</p>
 </dd></dl>
 
 <dl class="py attribute">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.selected_clusters">
-<span class="sig-name descname"><span class="pre">selected_clusters</span></span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.selected_clusters" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">selected_clusters</span></span></dt>
 <dd><p>Set of cluster IDs that are fully selected</p>
 <dl class="field-list simple">
 <dt class="field-odd">Type<span class="colon">:</span></dt>
@@ -1043,38 +1051,38 @@ or Shift+Click to select/deselect individual grains.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.activate">
-<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.activate" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Activate interactive selection mode</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.deactivate">
-<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.deactivate" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Deactivate interactive mode</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.get_filtered_grains">
-<span class="sig-name descname"><span class="pre">get_filtered_grains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.get_filtered_grains" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_grains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the list of grains after removing selected ones</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.get_filtered_labels">
-<span class="sig-name descname"><span class="pre">get_filtered_labels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.get_filtered_labels" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_labels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the cluster labels after removing selected grains</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.get_filtered_images">
-<span class="sig-name descname"><span class="pre">get_filtered_images</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.get_filtered_images" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_images</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the grain images after removing selected grains</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.get_filtered_indices">
-<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.get_filtered_indices" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the indices of grains that remain after filtering</p>
 </dd></dl>
 
@@ -1122,26 +1130,26 @@ or Shift+Click to select/deselect individual grains.</p>
 </pre></div>
 </div>
 <dl class="py method">
-<dt class="sig sig-object py" id="id0">
-<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id0" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Activate interactive selection mode.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id1">
-<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id1" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Deactivate interactive mode.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.display_montage">
-<span class="sig-name descname"><span class="pre">display_montage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.display_montage" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">display_montage</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Display the current montage with selection overlays.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id2">
-<span class="sig-name descname"><span class="pre">get_filtered_grains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id2" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_grains</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the list of grains after removing selected ones.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1154,8 +1162,8 @@ or Shift+Click to select/deselect individual grains.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id3">
-<span class="sig-name descname"><span class="pre">get_filtered_images</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id3" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_images</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get grain images after removing selected grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1168,8 +1176,8 @@ or Shift+Click to select/deselect individual grains.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id4">
-<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id4" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get the indices of grains that remain after filtering (not removed).</p>
 <p>This is useful for filtering other arrays (like all_grains) that are
 indexed the same way as the original grain_images/cluster_labels.</p>
@@ -1192,8 +1200,8 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="id5">
-<span class="sig-name descname"><span class="pre">get_filtered_labels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#id5" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_labels</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get cluster labels after removing selected grains.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
@@ -1206,22 +1214,22 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.onclick">
-<span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.onclick" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Handle mouse click events.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageSelector.onkey">
-<span class="sig-name descname"><span class="pre">onkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageSelector.onkey" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">onkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Handle keyboard events.</p>
 </dd></dl>
 
 </dd></dl>
 
 <dl class="py class">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">ClusterMontageLabeler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(20,</span> <span class="pre">15)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">224</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_thickness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">ClusterMontageLabeler</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cluster_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">all_grains</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_names</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_colors</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grid_cols</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">figsize</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">(20,</span> <span class="pre">15)</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">grain_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">224</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">padding</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">boundary_thickness</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sort_by_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">blit</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Interactive labeler for clustered grain montage (based on GrainPlot design).</p>
 <p>Allows fast interactive labeling of grains or entire clusters with custom labels.</p>
 <dl class="field-list simple">
@@ -1249,62 +1257,62 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 </dd>
 </dl>
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.activate">
-<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.activate" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">activate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Activate interactive mode.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.deactivate">
-<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.deactivate" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">deactivate</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Deactivate interactive mode.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.export_labels">
-<span class="sig-name descname"><span class="pre">export_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.export_labels" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">export_labels</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">filepath</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Export labels to CSV.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.get_filtered_indices">
-<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.get_filtered_indices" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_filtered_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get indices of labeled grains.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.get_labeled_data">
-<span class="sig-name descname"><span class="pre">get_labeled_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.get_labeled_data" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_labeled_data</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get labeled grain images and labels.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.get_unlabeled_indices">
-<span class="sig-name descname"><span class="pre">get_unlabeled_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.get_unlabeled_indices" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">get_unlabeled_indices</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Get indices of unlabeled grains.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.onclick">
-<span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.onclick" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">onclick</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Handle mouse clicks.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.ondraw">
-<span class="sig-name descname"><span class="pre">ondraw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.ondraw" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">ondraw</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Handle draw events (recapture background after zoom/pan).</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.onkey">
-<span class="sig-name descname"><span class="pre">onkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.onkey" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">onkey</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">event</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Handle keyboard events.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.save_labeled_images">
-<span class="sig-name descname"><span class="pre">save_labeled_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.save_labeled_images" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">save_labeled_images</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">output_dir</span></span></em><span class="sig-paren">)</span></dt>
 <dd><p>Save labeled grain images to disk, organized by label.</p>
 <p>Creates subdirectories for each label and saves images as:
 {output_dir}/{label_name}/grain_{grain_index}.png</p>
@@ -1325,8 +1333,8 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 </dd></dl>
 
 <dl class="py method">
-<dt class="sig sig-object py" id="segmenteverygrain.ClusterMontageLabeler.update">
-<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.ClusterMontageLabeler.update" title="Link to this definition">¶</a></dt>
+<dt class="sig sig-object py">
+<span class="sig-name descname"><span class="pre">update</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span></dt>
 <dd><p>Update display (using blitting like GrainPlot).</p>
 </dd></dl>
 
@@ -1380,15 +1388,15 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_large_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_large_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">fname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">2000</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">overlap</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">300</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_grain_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_large_objects</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_edges</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_sam</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dilation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_large_image" title="Link to this definition">¶</a></dt>
 <dd><p>Predicts the location of grains in a large image using a patch-based approach.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fname</strong> (<em>str</em>) – The file path of the input image.</p></li>
 <li><p><strong>model</strong> (<em>tensorflow.keras.Model</em>) – The Unet model used for the preliminary grain prediction.</p></li>
-<li><p><strong>sam</strong> (<em>SAM2ImagePredictor</em>) – The SAM model used for grain segmentation.</p></li>
-<li><p><strong>min_area</strong> (<em>int</em>) – The minimum area threshold for valid grains.</p></li>
+<li><p><strong>sam</strong> (<em>SAM2ImagePredictor</em><em>, </em><em>optional</em>) – The SAM model used for grain segmentation. Required when <code class="docutils literal notranslate"><span class="pre">use_sam=True</span></code>.</p></li>
+<li><p><strong>min_area</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum area threshold for valid grains.</p></li>
 <li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of each patch. Defaults to 2000.</p></li>
 <li><p><strong>overlap</strong> (<em>int</em><em>, </em><em>optional</em>) – The overlap between patches. Defaults to 300.</p></li>
 <li><p><strong>remove_large_objects</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to remove large objects from the segmentation. Defaults to False.</p></li>
@@ -1396,13 +1404,21 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 only if they touch the outer edges of the full image, but removed if they
 touch internal patch boundaries. When True, all edge-touching grains are
 removed. Defaults to True.</p></li>
+<li><p><strong>use_sam</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True (default), uses SAM to refine grain boundaries after U-Net
+prediction. If False, grain polygons are extracted directly from the
+U-Net segmentation via watershed + contour tracing, which is much
+faster but produces slightly less precise boundaries.</p></li>
+<li><p><strong>dilation</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of pixels to expand each grain label before converting to
+polygons. Only used when <code class="docutils literal notranslate"><span class="pre">use_sam=False</span></code>. This compensates for the
+U-Net boundary channel consuming a few pixels between grains.
+Defaults to 0 (no dilation).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>All_Grains</strong> (<em>list</em>) – A list of grains represented as polygons.</p></li>
 <li><p><strong>image_pred</strong> (<em>numpy.ndarray</em>) – The Unet predictions for the entire image.</p></li>
-<li><p><strong>all_coords</strong> (<em>numpy.ndarray</em>) – The coordinates of the SAM prompts.</p></li>
+<li><p><strong>all_coords</strong> (<em>numpy.ndarray</em>) – The coordinates of the SAM prompts (empty array when <code class="docutils literal notranslate"><span class="pre">use_sam=False</span></code>).</p></li>
 </ul>
 </p>
 </dd>
@@ -1411,7 +1427,7 @@ removed. Defaults to True.</p></li>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.label_grains">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">label_grains</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">image_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dbs_max_dist</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">20.0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_grain_area</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">50</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.label_grains" title="Link to this definition">¶</a></dt>
 <dd><p>Label grains in semantic segmentation result and generate prompts for SAM model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -1419,6 +1435,8 @@ removed. Defaults to True.</p></li>
 <li><p><strong>image</strong> (<em>2D</em><em> or </em><em>3d array</em>) – image that was segmented</p></li>
 <li><p><strong>image_pred</strong> (<em>3D array</em>) – semantic segmentation result</p></li>
 <li><p><strong>dbs_max_dist</strong> (<em>float</em>) – DBSCAN distance parameter; decreasing it results in more SAM prompts and longer processing times</p></li>
+<li><p><strong>min_grain_area</strong> (<em>int</em>) – minimum area (in pixels) of a connected component in the grain prediction to generate a prompt;
+smaller regions are considered noise and skipped</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1427,6 +1445,33 @@ removed. Defaults to True.</p></li>
 <li><p><em>all_coords</em> – pixel coordinates of the prompts</p></li>
 </ul>
 </p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.labels_to_polygons">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">labels_to_polygons</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">min_area</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">remove_edge_grains</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">keep_edges</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list</span></span></span><a class="headerlink" href="#segmenteverygrain.labels_to_polygons" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a labeled image (e.g. from <code class="docutils literal notranslate"><span class="pre">label_grains</span></code>) into a list of
+shapely Polygons by tracing contours around each labeled region.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>labels</strong> (<em>numpy.ndarray</em>) – 2-D integer array where each connected grain has a unique label
+and background is 0.</p></li>
+<li><p><strong>min_area</strong> (<em>float</em><em>, </em><em>optional</em>) – Minimum polygon area (in pixels) to keep. Defaults to 0.</p></li>
+<li><p><strong>remove_edge_grains</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, grains touching <em>any</em> image edge are removed.
+Defaults to True.</p></li>
+<li><p><strong>keep_edges</strong> (<em>dict</em><em> or </em><em>None</em><em>, </em><em>optional</em>) – Dictionary <code class="docutils literal notranslate"><span class="pre">{'top':</span> <span class="pre">bool,</span> <span class="pre">'bottom':</span> <span class="pre">bool,</span> <span class="pre">'left':</span> <span class="pre">bool,</span> <span class="pre">'right':</span> <span class="pre">bool}</span></code>
+specifying which edges should <em>keep</em> their grains. Only used when
+<code class="docutils literal notranslate"><span class="pre">remove_edge_grains</span></code> is True. If None, all edges are checked.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>polygons</strong> – List of grain polygons.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>list[shapely.geometry.Polygon]</p>
 </dd>
 </dl>
 </dd></dl>
@@ -1830,13 +1875,16 @@ The third subplot shows the input image with the label overlayed.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.weighted_crossentropy">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Link to this definition">¶</a></dt>
 <dd><p>Calculates the weighted cross-entropy loss between the true labels and predicted labels.</p>
+<p>Uses label smoothing to prevent overconfident predictions and improve
+generalization. Expects logits (pre-softmax) as y_pred.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>y_true</strong> (<em>tensor</em>) – True labels.</p></li>
-<li><p><strong>y_pred</strong> (<em>tensor</em>) – Predicted labels.</p></li>
+<li><p><strong>y_true</strong> (<em>tensor</em>) – True labels (one-hot encoded).</p></li>
+<li><p><strong>y_pred</strong> (<em>tensor</em>) – Predicted logits (pre-softmax).</p></li>
+<li><p><strong>label_smoothing</strong> (<em>float</em>) – Label smoothing factor. 0.0 means no smoothing.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1921,6 +1969,30 @@ The third subplot shows the input image with the label overlayed.</p>
 </dl>
 <p class="rubric">Notes</p>
 <p>The function will plot the training and validation loss and accuracy over epochs.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.evaluate_model">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">evaluate_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.evaluate_model" title="Link to this definition">¶</a></dt>
+<dd><p>Evaluate a trained U-Net model on a dataset, reporting overall accuracy,
+loss, and per-class IoU scores.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<em>tf.keras.Model</em>) – The trained model.</p></li>
+<li><p><strong>dataset</strong> (<em>tf.data.Dataset</em>) – The dataset to evaluate on (e.g. the test dataset).</p></li>
+<li><p><strong>class_names</strong> (<em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – Names for each output class. Defaults to
+<code class="docutils literal notranslate"><span class="pre">[&quot;background&quot;,</span> <span class="pre">&quot;grain&quot;,</span> <span class="pre">&quot;boundary&quot;]</span></code>.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>results</strong> – Dictionary with keys <code class="docutils literal notranslate"><span class="pre">&quot;loss&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;accuracy&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mean_iou&quot;</span></code>,
+and <code class="docutils literal notranslate"><span class="pre">&quot;per_class_iou&quot;</span></code> (a dict mapping class name to IoU).</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
 </dd></dl>
 
 <dl class="py function">
