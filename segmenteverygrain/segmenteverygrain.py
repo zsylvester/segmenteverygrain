@@ -15,12 +15,13 @@ import rasterio
 from rasterio.features import rasterize
 from skimage import measure
 from skimage.measure import regionprops, regionprops_table
-from skimage.segmentation import watershed
+from skimage.segmentation import watershed, expand_labels
 from skimage.feature import peak_local_max
 
 from shapely.geometry import Polygon, Point, MultiPolygon, mapping, shape
 from shapely.affinity import translate
 import scipy.ndimage as ndi
+from scipy.special import softmax as scipy_softmax
 from sklearn.model_selection import train_test_split
 from sklearn.cluster import DBSCAN
 import rtree
@@ -66,6 +67,7 @@ def predict_image_tile(im_tile, model):
     im_tile = np.expand_dims(im_tile, axis=0)  # add batch dimension
     im_tile_pred = model.predict(im_tile, verbose=0)  # make prediction
     im_tile_pred = im_tile_pred[0]  # remove batch dimension
+    im_tile_pred = scipy_softmax(im_tile_pred, axis=-1)  # convert logits to probabilities
     return im_tile_pred
 
 
@@ -289,6 +291,78 @@ def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
     else:
         all_coords = coords_simple
     return labels_simple, all_coords
+
+
+def labels_to_polygons(
+    labels: np.ndarray,
+    min_area: float = 0,
+    remove_edge_grains: bool = True,
+    keep_edges: dict | None = None,
+) -> list:
+    """
+    Convert a labeled image (e.g. from ``label_grains``) into a list of
+    shapely Polygons by tracing contours around each labeled region.
+
+    Parameters
+    ----------
+    labels : numpy.ndarray
+        2-D integer array where each connected grain has a unique label
+        and background is 0.
+    min_area : float, optional
+        Minimum polygon area (in pixels) to keep. Defaults to 0.
+    remove_edge_grains : bool, optional
+        If True, grains touching *any* image edge are removed.
+        Defaults to True.
+    keep_edges : dict or None, optional
+        Dictionary ``{'top': bool, 'bottom': bool, 'left': bool, 'right': bool}``
+        specifying which edges should *keep* their grains. Only used when
+        ``remove_edge_grains`` is True. If None, all edges are checked.
+
+    Returns
+    -------
+    polygons : list[shapely.geometry.Polygon]
+        List of grain polygons.
+    """
+    h, w = labels.shape
+    props = regionprops(labels)
+    polygons = []
+    for region in tqdm(props, desc="converting labels to polygons"):
+        lbl = region.label
+        min_row, min_col, max_row, max_col = region.bbox
+        # Check edge touching
+        if remove_edge_grains:
+            touches_top = min_row == 0
+            touches_bottom = max_row == h
+            touches_left = min_col == 0
+            touches_right = max_col == w
+            if keep_edges is None:
+                if touches_top or touches_bottom or touches_left or touches_right:
+                    continue
+            else:
+                if (touches_top and not keep_edges.get("top", False)) or \
+                   (touches_bottom and not keep_edges.get("bottom", False)) or \
+                   (touches_left and not keep_edges.get("left", False)) or \
+                   (touches_right and not keep_edges.get("right", False)):
+                    continue
+        # Extract local mask around the grain's bounding box
+        local_mask = (labels[min_row:max_row, min_col:max_col] == lbl).astype(np.uint8)
+        # Pad so find_contours always closes the contour
+        padded = np.pad(local_mask, 1, mode="constant")
+        contours = measure.find_contours(padded, 0.5)
+        if len(contours) == 0:
+            continue
+        # Map contour coordinates back to full-image space (undo 1px pad)
+        sx = contours[0][:, 1] - 1 + min_col
+        sy = contours[0][:, 0] - 1 + min_row
+        if len(sx) < 4:
+            continue
+        poly = Polygon(np.vstack((sx, sy)).T)
+        if not poly.is_valid:
+            poly = poly.buffer(0)
+        if poly.is_empty or poly.area < min_area:
+            continue
+        polygons.append(poly)
+    return polygons
 
 
 def one_point_prompt(x, y, image, predictor, ax=False):
@@ -541,33 +615,40 @@ def Unet():
     conv9 = Conv2D(16, (3, 3), activation="relu", padding="same")(conv9)
     conv9 = BatchNormalization()(conv9)
 
-    conv10 = Conv2D(3, (1, 1), activation="softmax")(conv9)
+    conv10 = Conv2D(3, (1, 1))(conv9)
     model = Model(inputs=[inputs], outputs=[conv10])
 
     return model
 
 
-def weighted_crossentropy(y_true, y_pred):
+def weighted_crossentropy(y_true, y_pred, label_smoothing: float = 0.1):
     """
     Calculates the weighted cross-entropy loss between the true labels and predicted labels.
+
+    Uses label smoothing to prevent overconfident predictions and improve
+    generalization. Expects logits (pre-softmax) as y_pred.
 
     Parameters
     ----------
     y_true : tensor
-        True labels.
+        True labels (one-hot encoded).
     y_pred : tensor
-        Predicted labels.
+        Predicted logits (pre-softmax).
+    label_smoothing : float
+        Label smoothing factor. 0.0 means no smoothing.
 
     Returns
     -------
     loss : tensor
         Weighted cross-entropy loss.
     """
+    num_classes = tf.cast(tf.shape(y_true)[-1], tf.float32)
+    y_true_smooth = y_true * (1.0 - label_smoothing) + label_smoothing / num_classes
     class_weights = tf.constant(
         [[[[0.6, 1.0, 5.0]]]]
     )  # increase the weight on the grains and the grain boundaries
     unweighted_losses = tf.nn.softmax_cross_entropy_with_logits(
-        labels=y_true, logits=y_pred
+        labels=y_true_smooth, logits=y_pred
     )
     weights = tf.reduce_sum(class_weights * y_true, axis=-1)
     weighted_losses = weights * unweighted_losses
@@ -1128,8 +1209,8 @@ def create_labeled_image(all_grains, image):
 def predict_large_image(
     fname,
     model,
-    sam,
-    min_area,
+    sam=None,
+    min_area=None,
     patch_size=2000,
     overlap=300,
     dbs_max_dist=20.0,
@@ -1137,6 +1218,8 @@ def predict_large_image(
     remove_large_objects=False,
     remove_edge_grains=True,
     keep_edges=None,
+    use_sam=True,
+    dilation=0,
 ):
     """
     Predicts the location of grains in a large image using a patch-based approach.
@@ -1147,9 +1230,9 @@ def predict_large_image(
         The file path of the input image.
     model : tensorflow.keras.Model
         The Unet model used for the preliminary grain prediction.
-    sam : SAM2ImagePredictor
-        The SAM model used for grain segmentation.
-    min_area : int
+    sam : SAM2ImagePredictor, optional
+        The SAM model used for grain segmentation. Required when ``use_sam=True``.
+    min_area : int, optional
         The minimum area threshold for valid grains.
     patch_size : int, optional
         The size of each patch. Defaults to 2000.
@@ -1162,6 +1245,16 @@ def predict_large_image(
         only if they touch the outer edges of the full image, but removed if they
         touch internal patch boundaries. When True, all edge-touching grains are
         removed. Defaults to True.
+    use_sam : bool, optional
+        If True (default), uses SAM to refine grain boundaries after U-Net
+        prediction. If False, grain polygons are extracted directly from the
+        U-Net segmentation via watershed + contour tracing, which is much
+        faster but produces slightly less precise boundaries.
+    dilation : int, optional
+        Number of pixels to expand each grain label before converting to
+        polygons. Only used when ``use_sam=False``. This compensates for the
+        U-Net boundary channel consuming a few pixels between grains.
+        Defaults to 0 (no dilation).
 
     Returns
     -------
@@ -1170,21 +1263,24 @@ def predict_large_image(
     image_pred : numpy.ndarray
         The Unet predictions for the entire image.
     all_coords : numpy.ndarray
-        The coordinates of the SAM prompts.
+        The coordinates of the SAM prompts (empty array when ``use_sam=False``).
     """
+    if use_sam and sam is None:
+        raise ValueError("A SAM model must be provided when use_sam=True.")
     step_size = patch_size - overlap  # step size for overlapping patches
     image = np.array(load_img(fname))
     img_height, img_width = image.shape[:2]  # get the height and width of the image
     # loop over the image and extract patches:
     All_Grains = []
-    total_patches = ((img_height - patch_size + step_size) // step_size + 1) * (
-        (img_width - patch_size + step_size) // step_size + 1
+    total_patches = max(1, (img_height - patch_size + step_size) // step_size + 1) * max(
+        1, (img_width - patch_size + step_size) // step_size + 1
     )
     # Initialize an array to store the Unet predictions for the entire image
     image_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
 
-    for i in range(0, img_height - patch_size + step_size + 1, step_size):
-        for j in range(0, img_width - patch_size + step_size + 1, step_size):
+    all_coords = np.empty((0, 2), dtype=np.int32)
+    for i in range(0, max(1, img_height - patch_size + step_size + 1), step_size):
+        for j in range(0, max(1, img_width - patch_size + step_size + 1), step_size):
             patch = image[
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ]
@@ -1208,58 +1304,72 @@ def predict_large_image(
             image_pred[
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ] += (patch_pred * weights)
-            labels, coords = label_grains(patch, patch_pred, dbs_max_dist=dbs_max_dist, min_grain_area=min_grain_area)
-            if (
-                len(coords) > 0
-            ):  # run the SAM algorithm only if there are grains in the patch
-                # Determine which edges of this patch are on the outer boundary of the full image
-                keep_edges = None
+
+            if use_sam:
+                labels, coords = label_grains(patch, patch_pred, dbs_max_dist=dbs_max_dist, min_grain_area=min_grain_area)
+                # Determine which edges of this patch are on the outer boundary
+                patch_keep_edges = None
                 if not remove_edge_grains:
-                    # When remove_edge_grains=False, we want to keep grains on outer edges only
-                    keep_edges = {
-                        'top': i == 0,  # Keep top edge grains only if this is the first row
-                        'bottom': i + patch_size >= img_height,  # Keep bottom edge grains only if this is the last row
-                        'left': j == 0,  # Keep left edge grains only if this is the first column
-                        'right': j + patch_size >= img_width,  # Keep right edge grains only if this is the last column
+                    patch_keep_edges = {
+                        'top': i == 0,
+                        'bottom': i + patch_size >= img_height,
+                        'left': j == 0,
+                        'right': j + patch_size >= img_width,
                     }
 
-                all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
-                    sam,
-                    patch,
-                    patch_pred,
-                    coords,
-                    labels,
-                    min_area=min_area,
-                    plot_image=False,
-                    remove_edge_grains=not remove_edge_grains if keep_edges else remove_edge_grains,
-                    remove_large_objects=remove_large_objects,
-                    keep_edges=keep_edges,
-                )
-                for grain in all_grains:
-                    All_Grains += [
-                        translate(grain, xoff=j, yoff=i)
-                    ]  # translate the grains to the original image coordinates
+                if len(coords) > 0:
+                    all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
+                        sam,
+                        patch,
+                        patch_pred,
+                        coords,
+                        labels,
+                        min_area=min_area,
+                        plot_image=False,
+                        remove_edge_grains=not remove_edge_grains if patch_keep_edges else remove_edge_grains,
+                        remove_large_objects=remove_large_objects,
+                        keep_edges=patch_keep_edges,
+                    )
+                    for grain in all_grains:
+                        All_Grains.append(translate(grain, xoff=j, yoff=i))
+                    coords[:, 0] = coords[:, 0] + j
+                    coords[:, 1] = coords[:, 1] + i
+                    all_coords = np.vstack((all_coords, coords))
+
             patch_num = (
-                i // step_size * ((img_width - patch_size + step_size) // step_size + 1)
+                i // step_size * max(1, (img_width - patch_size + step_size) // step_size + 1)
                 + j // step_size
                 + 1
             )
-            if len(coords) > 0:
-                coords[:, 0] = coords[:, 0] + j
-                coords[:, 1] = coords[:, 1] + i
-                if patch_num > 1:
-                    all_coords = np.vstack((all_coords, coords))
-                else:
-                    all_coords = coords.copy()
             print(f"processed patch #{patch_num} out of {total_patches} patches")
-    new_grains, comps, g = find_connected_components(All_Grains, min_area)
-    All_Grains = merge_overlapping_polygons(
-        All_Grains, new_grains, comps, min_area, patch_pred
-    )
+
+    if not use_sam:
+        # Run label_grains once on the full blended prediction to avoid
+        # splitting grains that straddle patch boundaries
+        print("labeling grains from U-Net prediction...")
+        labels, all_coords = label_grains(
+            image, image_pred, dbs_max_dist=dbs_max_dist, min_grain_area=min_grain_area
+        )
+        if dilation > 0:
+            print(f"dilating grain labels by {dilation} pixels...")
+            labels = expand_labels(labels, distance=dilation)
+        print("extracting grain polygons...")
+        All_Grains = labels_to_polygons(
+            labels,
+            min_area=min_area if min_area is not None else 0,
+            remove_edge_grains=remove_edge_grains,
+        )
+
+    if use_sam and len(All_Grains) > 0:
+        new_grains, comps, g = find_connected_components(All_Grains, min_area if min_area is not None else 0)
+        All_Grains = merge_overlapping_polygons(
+            All_Grains, new_grains, comps, min_area if min_area is not None else 0, image_pred
+        )
     # Final filter: remove prompts that fall outside the grain mask in the blended prediction
-    blended_grains = image_pred[:, :, 1] >= 0.5
-    inds = np.where(blended_grains[all_coords[:, 1], all_coords[:, 0]])[0]
-    all_coords = all_coords[inds, :]
+    if len(all_coords) > 0:
+        blended_grains = image_pred[:, :, 1] >= 0.5
+        inds = np.where(blended_grains[all_coords[:, 1], all_coords[:, 0]])[0]
+        all_coords = all_coords[inds, :]
     return All_Grains, image_pred, all_coords
 
 
@@ -1299,21 +1409,122 @@ def load_and_preprocess(image_path, mask_path, augmentations=False):
 
     # Apply augmentations
     if augmentations:
-        image = tf.image.random_brightness(image, max_delta=0.2)
-        image = tf.image.random_contrast(image, lower=0.8, upper=1.2)
-        image = tf.where(
-            image < 0, tf.zeros_like(image), image
-        )  # clipping negative values
-        image = tf.where(
-            image > 1, tf.ones_like(image), image
-        )  # clipping values larger than 1
-        seed = tf.random.uniform(shape=[], minval=0, maxval=1)
-        image = tf.cond(
-            seed < 0.5, lambda: tf.image.flip_left_right(image), lambda: image
+        # --- Geometric augmentations (applied to both image and mask) ---
+        # Concatenate along channels so identical transforms apply to both
+        combined = tf.concat([image, mask], axis=-1)  # shape: (256, 256, 6)
+
+        # Random horizontal flip
+        seed_hflip = tf.random.uniform(shape=[], minval=0, maxval=1)
+        combined = tf.cond(
+            seed_hflip < 0.5,
+            lambda: tf.image.flip_left_right(combined),
+            lambda: combined,
         )
-        mask = tf.cond(seed < 0.5, lambda: tf.image.flip_left_right(mask), lambda: mask)
-        image = tf.cond(seed < 0.5, lambda: tf.image.flip_up_down(image), lambda: image)
-        mask = tf.cond(seed < 0.5, lambda: tf.image.flip_up_down(mask), lambda: mask)
+
+        # Random vertical flip
+        seed_vflip = tf.random.uniform(shape=[], minval=0, maxval=1)
+        combined = tf.cond(
+            seed_vflip < 0.5,
+            lambda: tf.image.flip_up_down(combined),
+            lambda: combined,
+        )
+
+        # Random 90-degree rotations (0, 1, 2, or 3 times)
+        k = tf.random.uniform(shape=[], minval=0, maxval=4, dtype=tf.int32)
+        combined = tf.image.rot90(combined, k=k)
+
+        # Random scaling/zoom (crop and resize)
+        seed_scale = tf.random.uniform(shape=[], minval=0, maxval=1)
+        def apply_random_scale(combined):
+            scale = tf.random.uniform(shape=[], minval=0.7, maxval=0.95)
+            crop_size = tf.cast(tf.round(256.0 * scale), tf.int32)
+            max_offset = tf.maximum(256 - crop_size, 1)
+            offset_h = tf.random.uniform(shape=[], minval=0,
+                                         maxval=max_offset, dtype=tf.int32)
+            offset_w = tf.random.uniform(shape=[], minval=0,
+                                         maxval=max_offset, dtype=tf.int32)
+            combined_cropped = tf.image.crop_to_bounding_box(
+                combined, offset_h, offset_w, crop_size, crop_size
+            )
+            return tf.image.resize(combined_cropped, [256, 256],
+                                   method=tf.image.ResizeMethod.NEAREST_NEIGHBOR)
+        combined = tf.cond(
+            seed_scale < 0.5, lambda: apply_random_scale(combined), lambda: combined
+        )
+
+        # Split back into image and mask
+        image = combined[:, :, :3]
+        mask = combined[:, :, 3:]
+
+        # Re-discretize mask after geometric transforms (nearest-neighbor keeps it
+        # clean, but this guards against any floating-point drift)
+        mask = tf.round(mask)
+
+        # --- Color augmentations (applied to image only) ---
+        # Each augmentation applied independently with 50% probability
+
+        # Random brightness
+        seed_bright = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(
+            seed_bright < 0.5,
+            lambda: tf.image.random_brightness(image, max_delta=0.2),
+            lambda: image,
+        )
+
+        # Random contrast
+        seed_contrast = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(
+            seed_contrast < 0.5,
+            lambda: tf.image.random_contrast(image, lower=0.8, upper=1.2),
+            lambda: image,
+        )
+
+        # Random saturation
+        seed_sat = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(
+            seed_sat < 0.5,
+            lambda: tf.image.random_saturation(image, lower=0.7, upper=1.3),
+            lambda: image,
+        )
+
+        # Random hue
+        seed_hue = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(
+            seed_hue < 0.5,
+            lambda: tf.image.random_hue(image, max_delta=0.05),
+            lambda: image,
+        )
+
+        # Gaussian noise
+        seed_noise = tf.random.uniform(shape=[], minval=0, maxval=1)
+        image = tf.cond(
+            seed_noise < 0.5,
+            lambda: image + tf.random.normal(tf.shape(image), mean=0.0, stddev=0.02),
+            lambda: image,
+        )
+
+        # Gaussian blur
+        seed_blur = tf.random.uniform(shape=[], minval=0, maxval=1)
+        def apply_gaussian_blur(img):
+            sigma = tf.random.uniform(shape=[], minval=0.5, maxval=1.5)
+            kernel_size = 5
+            ax = tf.cast(tf.range(-kernel_size // 2 + 1, kernel_size // 2 + 1),
+                         tf.float32)
+            xx, yy = tf.meshgrid(ax, ax)
+            kernel = tf.exp(-(xx ** 2 + yy ** 2) / (2.0 * sigma ** 2))
+            kernel = kernel / tf.reduce_sum(kernel)
+            kernel = tf.reshape(kernel, [kernel_size, kernel_size, 1, 1])
+            kernel = tf.tile(kernel, [1, 1, 3, 1])
+            img = tf.expand_dims(img, axis=0)
+            img = tf.nn.depthwise_conv2d(img, kernel, strides=[1, 1, 1, 1],
+                                         padding='SAME')
+            return tf.squeeze(img, axis=0)
+        image = tf.cond(
+            seed_blur < 0.3, lambda: apply_gaussian_blur(image), lambda: image
+        )
+
+        # Clip to valid range
+        image = tf.clip_by_value(image, 0.0, 1.0)
 
     return image, mask
 
@@ -2097,8 +2308,80 @@ def create_and_train_model(
     axes[1].plot(history.history["val_accuracy"])
     axes[1].set_xlabel("epoch")
     axes[1].set_ylabel("accuracy")
-    model.evaluate(test_dataset)
+    evaluate_model(model, test_dataset)
     return model
+
+
+def evaluate_model(model, dataset, class_names: list[str] | None = None):
+    """
+    Evaluate a trained U-Net model on a dataset, reporting overall accuracy,
+    loss, and per-class IoU scores.
+
+    Parameters
+    ----------
+    model : tf.keras.Model
+        The trained model.
+    dataset : tf.data.Dataset
+        The dataset to evaluate on (e.g. the test dataset).
+    class_names : list of str, optional
+        Names for each output class. Defaults to
+        ``["background", "grain", "boundary"]``.
+
+    Returns
+    -------
+    results : dict
+        Dictionary with keys ``"loss"``, ``"accuracy"``, ``"mean_iou"``,
+        and ``"per_class_iou"`` (a dict mapping class name to IoU).
+    """
+    if class_names is None:
+        class_names = ["background", "grain", "boundary"]
+    num_classes = len(class_names)
+    confusion = np.zeros((num_classes, num_classes), dtype=np.int64)
+    total_loss = 0.0
+    total_correct = 0
+    total_pixels = 0
+    n_batches = 0
+    for images, masks in tqdm(dataset, desc="evaluating model"):
+        preds = model.predict(images, verbose=0)
+        # accumulate loss
+        total_loss += weighted_crossentropy(masks, preds).numpy()
+        n_batches += 1
+        # convert to class indices
+        pred_classes = np.argmax(preds, axis=-1).ravel()
+        true_classes = np.argmax(masks.numpy(), axis=-1).ravel()
+        total_correct += np.sum(pred_classes == true_classes)
+        total_pixels += len(pred_classes)
+        # accumulate confusion matrix
+        for true_c in range(num_classes):
+            for pred_c in range(num_classes):
+                confusion[true_c, pred_c] += np.sum(
+                    (true_classes == true_c) & (pred_classes == pred_c)
+                )
+    # compute per-class IoU from confusion matrix
+    per_class_iou = {}
+    for c in range(num_classes):
+        tp = confusion[c, c]
+        fn = np.sum(confusion[c, :]) - tp
+        fp = np.sum(confusion[:, c]) - tp
+        iou = tp / (tp + fn + fp) if (tp + fn + fp) > 0 else 0.0
+        per_class_iou[class_names[c]] = iou
+
+    accuracy = total_correct / total_pixels if total_pixels > 0 else 0.0
+    mean_iou = np.mean(list(per_class_iou.values()))
+    avg_loss = total_loss / n_batches if n_batches > 0 else 0.0
+
+    print(f"\nTest loss: {avg_loss:.4f}")
+    print(f"Test accuracy: {accuracy:.4f}")
+    print(f"Mean IoU: {mean_iou:.4f}")
+    for name, iou in per_class_iou.items():
+        print(f"  {name} IoU: {iou:.4f}")
+
+    return {
+        "loss": avg_loss,
+        "accuracy": accuracy,
+        "mean_iou": mean_iou,
+        "per_class_iou": per_class_iou,
+    }
 
 
 def save_polygons(polygons, fname):
