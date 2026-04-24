@@ -50,10 +50,12 @@ The ``grain_utils`` module provides functions for extracting individual grain im
 .. autoclass:: segmenteverygrain.ClusterMontageSelector
    :members:
    :undoc-members:
+   :no-index:
 
 .. autoclass:: segmenteverygrain.ClusterMontageLabeler
    :members:
    :undoc-members:
+   :no-index:
 
 
 Core Segmentation Functions
@@ -66,6 +68,7 @@ Model Prediction
 .. autofunction:: segmenteverygrain.predict_image
 .. autofunction:: segmenteverygrain.predict_large_image
 .. autofunction:: segmenteverygrain.label_grains
+.. autofunction:: segmenteverygrain.labels_to_polygons
 .. autofunction:: segmenteverygrain.sam_segmentation
 .. autofunction:: segmenteverygrain.one_point_prompt
 .. autofunction:: segmenteverygrain.two_point_prompt
@@ -100,6 +103,7 @@ Model Training
 .. autofunction:: segmenteverygrain.patchify_training_data
 .. autofunction:: segmenteverygrain.create_train_val_test_data
 .. autofunction:: segmenteverygrain.create_and_train_model
+.. autofunction:: segmenteverygrain.evaluate_model
 .. autofunction:: segmenteverygrain.load_and_preprocess
 
 Utility Functions

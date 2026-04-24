@@ -11,15 +11,22 @@ The notebook goes through the steps of loading the models, running the segmentat
 Loading the models
 ~~~~~~~~~~~~~~~~~~
 
-To load the U-Net model, you can use the 'load_model' function from Keras. The U-Net model is saved in the 'seg_model.keras' file.
+To load the U-Net model, you can use the 'load_model' function from Keras. The U-Net model is saved in the 'seg_model_smooth_labels.keras' file.
 
 .. code-block:: python
 
    import segmenteverygrain as seg
    from keras.saving import load_model
-   model = load_model("seg_model.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = load_model("seg_model_smooth_labels.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
 
-This assumes that you are using Keras 3 and 'seg_model.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with with the latest version of the package.
+.. note::
+
+   As of v0.4.0, the U-Net model outputs raw logits (pre-softmax). Softmax is applied
+   automatically at inference time in ``predict_image_tile``. Models trained with v0.3.0
+   and earlier (e.g. ``seg_model.keras``) are **incompatible** with this version — use
+   ``seg_model_smooth_labels.keras`` or retrain your custom models.
+
+This assumes that you are using Keras 3 and 'seg_model_smooth_labels.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with the latest version of the package.
 
 The SAM 2.1 model can be downloaded from this `link <https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 
@@ -217,7 +224,7 @@ The ``interactions`` module provides convenient functions for saving all results
 Large image processing
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you want to detect grains in large images, you should use the ``predict_large_image`` function, which will split the image into patches and run the Unet and SAM segmentations on each patch:
+If you want to detect grains in large images, you should use the ``predict_large_image`` function, which will split the image into patches and run the segmentation on each patch:
 
 .. code-block:: python
 
@@ -236,6 +243,25 @@ If you want to detect grains in large images, you should use the ``predict_large
        overlap=200,
        remove_edge_grains=False  # Keep grains on outer edges of the full image
    )
+
+You can also run the segmentation using the U-Net only, without SAM refinement. This is
+significantly faster and avoids the need to load the SAM model:
+
+.. code-block:: python
+
+   all_grains, image_pred, all_coords = seg.predict_large_image(
+       fname, unet,
+       patch_size=2000,
+       overlap=200,
+       use_sam=False,
+       dilation=3,        # expand grain labels to recover boundary pixels
+       min_area=400.0,
+   )
+
+When ``use_sam=False``, grain labeling is performed once on the full blended U-Net
+prediction (rather than per patch), so grains that straddle patch boundaries are handled
+correctly. The ``dilation`` parameter expands each grain label by the specified number of
+pixels, compensating for the boundary channel that the U-Net predicts between grains.
 
 Just like before, the ``all_grains`` list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:
 
@@ -380,7 +406,7 @@ The last section of the `Segment_every_grain.ipynb <https://github.com/zsylveste
 
    image_dir, mask_dir = seg.patchify_training_data(input_dir, patch_dir)
 
-The ``input_dir`` should contain the images and masks that you want to use for training. These files should have 'image' and 'mask' in their filenames, for example, 'sample1_image.png' and 'sample1_mask.png'. An example image can be found `here <https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_image.jpeg>`_; and the corresponding mask is `here <https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_mask.png>`_.
+The ``input_dir`` should contain the images and masks that you want to use for training. These files should have 'image' and 'mask' in their filenames, for example, 'sample1_image.png' and 'sample1_mask.png'. An `example image <https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_image.jpeg>`_ and the corresponding `mask <https://github.com/zsylvester/segmenteverygrain/blob/main/torrey_pines_beach_mask.png>`_ are available in the repository.
 
 The mask is an 8-bit image and should contain only three numbers: 0, 1, and 2. 0 is the background, 1 is the grain, and 2 is the grain boundary. Usually the mask is generated using the ``segmenteverygrain`` workflow, that is, by running the U-Net segmentation first, the SAM segmentation second, and then cleaning up the result. That said, when the U-Net ouputs are of low quality, it might be a good idea to generate the masks directly with SAM. Once you have a good mask, you can save it using ``cv2.imwrite`` (see also the example notebook):
 
@@ -401,6 +427,15 @@ Now we are ready to load the existing model weights and to train the model:
 .. code-block:: python
 
    model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model.keras', epochs=100)
+
+You can also evaluate the model separately on any dataset to get per-class IoU scores:
+
+.. code-block:: python
+
+   results = seg.evaluate_model(model, test_dataset)
+
+This prints test loss, accuracy, mean IoU, and per-class IoU (background, grain, boundary),
+and returns them as a dictionary.
 
 If you are happy with the finetuned model, you will want to save it:
 
@@ -449,4 +484,4 @@ The model can be saved using the Keras save method:
 
    model.save('seg_model.keras')
 
-The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 44,533 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function. The training accuracy was 0.937, the validation accuracy was 0.922, and the testing accuracy was 0.922 at the end of training. The model is available in the repository as 'seg_model.keras'.
+The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as 'seg_model_smooth_labels.keras'.
