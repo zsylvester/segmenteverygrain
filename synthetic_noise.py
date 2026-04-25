@@ -103,15 +103,64 @@ def get_noise_loss(synthetic_img: np.ndarray, real_img: np.ndarray) -> float:
 
     loss_row = (row_syn - row_real) ** 2
 
-    #Correlation loss, autocorrelation lag 1
-    def autocorr(img):
+    #Multi-lag autocorrelation (lags 1, 2, 5, 10)
+    def autocorr_multilag(img, lags=[1, 2, 5, 10]):
         noise = extract_noise(img)
-        return np.mean(noise[:, :-1] * noise[:, 1:])
-    corr_syn = autocorr(synthetic_img)
-    corr_real = autocorr(real_img)
-    loss_corr = (corr_syn - corr_real) ** 2
+        corrs = []
+        for lag in lags:
+            if lag < noise.shape[1]:
+                corr = np.mean(noise[:, :-lag] * noise[:, lag:])
+                corrs.append(corr)
+        return np.array(corrs)
+    lags = [1, 2, 5, 10]
+    corr_syn_multi = autocorr_multilag(synthetic_img, lags)
+    corr_real_multi = autocorr_multilag(real_img, lags)
+    loss_corr = np.mean((corr_syn_multi - corr_real_multi) ** 2)
 
-    total_loss = loss_var + loss_row + loss_corr
+    #Power spectrum loss (captures periodic banding, scan-line frequencies)
+    def power_spectrum(img):
+        noise = extract_noise(img)
+        fft = np.fft.fft2(noise)
+        psd = np.abs(fft) ** 2
+        psd_shift = np.fft.fftshift(psd)
+        rows, cols = psd_shift.shape
+        center = (rows // 2, cols // 2)
+        # distance of each pixel in frequency space from the center
+        y, x = np.ogrid[:rows, :cols]
+        dist = np.sqrt((x - center[1]) ** 2 + (y - center[0]) ** 2)
+
+        # scale ring boundaries relative to image size
+        max_r = min(rows, cols) // 2
+        ring_edges = [
+            0,
+            int(0.05 * max_r),
+            int(0.15 * max_r),
+            int(0.30 * max_r),
+            int(0.60 * max_r),
+        ]
+        # make sure edges are strictly increasing and unique
+        ring_edges = sorted(set(max(0, r) for r in ring_edges))
+        if ring_edges[-1] < max_r:
+            ring_edges.append(max_r)
+
+        radial_profile = []
+
+        for r_inner, r_outer in zip(ring_edges[:-1], ring_edges[1:]):
+            mask = (dist >= r_inner) & (dist < r_outer)
+
+            if np.any(mask):
+                radial_profile.append(np.mean(psd_shift[mask]))
+            else:
+                radial_profile.append(0.0)
+
+        return np.array(radial_profile, dtype=np.float32)
+    ps_syn = power_spectrum(synthetic_img)
+    ps_real = power_spectrum(real_img)
+    ps_ratio = ps_syn / (ps_real + 1e-6)
+    ps_ratio_clamped = np.clip(ps_ratio, 0.1, 10.0)
+    loss_ps = np.mean((ps_ratio_clamped - 1.0) ** 2)
+
+    total_loss = loss_var + loss_row + loss_corr + loss_ps
     return float(total_loss)
 
 import time
@@ -156,7 +205,7 @@ def objective(theta_vec, clear_imgs, real_imgs, seed=2):
 
     for i in range(n):
         _log_image_progress(i, n, real_imgs[i].shape)
-        clean_lowres = downsample_to_shape(clear_imgs[i], real_imgs[i].shape)
+        clean_lowres = downsample_image(clear_imgs[i], real_imgs[i].shape)
 
         clean_lowres = percentile_normalize(clean_lowres)
         real_img = percentile_normalize(real_imgs[i])
@@ -190,13 +239,32 @@ def load_images_from_folder(folder: str):
 
     return images, paths
 
-def downsample_to_shape(img: np.ndarray, target_shape: tuple[int, int]) -> np.ndarray:
+def downsample_image(img: np.ndarray, target_shape: tuple[int, int]) -> np.ndarray:
     """
     Downsample a clean image to the shape of a lower-resolution image.
     target_shape = (rows, cols)
     """
     rows, cols = target_shape
     return cv2.resize(img, (cols, rows), interpolation=cv2.INTER_AREA)
+
+def downsample_mask(mask: np.ndarray, target_shape: tuple[int, int]) -> np.ndarray:
+    rows, cols = target_shape
+    return cv2.resize(mask, (cols, rows), interpolation=cv2.INTER_NEAREST)
+
+
+def make_noisy_training_pair(
+    clean_img: np.ndarray,
+    clean_mask: np.ndarray,
+    target_shape: tuple[int, int],
+    params: NoiseParams,
+    rng: np.random.Generator,
+):
+    img_ds = downsample_image(clean_img, target_shape)
+    mask_ds = downsample_mask(clean_mask, target_shape)
+
+    noisy_img = synthetic_noise_model_input(img_ds, params, rng)
+
+    return noisy_img, mask_ds, img_ds
 
 def percentile_normalize(img: np.ndarray, lo=1, hi=99) -> np.ndarray:
     """
@@ -205,6 +273,22 @@ def percentile_normalize(img: np.ndarray, lo=1, hi=99) -> np.ndarray:
     p_lo, p_hi = np.percentile(img, [lo, hi])
     img = (img - p_lo) / (p_hi - p_lo + 1e-8)
     return np.clip(img, 0.0, 1.0)
+
+#Unnormalized Image Noise Usage Utilities
+def synthetic_noise_model_input(x_raw, params, rng):
+    x_norm, p_lo, p_hi = percentile_normalize_params(x_raw)
+    y_norm = synthetic_noise(x_norm, params, rng)
+    y_raw = invert_percentile_normalize(y_norm, p_lo, p_hi)
+    return y_raw.astype(np.float32)
+
+def percentile_normalize_params(img: np.ndarray, lo=1, hi=99):
+    p_lo, p_hi = np.percentile(img, [lo, hi])
+    img_norm = (img - p_lo) / (p_hi - p_lo + 1e-8)
+    img_norm = np.clip(img_norm, 0.0, 1.0)
+    return img_norm, p_lo, p_hi
+
+def invert_percentile_normalize(img_norm: np.ndarray, p_lo: float, p_hi: float):
+    return img_norm * (p_hi - p_lo) + p_lo
 
 if __name__ == "__main__":
     clear_folder = "./testcleanimages/"
@@ -244,7 +328,9 @@ class OptimizationLogger:
 
 logger = OptimizationLogger(maxiter=20)
     
-result = differential_evolution(
+# Comment out the code below with the ''' to run create_synthetic_images.py
+
+"""result = differential_evolution(
     objective,
     bounds=bounds,
     args=(clear_imgs[:10], real_imgs[:10], 2),
@@ -266,4 +352,4 @@ best_params = NoiseParams(
 
 print("Optimized parameters:")
 print(best_params.a,best_params.b,best_params.sigma_r,best_params.l,best_params.k)
-print("Best loss:", float(result.fun))
+print("Best loss:", float(result.fun))"""

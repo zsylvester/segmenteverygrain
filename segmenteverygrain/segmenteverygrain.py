@@ -35,8 +35,10 @@ from keras.layers import concatenate
 from keras.utils import load_img
 from keras.saving import load_model
 from keras.optimizers import Adam
+from keras.callbacks import ReduceLROnPlateau
 
 from segment_anything import SamPredictor
+from train_edge_completion import predict_edges
 
 
 def predict_image_tile(im_tile, model):
@@ -69,6 +71,84 @@ def predict_image_tile(im_tile, model):
     return im_tile_pred
 
 
+def crop_to_tiles(image, I, anchor_h='top', anchor_w='left'):
+    """
+    Crop image to dimensions that are perfect multiples of tile size.
+    
+    Parameters
+    ----------
+    image : 2D or 3D array
+        The image to crop.
+    I : int
+        Tile size (typically 256).
+    anchor_h : str, optional
+        Vertical anchor: 'top' (crop from bottom) or 'bottom' (crop from top). Default 'top'.
+    anchor_w : str, optional
+        Horizontal anchor: 'left' (crop from right) or 'right' (crop from left). Default 'left'.
+    
+    Returns
+    -------
+    cropped : 2D or 3D array
+        Cropped image with dimensions divisible by I.
+    """
+    if not isinstance(image, np.ndarray):
+        raise ValueError("Input image must be a numpy array.")
+    
+    crop_h = (image.shape[0] // I) * I
+    crop_w = (image.shape[1] // I) * I
+    
+    if image.ndim == 3:
+        if anchor_h == 'top':
+            rows = slice(None, crop_h)
+        else:
+            rows = slice(image.shape[0] - crop_h, None)
+        
+        if anchor_w == 'left':
+            cols = slice(None, crop_w)
+        else:
+            cols = slice(image.shape[1] - crop_w, None)
+        
+        return image[rows, cols, :]
+    else:
+        if anchor_h == 'top':
+            rows = slice(None, crop_h)
+        else:
+            rows = slice(image.shape[0] - crop_h, None)
+        
+        if anchor_w == 'left':
+            cols = slice(None, crop_w)
+        else:
+            cols = slice(image.shape[1] - crop_w, None)
+        
+        return image[rows, cols]
+
+
+def merge_predictions(predictions, crop_positions, original_shape):
+    """
+    Merge multiple predictions from cropped images back to original dimensions.
+    
+    Parameters
+    ----------
+    predictions : list of numpy.ndarray
+        List of predicted arrays from cropped images.
+    crop_positions : list of tuples
+        List of (row_start, col_start) tuples for each prediction.
+        Use (0, 0) for top-left crop.
+    original_shape : tuple
+        Shape of the original image (H, W, C).
+    
+    Returns
+    -------
+    merged : numpy.ndarray
+        Merged prediction array with shape original_shape.
+    """
+    merged = np.zeros(original_shape)
+    
+    for pred, (row_start, col_start) in zip(predictions, crop_positions):
+        h, w = pred.shape[:2]
+        merged[row_start:row_start+h, col_start:col_start+w] = pred
+    
+    return merged
 def predict_image(image, model, I):
     """
     Segmantic segmentation of the entire image using a Unet model.
@@ -170,6 +250,361 @@ def predict_image(image, model, I):
 
     image_pred = image_pred[:, I2:-I2, :]  # crop the left and right side padding
     image_pred = image_pred[:-pad_rows, :-pad_cols, :]  # get rid of padding
+    return image_pred
+
+def predict_image_mirror(image, model, I):
+    """
+    Segmantic segmentation of the entire image using a Unet model.
+
+    Parameters
+    ----------
+    image : 2D or 3D array
+        The image that is being segmented. Can have one or more channels.
+    model
+        Tensorflow model used for semantic segmentation.
+    I : int
+        Size of the square-shaped image tiles in pixels.
+
+    Returns
+    -------
+    image_pred : 3D array
+        Semantic segmentation result for the input image.
+    """
+
+    # Check for invalid input
+    if not isinstance(image, np.ndarray):
+        raise ValueError("Input image must be a numpy array.")
+    if image.ndim not in [2, 3]:
+        raise ValueError("Input image must be a 2D or 3D array.")
+    if image.ndim == 3 and image.shape[2] not in [1, 3]:
+        raise ValueError("3D input image must have 1 or 3 channels.")
+
+    pad_rows = 0 if np.mod(image.shape[0], I) == 0 else I - np.mod(image.shape[0], I)
+    pad_cols = 0 if np.mod(image.shape[1], I) == 0 else I - np.mod(image.shape[1], I)
+    I2 = int(I / 2)
+    if image.ndim == 2:
+        image = np.stack((image, image, image), axis=-1)
+    top_pad = np.flip(image[:I2, :, :], axis=0)
+    bottom_pad = np.flip(image[-I2:, :, :], axis=0)
+    image = np.vstack((top_pad, image, bottom_pad))
+    if image.ndim == 3:
+        pad_rows = 0 if np.mod(image.shape[0], I) == 0 else I - np.mod(image.shape[0], I)
+        pad_cols = 0 if np.mod(image.shape[1], I) == 0 else I - np.mod(image.shape[1], I)
+        if pad_rows > 0:
+            bottom_pad = np.flip(image[-pad_rows:, :, :], axis=0)
+            image = np.vstack((image, bottom_pad))
+        if pad_cols > 0:
+            right_pad = np.flip(image[:, -pad_cols:, :], axis=1)
+            image = np.hstack((image, right_pad))
+    r = int(np.floor(image.shape[0] / I))  # number of rows of image tiles
+    c = int(np.floor(image.shape[1] / I))  # number of columns of image tiles
+
+    W = np.hanning(I) * np.hanning(I)[:, np.newaxis]
+    Wup = W.copy()
+    Wup[:I2, :] = np.tile(np.hanning(I), (I2, 1))
+    Wdown = W.copy()
+    Wdown[I2:, :] = np.tile(np.hanning(I), (I2, 1))
+
+    left_pad = np.flip(image[:, :I2, :], axis=1)
+    right_pad = np.flip(image[:, -I2:, :], axis=1)
+    image = np.hstack((left_pad, image, right_pad))
+    image_pred = np.zeros((image.shape[0], image.shape[1], 3))
+    print("segmenting image tiles...")
+    for i in trange(c + 1):  # rows, no offset
+        for j in range(1, 2 * r - 2):  # columns
+            im_tile = image[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, :] / 255.0
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, layer] += (
+                    im_tile_pred[:, :, layer] * W
+                )
+    for i in range(c + 1):  # first row
+        im_tile = image[: 2 * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c + 1):  # last row
+        im_tile = image[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wdown
+            )
+    for i in trange(c):  # rows, half offset
+        for j in range(1, 2 * r - 2):  # columns
+            im_tile = (
+                image[j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+            )
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[
+                    j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, layer
+                ] += (im_tile_pred[:, :, layer] * W)
+    for i in range(c):  # first row
+        im_tile = image[: 2 * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I + I2 : (i + 1) * I + I2, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c):  # last row
+        im_tile = (
+            image[(2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, :]
+            / 255.0
+        )
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[
+                (2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, layer
+] += (im_tile_pred[:, :, layer] * Wdown)
+
+    image_pred = image_pred[:, I2:-I2, :]  # crop the left and right side padding
+    image_pred = image_pred[I2:-I2, :, :]  # crop the top and bottom side padding
+    if pad_rows > 0:
+        image_pred = image_pred[:-pad_rows, :, :]
+    if pad_cols > 0:
+        image_pred = image_pred[:, :-pad_cols, :]
+    return image_pred
+
+
+def predict_image_edge_complete(image, model, I):
+    """
+    Semantic segmentation using edge completion instead of mirroring.
+    
+    Parameters
+    ----------
+    image : 2D or 3D array
+        The image that is being segmented. Can have one or more channels.
+    model
+        Tensorflow model used for semantic segmentation.
+    I : int
+        Size of the square-shaped image tiles in pixels.
+    
+    Returns
+    -------
+    image_pred : 3D array
+        Semantic segmentation result for the input image.
+    """
+    from keras.saving import load_model
+    models = {
+        'top': load_model('models/edge_model_top.keras'),
+        'bottom': load_model('models/edge_model_bottom.keras'),
+        'left': load_model('models/edge_model_left.keras'),
+        'right': load_model('models/edge_model_right.keras')
+    }
+    if not isinstance(image, np.ndarray):
+        raise ValueError("Input image must be a numpy array.")
+    if image.ndim not in [2, 3]:
+        raise ValueError("Input image must be a 2D or 3D array.")
+    if image.ndim == 3 and image.shape[2] not in [1, 3]:
+        raise ValueError("3D input image must have 1 or 3 channels.")
+    
+    pad_rows = 0 if np.mod(image.shape[0], I) == 0 else I - np.mod(image.shape[0], I)
+    pad_cols = 0 if np.mod(image.shape[1], I) == 0 else I - np.mod(image.shape[1], I)
+    I2 = int(I / 2)
+    
+    if image.ndim == 2:
+        image = np.stack((image, image, image), axis=-1)
+    
+    top_pad = np.flip(image[:I2, :, :], axis=0)
+    bottom_pad = np.flip(image[-I2:, :, :], axis=0)
+    image = np.vstack((top_pad, image, bottom_pad))
+    
+    if image.ndim == 3:
+        pad_rows = 0 if np.mod(image.shape[0], I) == 0 else I - np.mod(image.shape[0], I)
+        pad_cols = 0 if np.mod(image.shape[1], I) == 0 else I - np.mod(image.shape[1], I)
+        if pad_rows > 0:
+            inner = image[I2:-I2, :, :]
+            _, bottom_pad, _, _ = predict_edges(inner / 255.0, pad_rows, models)
+            bottom_pad = (bottom_pad * 255.0).astype(np.uint8)
+            image = np.vstack((image, bottom_pad))
+        if pad_cols > 0:
+            inner = image[:, I2:-I2, :]
+            _, _, _, right_pad = predict_edges(inner / 255.0, pad_cols, models)
+            right_pad = (right_pad * 255.0).astype(np.uint8)
+            image = np.hstack((image, right_pad))
+    
+    r = int(np.floor(image.shape[0] / I))
+    c = int(np.floor(image.shape[1] / I))
+    
+    W = np.hanning(I) * np.hanning(I)[:, np.newaxis]
+    Wup = W.copy()
+    Wup[:I2, :] = np.tile(np.hanning(I), (I2, 1))
+    Wdown = W.copy()
+    Wdown[I2:, :] = np.tile(np.hanning(I), (I2, 1))
+    
+    left_pad = np.flip(image[:, :I2, :], axis=1)
+    right_pad = np.flip(image[:, -I2:, :], axis=1)
+    image = np.hstack((left_pad, image, right_pad))
+    image_pred = np.zeros((image.shape[0], image.shape[1], 3))
+    print("segmenting image tiles...")
+    for i in trange(c + 1):
+        for j in range(1, 2 * r - 2):
+            im_tile = image[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, :] / 255.0
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, layer] += (
+                    im_tile_pred[:, :, layer] * W
+                )
+    for i in range(c + 1):
+        im_tile = image[: 2 * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c + 1):
+        im_tile = image[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wdown
+            )
+    for i in trange(c):
+        for j in range(1, 2 * r - 2):
+            im_tile = (
+                image[j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+            )
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[
+                    j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, layer
+                ] += (im_tile_pred[:, :, layer] * W)
+    for i in range(c):
+        im_tile = image[: 2 * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I + I2 : (i + 1) * I + I2, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c):
+        im_tile = (
+            image[(2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, :]
+            / 255.0
+        )
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[
+                (2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, layer
+            ] += (im_tile_pred[:, :, layer] * Wdown)
+    
+    image_pred = image_pred[:, I2:-I2, :]
+    image_pred = image_pred[I2:-I2, :, :]
+    if pad_rows > 0:
+        image_pred = image_pred[:-pad_rows, :, :]
+    if pad_cols > 0:
+        image_pred = image_pred[:, :-pad_cols, :]
+    return image_pred
+
+
+def predict_image_modified(image, model, I):
+    """
+    Segmantic segmentation of the entire image using a Unet model.
+
+    Parameters
+    ----------
+    image : 2D or 3D array
+        The image that is being segmented. Can have one or more channels.
+    model
+        Tensorflow model used for semantic segmentation.
+    I : int
+        Size of the square-shaped image tiles in pixels.
+
+    Returns
+    -------
+    image_pred : 3D array
+        Semantic segmentation result for the input image.
+    """
+
+    # Check for invalid input
+    if not isinstance(image, np.ndarray):
+        raise ValueError("Input image must be a numpy array.")
+    if image.ndim not in [2, 3]:
+        raise ValueError("Input image must be a 2D or 3D array.")
+    if image.ndim == 3 and image.shape[2] not in [1, 3]:
+        raise ValueError("3D input image must have 1 or 3 channels.")
+
+    # Only add padding if needed
+    pad_rows = 0 if np.mod(image.shape[0], I) == 0 else I - np.mod(image.shape[0], I)
+    pad_cols = 0 if np.mod(image.shape[1], I) == 0 else I - np.mod(image.shape[1], I)
+    if image.ndim == 2:
+        image = np.stack((image, image, image), axis=-1)  # convert to 3 channels
+    if image.ndim == 3:
+        image = np.vstack((image, np.zeros((pad_rows, image.shape[1], image.shape[2]))))
+        image = np.hstack((image, np.zeros((image.shape[0], pad_cols, image.shape[2]))))
+    r = int(np.floor(image.shape[0] / I))  # number of rows of image tiles
+    c = int(np.floor(image.shape[1] / I))  # number of columns of image tiles
+
+    I2 = int(I / 2)
+    W = np.hanning(I) * np.hanning(I)[:, np.newaxis]
+    Wup = W.copy()
+    Wup[:I2, :] = np.tile(np.hanning(I), (I2, 1))
+    Wdown = W.copy()
+    Wdown[I2:, :] = np.tile(np.hanning(I), (I2, 1))
+
+    # Use edge mirroring instead of zeros for side padding to avoid edge artifacts
+    left_pad = np.flip(image[:, :I2, :], axis=1)
+    right_pad = np.flip(image[:, -I2:, :], axis=1)
+    image = np.hstack((left_pad, image, right_pad))
+    image_pred = np.zeros((image.shape[0], image.shape[1], 3))
+    print("segmenting image tiles...")
+    for i in trange(c + 1):  # rows, no offset
+        for j in range(1, 2 * r - 2):  # columns
+            im_tile = image[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, :] / 255.0
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, layer] += (
+                    im_tile_pred[:, :, layer] * W
+                )
+    for i in range(c + 1):  # first row
+        im_tile = image[: 2 * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c + 1):  # last row
+        im_tile = image[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, layer] += (
+                im_tile_pred[:, :, layer] * Wdown
+            )
+    for i in trange(c):  # rows, half offset
+        for j in range(1, 2 * r - 2):  # columns
+            im_tile = (
+                image[j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+            )
+            im_tile_pred = predict_image_tile(im_tile, model)
+            for layer in range(3):
+                image_pred[
+                    j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, layer
+                ] += (im_tile_pred[:, :, layer] * W)
+    for i in range(c):  # first row
+        im_tile = image[: 2 * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[: 2 * I2, i * I + I2 : (i + 1) * I + I2, layer] += (
+                im_tile_pred[:, :, layer] * Wup
+            )
+    for i in range(c):  # last row
+        im_tile = (
+            image[(2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, :]
+            / 255.0
+        )
+        im_tile_pred = predict_image_tile(im_tile, model)
+        for layer in range(3):
+            image_pred[
+                (2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, layer
+            ] += (im_tile_pred[:, :, layer] * Wdown)
+
+    image_pred = image_pred[:, I2:-I2, :]  # crop the left and right side padding
+    if pad_rows > 0:
+        image_pred = image_pred[:-pad_rows, :, :]
+    if pad_cols > 0:
+        image_pred = image_pred[:, :-pad_cols, :]
     return image_pred
 
 
@@ -544,6 +979,80 @@ def Unet():
 
     return model
 
+def UnetModified():
+    """
+    Creates a modified U-Net model variant for image segmentation.
+    Extends the standard UNet with additional trainable layers at the end
+    while maintaining compatibility with pretrained UNet weights.
+
+    Returns
+    -------
+    model : tensorflow.keras.Model
+        The modified U-Net model.
+    """
+
+    tf.keras.backend.clear_session()
+
+    inputs = Input((256, 256, 3), name="input")
+
+    conv1 = Conv2D(16, (3, 3), activation="relu", padding="same")(inputs)
+    conv1 = Conv2D(16, (3, 3), activation="relu", padding="same")(conv1)
+    conv1 = BatchNormalization()(conv1)
+
+    pool1 = MaxPooling2D(pool_size=(2, 2))(conv1)
+    conv2 = Conv2D(32, (3, 3), activation="relu", padding="same")(pool1)
+    conv2 = Conv2D(32, (3, 3), activation="relu", padding="same")(conv2)
+    conv2 = BatchNormalization()(conv2)
+
+    pool2 = MaxPooling2D(pool_size=(2, 2))(conv2)
+    conv3 = Conv2D(64, (3, 3), activation="relu", padding="same")(pool2)
+    conv3 = Conv2D(64, (3, 3), activation="relu", padding="same")(conv3)
+    conv3 = BatchNormalization()(conv3)
+
+    pool3 = MaxPooling2D(pool_size=(2, 2))(conv3)
+    conv4 = Conv2D(128, (3, 3), activation="relu", padding="same")(pool3)
+    conv4 = Conv2D(128, (3, 3), activation="relu", padding="same")(conv4)
+    conv4 = BatchNormalization()(conv4)
+
+    pool4 = MaxPooling2D(pool_size=(2, 2))(conv4)
+    conv5 = Conv2D(256, (3, 3), activation="relu", padding="same")(pool4)
+    conv5 = Conv2D(256, (3, 3), activation="relu", padding="same")(conv5)
+    conv5 = BatchNormalization()(conv5)
+
+    up6 = Conv2DTranspose(128, (3, 3), strides=(2, 2), padding="same")(conv5)
+    up6 = concatenate([up6, conv4])
+    conv6 = Conv2D(128, (3, 3), activation="relu", padding="same")(up6)
+    conv6 = Conv2D(128, (3, 3), activation="relu", padding="same")(conv6)
+    conv6 = BatchNormalization()(conv6)
+
+    up7 = Conv2DTranspose(64, (3, 3), strides=(2, 2), padding="same")(conv6)
+    up7 = concatenate([up7, conv3])
+    conv7 = Conv2D(64, (3, 3), activation="relu", padding="same")(up7)
+    conv7 = Conv2D(64, (3, 3), activation="relu", padding="same")(conv7)
+    conv7 = BatchNormalization()(conv7)
+
+    up8 = Conv2DTranspose(32, (3, 3), strides=(2, 2), padding="same")(conv7)
+    up8 = concatenate([up8, conv2])
+    conv8 = Conv2D(32, (3, 3), activation="relu", padding="same")(up8)
+    conv8 = Conv2D(32, (3, 3), activation="relu", padding="same")(conv8)
+    conv8 = BatchNormalization()(conv8)
+
+    up9 = Conv2DTranspose(16, (3, 3), strides=(2, 2), padding="same")(conv8)
+    up9 = concatenate([up9, conv1])
+    conv9 = Conv2D(16, (3, 3), activation="relu", padding="same")(up9)
+    conv9 = Conv2D(16, (3, 3), activation="relu", padding="same")(conv9)
+    conv9 = BatchNormalization()(conv9)
+
+    extra_conv1 = Conv2D(32, (3, 3), activation="relu", padding="same")(conv9)
+    extra_conv1 = BatchNormalization()(extra_conv1)
+
+    extra_conv2 = Conv2D(32, (3, 3), activation="relu", padding="same")(extra_conv1)
+    extra_conv2 = BatchNormalization()(extra_conv2)
+
+    conv10 = Conv2D(3, (1, 1), activation="softmax")(extra_conv2)
+    model = Model(inputs=[inputs], outputs=[conv10])
+
+    return model
 
 def weighted_crossentropy(y_true, y_pred):
     """
@@ -2060,6 +2569,94 @@ def create_and_train_model(
     model.evaluate(test_dataset)
     return model
 
+def create_and_train_model_from_pretrained(
+    pretrained_model_file,
+    train_dataset,
+    val_dataset,
+    test_dataset,
+    epochs=50,
+    learning_rate=1e-4,
+    model_type="unet",
+    save_plot_path="training_loss_plot.png",
+    show_plot=True,
+    use_reduce_lr = False
+):
+    """
+    Load a pretrained model and fine-tune it on new training data.
+
+    Parameters
+    ----------
+    pretrained_model_file : str
+        Path to the pretrained model weights file (.keras or .h5).
+    train_dataset : tf.data.Dataset
+        Training dataset.
+    val_dataset : tf.data.Dataset
+        Validation dataset.
+    test_dataset : tf.data.Dataset
+        Test dataset.
+    epochs : int, optional
+        Number of epochs to fine-tune the model (default is 50).
+    learning_rate : float, optional
+        Learning rate for fine-tuning (default is 1e-4, lower than default training).
+    model_type : str, optional
+        Type of model architecture: "unet" or "unet_modified" (default is "unet").
+    save_plot_path : str, optional
+        Path to save the training loss plot (default is "training_loss_plot.png").
+    show_plot : bool, optional
+        Whether to display the plot (default is True). Set to False when using non-interactive backends.
+
+    Returns
+    -------
+    model : tf.keras.Model
+        Fine-tuned U-Net model.
+    """
+    if model_type == "unet_modified":
+        base_model = UnetModified()
+    else:
+        base_model = Unet()
+
+    pretrained_model = load_model(
+        pretrained_model_file,
+        custom_objects={"weighted_crossentropy": weighted_crossentropy},
+    )
+
+    for layer in base_model.layers:
+        try:
+            pretrained_layer = pretrained_model.get_layer(layer.name)
+            layer.set_weights(pretrained_layer.get_weights())
+        except:
+            pass
+
+    base_model.compile(
+        optimizer=Adam(learning_rate=learning_rate),
+        loss=weighted_crossentropy,
+        metrics=["accuracy"],
+    )
+
+    lrchecks = []
+
+    if use_reduce_lr == True:   # your boolean
+        reduce_lr = ReduceLROnPlateau(monitor="val_loss",factor=0.5,patience=3,verbose=1,mode="min",min_delta=1e-4,cooldown=1,min_lr=1e-6,)
+        lrchecks.append(reduce_lr)
+
+    history = base_model.fit(train_dataset, epochs=epochs, validation_data=val_dataset,callbacks=lrchecks)
+    fig, axes = plt.subplots(nrows=1, ncols=2, figsize=(12, 5))
+    axes[0].plot(history.history["loss"], label="train")
+    axes[0].plot(history.history["val_loss"], label="validation")
+    axes[0].set_xlabel("epoch")
+    axes[0].set_ylabel("loss")
+    axes[0].legend()
+    axes[1].plot(history.history["accuracy"], label="train")
+    axes[1].plot(history.history["val_accuracy"], label="validation")
+    axes[1].set_xlabel("epoch")
+    axes[1].set_ylabel("accuracy")
+    axes[1].legend()
+    plt.tight_layout()
+    plt.savefig(save_plot_path, dpi=150)
+    if show_plot:
+        plt.show()
+    base_model.evaluate(test_dataset)
+    return base_model
 
 def save_polygons(polygons, fname):
     """
