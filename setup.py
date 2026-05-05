@@ -22,6 +22,7 @@ setuptools.setup(
         'scipy','pillow','scikit-image','tqdm','opencv-python',
         'networkx','rasterio','shapely','tensorflow','sam2',
         'scikit-learn','rtree','pandas','geopandas','keras'],
+    license_files=[],
     classifiers=[
         "Programming Language :: Python :: 3",
         "Programming Language :: Python :: 3.10",
