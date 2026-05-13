@@ -1,3 +1,11 @@
+"""Black-box objective + Bayesian optimization loop for synthetic-data search.
+
+High-level flow:
+theta -> synthetic generator -> train chosen model -> eval on real data -> score
+
+The GP loop then uses those scores to suggest the next theta to try.
+"""
+
 import numpy as np
 import cv2
 import shutil
@@ -33,6 +41,7 @@ CLEAN_PATH = "./real_clean_images/"
 PREDICT_PATH = TARGET_PATH
 
 
+# Workspace helper: recreate a directory from scratch for each run.
 def reset_dir(path):
     path = Path(path)
     if path.exists():
@@ -41,6 +50,7 @@ def reset_dir(path):
     return path
 
 
+# Split-selected image/mask pairs into a fresh folder on disk.
 def stage_pairs(pairs, folder):
     folder = reset_dir(folder)
     for img_path, mask_path in pairs:
@@ -49,6 +59,7 @@ def stage_pairs(pairs, folder):
     return folder
 
 
+# Multi-resolution augmentation: downsample then upsample each synthetic patch.
 def create_scaled_variants(image_files, mask_files, scales, split_dir):
     """For a given split, creates downsampled+upsampled variants at each scale and saves to disk."""
     split_dir = Path(split_dir)
@@ -84,6 +95,7 @@ def create_scaled_variants(image_files, mask_files, scales, split_dir):
     return all_images, all_masks
 
 
+# Torch patch dataset used only for the ResNeXt path.
 class PatchDataset(Dataset):
     """Simple paired patch dataset for torch models."""
 
@@ -116,6 +128,7 @@ class PatchDataset(Dataset):
         return img_t, mask_t
 
 
+# TensorFlow dataset builder used by the Keras U-Net paths.
 def build_dataset(image_files, mask_files, augmentation=False, batch_size=32, shuffle_buffer=1000):
     """Builds a TF dataset from image and mask file paths."""
     dataset = tf.data.Dataset.from_tensor_slices((image_files, mask_files))
@@ -132,6 +145,7 @@ def build_dataset(image_files, mask_files, augmentation=False, batch_size=32, sh
     return dataset
 
 
+# Shared evaluation helper for torch models.
 def evaluate_torch_model(model, dataloader, device):
     model.eval()
     running_loss = 0.0
@@ -169,6 +183,7 @@ def train_model_on_resolutions(
     workspace = Path(workspace)
     patch_dir = reset_dir(workspace / "patches")
 
+    # Hold out real noisy data for validation/test so theta is judged on real images.
     real_pairs = load_image_mask_pairs(real_noisy_folder)
     if len(real_pairs) < 2:
         raise ValueError("Need at least two real noisy image/mask pairs for validation/test splitting.")
@@ -202,6 +217,7 @@ def train_model_on_resolutions(
     print(f"Test: {len(test_images)} real noisy patches")
 
     if model_family in {"unet", "unet_modified"}:
+        # Keras path: either start from the repo constructors or fine-tune a saved model.
         train_dataset = build_dataset(train_images, train_masks, augmentation=True)
         val_dataset = build_dataset(val_images, val_masks, augmentation=False)
         test_dataset = build_dataset(test_images, test_masks, augmentation=False)
@@ -240,6 +256,7 @@ def train_model_on_resolutions(
         val_metrics = model.evaluate(val_dataset, verbose=0, return_dict=True)
         test_metrics = model.evaluate(test_dataset, verbose=0, return_dict=True)
     elif model_family == "resnext":
+        # Torch path: mirrors the notebook training template in callable form.
         device = torch.device(
             "mps" if torch.backends.mps.is_available()
             else ("cuda" if torch.cuda.is_available() else "cpu")
@@ -303,10 +320,12 @@ def black_box(
     use_pretrained=False,
     resolution_weight=0.35,
 ):
+    """Evaluate one candidate theta and return a single scalar score."""
     theta = np.asarray(theta, dtype=float)
     theta_tag = "_".join(f"{value:.4g}" for value in theta)
     workspace = reset_dir("./blackbox_workspace")
 
+    # 1) Generate synthetic noisy image/mask pairs from the candidate theta.
     print(f"Running black box for theta={theta_tag} using model_family={model_family}")
     synthetic_folder = generate_synthetic_images_from_script(
         theta,
@@ -316,6 +335,7 @@ def black_box(
         seed=42,
     )
 
+    # 2) Train the chosen model family on synthetic patches and evaluate on real data.
     _, metrics = train_model_on_resolutions(
         synthetic_folder,
         real_noisy_folder=TARGET_PATH,
@@ -326,6 +346,7 @@ def black_box(
         use_pretrained=use_pretrained,
     )
 
+    # 3) Compare generated synthetic images to held-out real validation images.
     synthetic_pairs = load_image_mask_pairs(synthetic_folder)
     real_val_pairs = load_image_mask_pairs(metrics["real_val_dir"])
     cost = np.zeros((len(synthetic_pairs), len(real_val_pairs)), dtype=np.float32)
@@ -336,6 +357,7 @@ def black_box(
             real_img = load_image(real_img_path)
             cost[i, j] = get_noise_loss(synthetic_img, real_img)
 
+    # 4) Final score: real-data validation loss + weighted image-domain mismatch.
     row_ind, col_ind = linear_sum_assignment(cost)
     resolution_loss = float(np.mean(cost[row_ind, col_ind]))
     objective_value = float(metrics["val_loss"] + resolution_weight * resolution_loss)
@@ -393,6 +415,7 @@ def save_gp_data(path, X, y):
         json.dump({"X": X.tolist(), "y": y.tolist()}, f, indent=2)
 
 def suggest_next(X_scaled, y, n_test=500, beta=1.96):
+    """Fit a GP surrogate and propose the next theta to evaluate."""
     gp = GaussianProcessRegressor(kernel=C(1.0) * RBF(length_scale=np.ones(n_dim)), n_restarts_optimizer=10)
     gp.fit(X_scaled, y)
 
@@ -402,6 +425,7 @@ def suggest_next(X_scaled, y, n_test=500, beta=1.96):
     X_test_scaled = (X_test - lb) / (ub - lb)
 
     y_pred, sigma = gp.predict(X_test_scaled, return_std=True)
+    # Lower objective is better, so use a lower-confidence-bound style acquisition.
     acquisition = y_pred - beta * sigma
     best_idx = np.argmin(acquisition)
     return gp, X_test[best_idx], y_pred[best_idx], sigma[best_idx]
@@ -417,6 +441,7 @@ def run_gp_loop(
     use_pretrained=False,
     resolution_weight=0.35,
 ):
+    """Template Bayesian optimization loop around the expensive black box."""
     X_prev, y_prev = load_gp_data(data_path)
 
     if X_prev is not None and len(X_prev) > 0:
@@ -445,6 +470,7 @@ def run_gp_loop(
         print(f"\n--- Iteration {i+1}/{n_iterations} ---")
         print(f"Current dataset size: {len(X_train)}")
 
+        # Fit/update the surrogate, ask it for the next theta, then evaluate.
         X_scaled = (X_train - lb) / (ub - lb)
         gp, theta_next, pred_mean, pred_std = suggest_next(X_scaled, y_train, n_test=n_test, beta=beta)
 
