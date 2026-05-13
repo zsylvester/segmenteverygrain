@@ -86,82 +86,45 @@ def get_noise_stats(img,num_bins=10,pixel_cutoff=30):
 
 
 
-#Input image with synthetic noise, and real noise -> output loss estimated by comparing noise stats of the two
+#Input image with synthetic noise, and real noise -> output loss estimated by comparing
+#multi-resolution information loss, histogram similarity, and pixelwise similarity
 def get_noise_loss(synthetic_img: np.ndarray, real_img: np.ndarray) -> float:
     """
-    Calculates a noise loss for matching; m = mean, v = variance
+    Calculates a multiresolution matching loss between synthetic and real images.
     """
-    #Variance loss
-    m_syn, v_syn = get_noise_stats(synthetic_img)
-    m_real, v_real = get_noise_stats(real_img)
-    v_real_interp = np.interp(m_syn, m_real, v_real)
-    loss_var = np.mean((v_syn - v_real_interp) ** 2)
+    scales = (1.0, 0.75, 0.5)
+    hist_weight = 0.6
+    pixel_weight = 0.4
 
-    #Row noise loss
-    row_syn = np.var(np.mean(synthetic_img, axis=1))
-    row_real = np.var(np.mean(real_img, axis=1))
+    synthetic_img = percentile_normalize(synthetic_img.astype(np.float32))
+    real_img = percentile_normalize(real_img.astype(np.float32))
+    losses = []
 
-    loss_row = (row_syn - row_real) ** 2
+    for scale in scales:
+        if scale < 0.999:
+            rows, cols = synthetic_img.shape
+            new_rows = max(1, int(round(rows * scale)))
+            new_cols = max(1, int(round(cols * scale)))
 
-    #Multi-lag autocorrelation (lags 1, 2, 5, 10)
-    def autocorr_multilag(img, lags=[1, 2, 5, 10]):
-        noise = extract_noise(img)
-        corrs = []
-        for lag in lags:
-            if lag < noise.shape[1]:
-                corr = np.mean(noise[:, :-lag] * noise[:, lag:])
-                corrs.append(corr)
-        return np.array(corrs)
-    lags = [1, 2, 5, 10]
-    corr_syn_multi = autocorr_multilag(synthetic_img, lags)
-    corr_real_multi = autocorr_multilag(real_img, lags)
-    loss_corr = np.mean((corr_syn_multi - corr_real_multi) ** 2)
+            synthetic_scaled = cv2.resize(synthetic_img, (new_cols, new_rows), interpolation=cv2.INTER_AREA)
+            synthetic_scaled = cv2.resize(synthetic_scaled, (cols, rows), interpolation=cv2.INTER_CUBIC)
 
-    #Power spectrum loss (captures periodic banding, scan-line frequencies)
-    def power_spectrum(img):
-        noise = extract_noise(img)
-        fft = np.fft.fft2(noise)
-        psd = np.abs(fft) ** 2
-        psd_shift = np.fft.fftshift(psd)
-        rows, cols = psd_shift.shape
-        center = (rows // 2, cols // 2)
-        # distance of each pixel in frequency space from the center
-        y, x = np.ogrid[:rows, :cols]
-        dist = np.sqrt((x - center[1]) ** 2 + (y - center[0]) ** 2)
+            real_scaled = cv2.resize(real_img, (new_cols, new_rows), interpolation=cv2.INTER_AREA)
+            real_scaled = cv2.resize(real_scaled, (cols, rows), interpolation=cv2.INTER_CUBIC)
+        else:
+            synthetic_scaled = synthetic_img
+            real_scaled = real_img
 
-        # scale ring boundaries relative to image size
-        max_r = min(rows, cols) // 2
-        ring_edges = [
-            0,
-            int(0.05 * max_r),
-            int(0.15 * max_r),
-            int(0.30 * max_r),
-            int(0.60 * max_r),
-        ]
-        # make sure edges are strictly increasing and unique
-        ring_edges = sorted(set(max(0, r) for r in ring_edges))
-        if ring_edges[-1] < max_r:
-            ring_edges.append(max_r)
+        hist_syn, _ = np.histogram(synthetic_scaled.ravel(), bins=64, range=(0.0, 1.0), density=True)
+        hist_real, _ = np.histogram(real_scaled.ravel(), bins=64, range=(0.0, 1.0), density=True)
+        hist_syn = hist_syn / (hist_syn.sum() + 1e-8)
+        hist_real = hist_real / (hist_real.sum() + 1e-8)
 
-        radial_profile = []
+        hist_loss = np.mean(np.abs(hist_syn - hist_real))
+        pixel_loss = np.mean(np.abs(synthetic_scaled - real_scaled))
+        losses.append(hist_weight * hist_loss + pixel_weight * pixel_loss)
 
-        for r_inner, r_outer in zip(ring_edges[:-1], ring_edges[1:]):
-            mask = (dist >= r_inner) & (dist < r_outer)
-
-            if np.any(mask):
-                radial_profile.append(np.mean(psd_shift[mask]))
-            else:
-                radial_profile.append(0.0)
-
-        return np.array(radial_profile, dtype=np.float32)
-    ps_syn = power_spectrum(synthetic_img)
-    ps_real = power_spectrum(real_img)
-    ps_ratio = ps_syn / (ps_real + 1e-6)
-    ps_ratio_clamped = np.clip(ps_ratio, 0.1, 10.0)
-    loss_ps = np.mean((ps_ratio_clamped - 1.0) ** 2)
-
-    total_loss = loss_var + loss_row + loss_corr + loss_ps
-    return float(total_loss)
+    return float(np.mean(losses))
 
 import time
 from datetime import timedelta

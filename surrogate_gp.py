@@ -1,66 +1,45 @@
 import numpy as np
 import cv2
+import shutil
 from pathlib import Path
 import segmenteverygrain as seg
 from synthetic_noise import (
-    NoiseParams,
-    make_noisy_training_pair,
-    load_images_from_folder,
-    percentile_normalize,
+    get_noise_loss,
 )
-from create_synthetic_images import load_image_mask_pairs, load_image
+from create_synthetic_images import (
+    generate_synthetic_images as generate_synthetic_images_from_script,
+    load_image_mask_pairs,
+    load_image,
+)
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
 from glob import glob
-from tqdm import tqdm
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
+from scipy.optimize import linear_sum_assignment
 import json
 
 TARGET_PATH = "./real_noisy_images/"
 CLEAN_PATH = "./real_clean_images/"
 PREDICT_PATH = TARGET_PATH
+DEFAULT_PRETRAINED_MODEL = "models/seg_model.keras"
 
-def generate_synthetic_images(theta, clean_folder=CLEAN_PATH, noise_ref_folder=TARGET_PATH, output_folder="./synthetic_noisy_images/"):
-    """Takes in theta and generates synthetic noisy images from clean image-mask pairs."""
-    params = NoiseParams(
-        a=float(theta[0]),
-        b=float(theta[1]),
-        sigma_r=float(theta[2]),
-        l=float(theta[3]),
-        k=float(theta[4]),
-    )
 
-    pairs = load_image_mask_pairs(clean_folder)
+def reset_dir(path):
+    path = Path(path)
+    if path.exists():
+        shutil.rmtree(path)
+    path.mkdir(parents=True, exist_ok=True)
+    return path
 
-    _, noise_paths = load_images_from_folder(noise_ref_folder)
-    sample_noisy = cv2.imread(noise_paths[0], cv2.IMREAD_GRAYSCALE)
-    target_shape = sample_noisy.shape
 
-    rng = np.random.default_rng(42)
-    Path(output_folder).mkdir(parents=True, exist_ok=True)
-
+def stage_pairs(pairs, folder):
+    folder = reset_dir(folder)
     for img_path, mask_path in pairs:
-        img_name = Path(img_path).stem
-        clean_img = load_image(img_path)
-        clean_mask = load_image(mask_path)
-
-        noisy_img, mask_ds, clean_ds = make_noisy_training_pair(
-            clean_img=clean_img,
-            clean_mask=clean_mask,
-            target_shape=target_shape,
-            params=params,
-            rng=rng,
-        )
-
-        noisy_path = Path(output_folder) / f"noisy{img_name[:-5]}image.png"
-        mask_path_out = Path(output_folder) / f"noisy{img_name[:-5]}mask.png"
-
-        cv2.imwrite(str(noisy_path), (noisy_img * 255).astype(np.uint8))
-        cv2.imwrite(str(mask_path_out), (mask_ds * 255).astype(np.uint8))
-
-    return output_folder
+        shutil.copy2(img_path, folder / Path(img_path).name)
+        shutil.copy2(mask_path, folder / Path(mask_path).name)
+    return folder
 
 
 def create_scaled_variants(image_files, mask_files, scales, split_dir):
@@ -114,86 +93,158 @@ def build_dataset(image_files, mask_files, augmentation=False, batch_size=32, sh
     return dataset
 
 
-def train_model_on_resolutions(synthetic_folder, real_noisy_folder="./testnoisyimages/", model_name="synthetic_blackbox", scales=[0.5, 0.75, 1.0]):
-    """Trains a model on multi-res synthetic images plus original-res real noisy images."""
-    patch_dir = "patches/"
-    syn_image_dir, syn_mask_dir = seg.patchify_training_data(synthetic_folder, Path(patch_dir) / "synthetic")
-    real_image_dir, real_mask_dir = seg.patchify_training_data(real_noisy_folder, Path(patch_dir) / "real")
+def train_model_on_resolutions(
+    synthetic_folder,
+    real_noisy_folder=TARGET_PATH,
+    model_name="synthetic_blackbox",
+    scales=(0.5, 0.75, 1.0),
+    workspace="./blackbox_workspace",
+    model_family="unet",
+    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+):
+    """Train on synthetic multi-res patches and evaluate on held-out real noisy images."""
+    workspace = Path(workspace)
+    patch_dir = reset_dir(workspace / "patches")
+
+    real_pairs = load_image_mask_pairs(real_noisy_folder)
+    if len(real_pairs) < 2:
+        raise ValueError("Need at least two real noisy image/mask pairs for validation/test splitting.")
+    val_pairs, test_pairs = train_test_split(real_pairs, test_size=0.4, random_state=42)
+    real_val_dir = stage_pairs(val_pairs, workspace / "real_val")
+    real_test_dir = stage_pairs(test_pairs, workspace / "real_test")
+
+    synthetic_folder = str(synthetic_folder)
+    if not synthetic_folder.endswith("/"):
+        synthetic_folder = f"{synthetic_folder}/"
+
+    syn_image_dir, syn_mask_dir = seg.patchify_training_data(synthetic_folder, patch_dir / "synthetic")
+    val_image_dir, val_mask_dir = seg.patchify_training_data(f"{real_val_dir}/", patch_dir / "real_val")
+    test_image_dir, test_mask_dir = seg.patchify_training_data(f"{real_test_dir}/", patch_dir / "real_test")
 
     syn_images = sorted(glob(syn_image_dir + "/*.png"))
     syn_masks = sorted(glob(syn_mask_dir + "/*.png"))
-    real_images = sorted(glob(real_image_dir + "/*.png"))
-    real_masks = sorted(glob(real_mask_dir + "/*.png"))
+    val_images = sorted(glob(val_image_dir + "/*.png"))
+    val_masks = sorted(glob(val_mask_dir + "/*.png"))
+    test_images = sorted(glob(test_image_dir + "/*.png"))
+    test_masks = sorted(glob(test_mask_dir + "/*.png"))
 
-    train_val_syn_images, test_syn_images, train_val_syn_masks, test_syn_masks = train_test_split(
-        syn_images, syn_masks, test_size=0.15, random_state=42
-    )
-    train_syn_images, val_syn_images, train_syn_masks, val_syn_masks = train_test_split(
-        train_val_syn_images, train_val_syn_masks, test_size=0.25, random_state=42
-    )
-
-    train_val_real_images, test_real_images, train_val_real_masks, test_real_masks = train_test_split(
-        real_images, real_masks, test_size=0.15, random_state=42
-    )
-    train_real_images, val_real_images, train_real_masks, val_real_masks = train_test_split(
-        train_val_real_images, train_val_real_masks, test_size=0.25, random_state=42
-    )
-
-    split_dir = Path(patch_dir) / "synthetic" / "Patches"
+    split_dir = patch_dir / "synthetic" / "Patches"
     train_dir = split_dir / "train"
-    val_dir = split_dir / "val"
-    test_dir = split_dir / "test"
 
     print("Creating multi-resolution synthetic training data...")
-    train_syn_images, train_syn_masks = create_scaled_variants(train_syn_images, train_syn_masks, scales, train_dir)
-    print("Creating multi-resolution synthetic validation data...")
-    val_syn_images, val_syn_masks = create_scaled_variants(val_syn_images, val_syn_masks, scales, val_dir)
-    print("Creating multi-resolution synthetic test data...")
-    test_syn_images, test_syn_masks = create_scaled_variants(test_syn_images, test_syn_masks, scales, test_dir)
+    train_images, train_masks = create_scaled_variants(syn_images, syn_masks, scales, train_dir)
 
-    train_images = train_syn_images + train_real_images
-    train_masks = train_syn_masks + train_real_masks
-    val_images = val_syn_images + val_real_images
-    val_masks = val_syn_masks + val_real_masks
-    test_images = test_syn_images + test_real_images
-    test_masks = test_syn_masks + test_real_masks
-
-    print(f"Training: {len(train_images)} images ({len(train_syn_images)} synthetic + {len(train_real_images)} real)")
-    print(f"Validation: {len(val_images)} images ({len(val_syn_images)} synthetic + {len(val_real_images)} real)")
-    print(f"Test: {len(test_images)} images ({len(test_syn_images)} synthetic + {len(test_real_images)} real)")
+    print(f"Training: {len(train_images)} synthetic patches")
+    print(f"Validation: {len(val_images)} real noisy patches")
+    print(f"Test: {len(test_images)} real noisy patches")
 
     train_dataset = build_dataset(train_images, train_masks, augmentation=True)
     val_dataset = build_dataset(val_images, val_masks, augmentation=False)
     test_dataset = build_dataset(test_images, test_masks, augmentation=False)
 
-    model = seg.create_and_train_model_from_pretrained(
-        "models/seg_model.keras",
-        train_dataset,
-        val_dataset,
-        test_dataset,
-        epochs=80,
-        learning_rate=1e-2,
-        model_type="unet",
-        save_plot_path=f"loss_plots/training_loss_plot_{model_name}.png",
-        show_plot=False,
-        use_reduce_lr=True,
+    if model_family in {"unet", "unet_modified"}:
+        model = seg.create_and_train_model_from_pretrained(
+            pretrained_model_file,
+            train_dataset,
+            val_dataset,
+            test_dataset,
+            epochs=80,
+            learning_rate=1e-2,
+            model_type=model_family,
+            save_plot_path=f"loss_plots/training_loss_plot_{model_name}.png",
+            show_plot=False,
+            use_reduce_lr=True,
+        )
+    elif model_family == "resnext":
+        raise NotImplementedError(
+            "ResNeXt training is only implemented in Train_ResNeXt_model.ipynb right now; "
+            "surrogate_gp.py currently supports the reusable Keras paths: 'unet' and 'unet_modified'."
+        )
+    else:
+        raise ValueError(
+            f"Unsupported model_family '{model_family}'. "
+            "Choose from 'unet', 'unet_modified', or 'resnext'."
+        )
+
+    model_path = Path("models") / f"{model_name}.keras"
+    model.save(model_path)
+
+    val_metrics = model.evaluate(val_dataset, verbose=0, return_dict=True)
+    test_metrics = model.evaluate(test_dataset, verbose=0, return_dict=True)
+    metrics = {
+        "val_loss": float(val_metrics["loss"]),
+        "val_accuracy": float(val_metrics["accuracy"]),
+        "test_loss": float(test_metrics["loss"]),
+        "test_accuracy": float(test_metrics["accuracy"]),
+        "real_val_dir": str(real_val_dir),
+        "real_test_dir": str(real_test_dir),
+        "model_path": str(model_path),
+    }
+    return model, metrics
+
+def black_box(
+    theta,
+    model_family="unet",
+    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+    resolution_weight=0.35,
+):
+    theta = np.asarray(theta, dtype=float)
+    theta_tag = "_".join(f"{value:.4g}" for value in theta)
+    workspace = reset_dir("./blackbox_workspace")
+
+    print(f"Running black box for theta={theta_tag} using model_family={model_family}")
+    synthetic_folder = generate_synthetic_images_from_script(
+        theta,
+        input_folder=CLEAN_PATH,
+        noise_reference_folder=TARGET_PATH,
+        output_folder=workspace / "synthetic_noisy_images",
+        seed=42,
     )
 
-    model.save(f"models/{model_name}.keras")
-    return model
+    _, metrics = train_model_on_resolutions(
+        synthetic_folder,
+        real_noisy_folder=TARGET_PATH,
+        model_name="synthetic_blackbox",
+        workspace=workspace,
+        model_family=model_family,
+        pretrained_model_file=pretrained_model_file,
+    )
 
-def black_box(theta):
-    # Takes in theta and generates images, using create_synthetic_images.py
-    synthetic_folder = generate_synthetic_images(theta)
+    synthetic_pairs = load_image_mask_pairs(synthetic_folder)
+    real_val_pairs = load_image_mask_pairs(metrics["real_val_dir"])
+    cost = np.zeros((len(synthetic_pairs), len(real_val_pairs)), dtype=np.float32)
 
-    # Trains a model on those synthetic images at several resolutions plus the real noisy images, from train_variant.py
-    model = train_model_on_resolutions(synthetic_folder,real_noisy_folder=TARGET_PATH)
+    for i, (synthetic_img_path, _) in enumerate(synthetic_pairs):
+        synthetic_img = load_image(synthetic_img_path)
+        for j, (real_img_path, _) in enumerate(real_val_pairs):
+            real_img = load_image(real_img_path)
+            cost[i, j] = get_noise_loss(synthetic_img, real_img)
 
-    # Runs predictions on just the real noisy images, PREDICT_PATH is the dir of image/mask pairs that the model will predict on
-    #predictions = placeholder1(model,PREDICT_PATH)
+    row_ind, col_ind = linear_sum_assignment(cost)
+    resolution_loss = float(np.mean(cost[row_ind, col_ind]))
+    objective_value = float(metrics["val_loss"] + resolution_weight * resolution_loss)
 
-    # Evaluates the "closeness" to those predictions
-    #return placeholder2output(predictions,PREDICT_PATH)
+    summary = {
+        "theta": theta.tolist(),
+        "model_family": model_family,
+        "pretrained_model_file": pretrained_model_file,
+        "objective": objective_value,
+        "resolution_loss": resolution_loss,
+        "resolution_weight": resolution_weight,
+        "metrics": metrics,
+    }
+    with open(workspace / "last_blackbox_metrics.json", "w") as f:
+        json.dump(summary, f, indent=2)
+
+    print(
+        "Black-box metrics: "
+        f"objective={objective_value:.6f}, "
+        f"val_loss={metrics['val_loss']:.6f}, "
+        f"test_loss={metrics['test_loss']:.6f}, "
+        f"resolution_loss={resolution_loss:.6f}, "
+        f"test_accuracy={metrics['test_accuracy']:.6f}"
+    )
+    return objective_value
 
 
 # Parameter bounds for theta = [a, b, sigma_r, l, k] from synthetic_noise.py differential_evolution bounds
@@ -234,11 +285,20 @@ def suggest_next(X_scaled, y, n_test=500, beta=1.96):
     X_test_scaled = (X_test - lb) / (ub - lb)
 
     y_pred, sigma = gp.predict(X_test_scaled, return_std=True)
-    acquisition = y_pred + beta * sigma
-    best_idx = np.argmax(acquisition)
+    acquisition = y_pred - beta * sigma
+    best_idx = np.argmin(acquisition)
     return gp, X_test[best_idx], y_pred[best_idx], sigma[best_idx]
 
-def run_gp_loop(n_iterations, initial_theta=None, data_path=DATA_PATH, n_test=500, beta=1.96):
+def run_gp_loop(
+    n_iterations,
+    initial_theta=None,
+    data_path=DATA_PATH,
+    n_test=500,
+    beta=1.96,
+    model_family="unet",
+    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+    resolution_weight=0.35,
+):
     X_prev, y_prev = load_gp_data(data_path)
 
     if X_prev is not None and len(X_prev) > 0:
@@ -252,7 +312,14 @@ def run_gp_loop(n_iterations, initial_theta=None, data_path=DATA_PATH, n_test=50
             theta_initial = np.array(initial_theta)
         print(f"Evaluating initial theta: {theta_initial}")
         X_train = theta_initial.reshape(1, -1)
-        y_train = np.array([black_box(theta_initial)])
+        y_train = np.array([
+            black_box(
+                theta_initial,
+                model_family=model_family,
+                pretrained_model_file=pretrained_model_file,
+                resolution_weight=resolution_weight,
+            )
+        ])
         save_gp_data(data_path, X_train, y_train)
 
     for i in range(n_iterations):
@@ -266,7 +333,12 @@ def run_gp_loop(n_iterations, initial_theta=None, data_path=DATA_PATH, n_test=50
         print(f"GP prediction: mean={pred_mean:.4f}, std={pred_std:.4f}")
 
         print("Evaluating black_box(theta_next)...")
-        y_next = black_box(theta_next)
+        y_next = black_box(
+            theta_next,
+            model_family=model_family,
+            pretrained_model_file=pretrained_model_file,
+            resolution_weight=resolution_weight,
+        )
         print(f"Result: f(theta) = {y_next}")
 
         X_train = np.vstack([X_train, theta_next])
