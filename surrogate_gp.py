@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import shutil
+import copy
+import random
 from pathlib import Path
 import segmenteverygrain as seg
 from synthetic_noise import (
@@ -19,11 +21,16 @@ from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
 from scipy.optimize import linear_sum_assignment
 import json
+import torch
+from PIL import Image
+from torch.utils.data import Dataset, DataLoader
+import torchvision.transforms.functional as TF
+from keras.optimizers import Adam
+from segmenteverygrain.resnext_model import MaskingResNeXt, weighted_crossentropy_torch
 
 TARGET_PATH = "./real_noisy_images/"
 CLEAN_PATH = "./real_clean_images/"
 PREDICT_PATH = TARGET_PATH
-DEFAULT_PRETRAINED_MODEL = "models/seg_model.keras"
 
 
 def reset_dir(path):
@@ -77,6 +84,38 @@ def create_scaled_variants(image_files, mask_files, scales, split_dir):
     return all_images, all_masks
 
 
+class PatchDataset(Dataset):
+    """Simple paired patch dataset for torch models."""
+
+    def __init__(self, image_files, mask_files, augment=False):
+        self.image_files = list(image_files)
+        self.mask_files = list(mask_files)
+        self.augment = augment
+
+    def __len__(self):
+        return len(self.image_files)
+
+    def __getitem__(self, idx):
+        img = Image.open(self.image_files[idx]).convert("RGB")
+        mask = Image.open(self.mask_files[idx]).convert("L")
+
+        if self.augment:
+            if random.random() > 0.5:
+                img = TF.hflip(img)
+                mask = TF.hflip(mask)
+            if random.random() > 0.5:
+                img = TF.vflip(img)
+                mask = TF.vflip(mask)
+            k = random.randint(0, 3)
+            if k:
+                img = TF.rotate(img, 90 * k)
+                mask = TF.rotate(mask, 90 * k)
+
+        img_t = torch.from_numpy(np.array(img).astype("float32") / 255.0).permute(2, 0, 1)
+        mask_t = torch.from_numpy(np.array(mask).astype("int64"))
+        return img_t, mask_t
+
+
 def build_dataset(image_files, mask_files, augmentation=False, batch_size=32, shuffle_buffer=1000):
     """Builds a TF dataset from image and mask file paths."""
     dataset = tf.data.Dataset.from_tensor_slices((image_files, mask_files))
@@ -93,6 +132,29 @@ def build_dataset(image_files, mask_files, augmentation=False, batch_size=32, sh
     return dataset
 
 
+def evaluate_torch_model(model, dataloader, device):
+    model.eval()
+    running_loss = 0.0
+    correct = 0
+    total = 0
+
+    with torch.no_grad():
+        for imgs, masks in dataloader:
+            imgs, masks = imgs.to(device), masks.to(device)
+            preds = model(imgs)
+            loss = weighted_crossentropy_torch(preds, masks, device=device)
+            running_loss += loss.item() * imgs.size(0)
+
+            pred_labels = torch.argmax(preds, dim=1)
+            correct += (pred_labels == masks).sum().item()
+            total += masks.numel()
+
+    return {
+        "loss": float(running_loss / max(1, len(dataloader.dataset))),
+        "accuracy": float(correct / max(1, total)),
+    }
+
+
 def train_model_on_resolutions(
     synthetic_folder,
     real_noisy_folder=TARGET_PATH,
@@ -100,7 +162,8 @@ def train_model_on_resolutions(
     scales=(0.5, 0.75, 1.0),
     workspace="./blackbox_workspace",
     model_family="unet",
-    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+    model_weights_file=None,
+    use_pretrained=False,
 ):
     """Train on synthetic multi-res patches and evaluate on held-out real noisy images."""
     workspace = Path(workspace)
@@ -138,39 +201,90 @@ def train_model_on_resolutions(
     print(f"Validation: {len(val_images)} real noisy patches")
     print(f"Test: {len(test_images)} real noisy patches")
 
-    train_dataset = build_dataset(train_images, train_masks, augmentation=True)
-    val_dataset = build_dataset(val_images, val_masks, augmentation=False)
-    test_dataset = build_dataset(test_images, test_masks, augmentation=False)
-
     if model_family in {"unet", "unet_modified"}:
-        model = seg.create_and_train_model_from_pretrained(
-            pretrained_model_file,
-            train_dataset,
-            val_dataset,
-            test_dataset,
-            epochs=80,
-            learning_rate=1e-2,
-            model_type=model_family,
-            save_plot_path=f"loss_plots/training_loss_plot_{model_name}.png",
-            show_plot=False,
-            use_reduce_lr=True,
-        )
+        train_dataset = build_dataset(train_images, train_masks, augmentation=True)
+        val_dataset = build_dataset(val_images, val_masks, augmentation=False)
+        test_dataset = build_dataset(test_images, test_masks, augmentation=False)
+
+        if use_pretrained:
+            if model_weights_file is None:
+                raise ValueError("model_weights_file is required when use_pretrained=True.")
+            model = seg.create_and_train_model_from_pretrained(
+                model_weights_file,
+                train_dataset,
+                val_dataset,
+                test_dataset,
+                epochs=80,
+                learning_rate=1e-2,
+                model_type=model_family,
+                save_plot_path=f"loss_plots/training_loss_plot_{model_name}.png",
+                show_plot=False,
+                use_reduce_lr=True,
+            )
+        else:
+            if model_family == "unet_modified":
+                model = seg.UnetModified()
+            else:
+                model = seg.Unet()
+            model.compile(
+                optimizer=Adam(learning_rate=1e-2),
+                loss=seg.weighted_crossentropy,
+                metrics=["accuracy"],
+            )
+            model.fit(train_dataset, epochs=80, validation_data=val_dataset)
+            model.evaluate(test_dataset, verbose=0)
+
+        model_path = Path("models") / f"{model_name}.keras"
+        model.save(model_path)
+
+        val_metrics = model.evaluate(val_dataset, verbose=0, return_dict=True)
+        test_metrics = model.evaluate(test_dataset, verbose=0, return_dict=True)
     elif model_family == "resnext":
-        raise NotImplementedError(
-            "ResNeXt training is only implemented in Train_ResNeXt_model.ipynb right now; "
-            "surrogate_gp.py currently supports the reusable Keras paths: 'unet' and 'unet_modified'."
+        device = torch.device(
+            "mps" if torch.backends.mps.is_available()
+            else ("cuda" if torch.cuda.is_available() else "cpu")
         )
+        train_loader = DataLoader(PatchDataset(train_images, train_masks, augment=True), batch_size=8, shuffle=True, num_workers=0)
+        val_loader = DataLoader(PatchDataset(val_images, val_masks, augment=False), batch_size=8, shuffle=False, num_workers=0)
+        test_loader = DataLoader(PatchDataset(test_images, test_masks, augment=False), batch_size=8, shuffle=False, num_workers=0)
+
+        model = MaskingResNeXt(num_classes=3, pretrained=use_pretrained).to(device)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
+        scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(optimizer, patience=3, factor=0.5)
+        best_model_state = None
+        best_val_loss = float("inf")
+
+        for epoch in range(20):
+            model.train()
+            running_loss = 0.0
+            for imgs, masks in train_loader:
+                imgs, masks = imgs.to(device), masks.to(device)
+                optimizer.zero_grad()
+                preds = model(imgs)
+                loss = weighted_crossentropy_torch(preds, masks, device=device)
+                loss.backward()
+                optimizer.step()
+                running_loss += loss.item() * imgs.size(0)
+
+            val_metrics = evaluate_torch_model(model, val_loader, device)
+            scheduler.step(val_metrics["loss"])
+            if val_metrics["loss"] < best_val_loss:
+                best_val_loss = val_metrics["loss"]
+                best_model_state = copy.deepcopy(model.state_dict())
+
+        if best_model_state is not None:
+            model.load_state_dict(best_model_state)
+
+        model_path = Path("models") / f"{model_name}.pth"
+        torch.save(model.state_dict(), model_path)
+
+        val_metrics = evaluate_torch_model(model, val_loader, device)
+        test_metrics = evaluate_torch_model(model, test_loader, device)
     else:
         raise ValueError(
             f"Unsupported model_family '{model_family}'. "
             "Choose from 'unet', 'unet_modified', or 'resnext'."
         )
-
-    model_path = Path("models") / f"{model_name}.keras"
-    model.save(model_path)
-
-    val_metrics = model.evaluate(val_dataset, verbose=0, return_dict=True)
-    test_metrics = model.evaluate(test_dataset, verbose=0, return_dict=True)
     metrics = {
         "val_loss": float(val_metrics["loss"]),
         "val_accuracy": float(val_metrics["accuracy"]),
@@ -185,7 +299,8 @@ def train_model_on_resolutions(
 def black_box(
     theta,
     model_family="unet",
-    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+    model_weights_file=None,
+    use_pretrained=False,
     resolution_weight=0.35,
 ):
     theta = np.asarray(theta, dtype=float)
@@ -207,7 +322,8 @@ def black_box(
         model_name="synthetic_blackbox",
         workspace=workspace,
         model_family=model_family,
-        pretrained_model_file=pretrained_model_file,
+        model_weights_file=model_weights_file,
+        use_pretrained=use_pretrained,
     )
 
     synthetic_pairs = load_image_mask_pairs(synthetic_folder)
@@ -227,7 +343,8 @@ def black_box(
     summary = {
         "theta": theta.tolist(),
         "model_family": model_family,
-        "pretrained_model_file": pretrained_model_file,
+        "model_weights_file": model_weights_file,
+        "use_pretrained": use_pretrained,
         "objective": objective_value,
         "resolution_loss": resolution_loss,
         "resolution_weight": resolution_weight,
@@ -296,7 +413,8 @@ def run_gp_loop(
     n_test=500,
     beta=1.96,
     model_family="unet",
-    pretrained_model_file=DEFAULT_PRETRAINED_MODEL,
+    model_weights_file=None,
+    use_pretrained=False,
     resolution_weight=0.35,
 ):
     X_prev, y_prev = load_gp_data(data_path)
@@ -316,7 +434,8 @@ def run_gp_loop(
             black_box(
                 theta_initial,
                 model_family=model_family,
-                pretrained_model_file=pretrained_model_file,
+                model_weights_file=model_weights_file,
+                use_pretrained=use_pretrained,
                 resolution_weight=resolution_weight,
             )
         ])
@@ -336,7 +455,8 @@ def run_gp_loop(
         y_next = black_box(
             theta_next,
             model_family=model_family,
-            pretrained_model_file=pretrained_model_file,
+            model_weights_file=model_weights_file,
+            use_pretrained=use_pretrained,
             resolution_weight=resolution_weight,
         )
         print(f"Result: f(theta) = {y_next}")
