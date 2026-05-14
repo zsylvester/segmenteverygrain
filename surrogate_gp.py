@@ -172,53 +172,67 @@ def train_model_on_resolutions(
     scales=(0.5, 0.75, 1.0),
     workspace="./blackbox_workspace",
     model_family="unet",
-    model_weights_file=None,
-    use_pretrained=False,
+    model_weights_file="./models/seg_model.keras",
+    use_pretrained=True,
 ):
     """Train on synthetic multi-res patches and evaluate on held-out real noisy images."""
     workspace = Path(workspace)
     patch_dir = reset_dir(workspace / "patches")
 
-    # Hold out real noisy data for validation/test so theta is judged on real images.
-    real_pairs = load_image_mask_pairs(real_noisy_folder)
-    if len(real_pairs) < 2:
-        raise ValueError("Need at least two real noisy image/mask pairs for validation/test splitting.")
-    val_pairs, test_pairs = train_test_split(real_pairs, test_size=0.4, random_state=42)
-    real_val_dir = stage_pairs(val_pairs, workspace / "real_val")
-    real_test_dir = stage_pairs(test_pairs, workspace / "real_test")
-
-    synthetic_folder = str(synthetic_folder)
-    if not synthetic_folder.endswith("/"):
-        synthetic_folder = f"{synthetic_folder}/"
-
-    syn_image_dir, syn_mask_dir = seg.patchify_training_data(synthetic_folder, patch_dir / "synthetic")
-    val_image_dir, val_mask_dir = seg.patchify_training_data(f"{real_val_dir}/", patch_dir / "real_val")
-    test_image_dir, test_mask_dir = seg.patchify_training_data(f"{real_test_dir}/", patch_dir / "real_test")
+    syn_image_dir, syn_mask_dir = seg.patchify_training_data(synthetic_folder, Path(patch_dir) / "synthetic")
+    real_image_dir, real_mask_dir = seg.patchify_training_data(real_noisy_folder, Path(patch_dir) / "real")
 
     syn_images = sorted(glob(syn_image_dir + "/*.png"))
     syn_masks = sorted(glob(syn_mask_dir + "/*.png"))
-    val_images = sorted(glob(val_image_dir + "/*.png"))
-    val_masks = sorted(glob(val_mask_dir + "/*.png"))
-    test_images = sorted(glob(test_image_dir + "/*.png"))
-    test_masks = sorted(glob(test_mask_dir + "/*.png"))
+    real_images = sorted(glob(real_image_dir + "/*.png"))
+    real_masks = sorted(glob(real_mask_dir + "/*.png"))
 
-    split_dir = patch_dir / "synthetic" / "Patches"
+    train_val_syn_images, test_syn_images, train_val_syn_masks, test_syn_masks = train_test_split(
+        syn_images, syn_masks, test_size=0.15, random_state=42
+    )
+    train_syn_images, val_syn_images, train_syn_masks, val_syn_masks = train_test_split(
+        train_val_syn_images, train_val_syn_masks, test_size=0.25, random_state=42
+    )
+
+    train_val_real_images, test_real_images, train_val_real_masks, test_real_masks = train_test_split(
+        real_images, real_masks, test_size=0.15, random_state=42
+    )
+    train_real_images, val_real_images, train_real_masks, val_real_masks = train_test_split(
+        train_val_real_images, train_val_real_masks, test_size=0.25, random_state=42
+    )
+
+    split_dir = Path(patch_dir) / "synthetic" / "Patches"
     train_dir = split_dir / "train"
+    val_dir = split_dir / "val"
+    test_dir = split_dir / "test"
 
     print("Creating multi-resolution synthetic training data...")
-    train_images, train_masks = create_scaled_variants(syn_images, syn_masks, scales, train_dir)
+    train_syn_images, train_syn_masks = create_scaled_variants(train_syn_images, train_syn_masks, scales, train_dir)
+    print("Creating multi-resolution synthetic validation data...")
+    val_syn_images, val_syn_masks = create_scaled_variants(val_syn_images, val_syn_masks, scales, val_dir)
+    print("Creating multi-resolution synthetic test data...")
+    test_syn_images, test_syn_masks = create_scaled_variants(test_syn_images, test_syn_masks, scales, test_dir)
 
-    print(f"Training: {len(train_images)} synthetic patches")
-    print(f"Validation: {len(val_images)} real noisy patches")
-    print(f"Test: {len(test_images)} real noisy patches")
+    train_images = train_syn_images + train_real_images
+    train_masks = train_syn_masks + train_real_masks
+    val_images = val_syn_images + val_real_images
+    val_masks = val_syn_masks + val_real_masks
+    test_images = test_syn_images + test_real_images
+    test_masks = test_syn_masks + test_real_masks
+
+    print(f"Training: {len(train_images)} images ({len(train_syn_images)} synthetic + {len(train_real_images)} real)")
+    print(f"Validation: {len(val_images)} images ({len(val_syn_images)} synthetic + {len(val_real_images)} real)")
+    print(f"Test: {len(test_images)} images ({len(test_syn_images)} synthetic + {len(test_real_images)} real)")
 
     if model_family in {"unet", "unet_modified"}:
         # Keras path: either start from the repo constructors or fine-tune a saved model.
+        print("Using Unet")
         train_dataset = build_dataset(train_images, train_masks, augmentation=True)
         val_dataset = build_dataset(val_images, val_masks, augmentation=False)
         test_dataset = build_dataset(test_images, test_masks, augmentation=False)
 
         if use_pretrained:
+            print("Using pretrained")
             if model_weights_file is None:
                 raise ValueError("model_weights_file is required when use_pretrained=True.")
             model = seg.create_and_train_model_from_pretrained(
@@ -303,8 +317,6 @@ def train_model_on_resolutions(
         "val_accuracy": float(val_metrics["accuracy"]),
         "test_loss": float(test_metrics["loss"]),
         "test_accuracy": float(test_metrics["accuracy"]),
-        "real_val_dir": str(real_val_dir),
-        "real_test_dir": str(real_test_dir),
         "model_path": str(model_path),
     }
     return model, metrics
@@ -335,7 +347,7 @@ def count_penalty(predicted_probs, true_masks):
     return total / max(1, len(predicted_probs))
 
 
-def compute_mask_loss(predicted_probs, true_masks, dice_weight=1.0, count_weight=0.1):
+def compute_mask_loss(predicted_probs, true_masks, dice_weight=1.0, count_weight=3.1664):
     """Composite loss: Dice (per-pixel overlap) + count penalty (grain consistency)."""
     dice = dice_loss(predicted_probs, true_masks)
     count = count_penalty(predicted_probs, true_masks)
@@ -399,7 +411,7 @@ def black_box(
     model_weights_file=None,
     use_pretrained=False,
     dice_weight=1.0,
-    count_weight=0.5996,
+    count_weight=3.1664,
 ):
     """Evaluate one candidate theta and return a single scalar score."""
     theta = np.asarray(theta, dtype=float)
@@ -418,9 +430,9 @@ def black_box(
 
     # 2) Train the chosen model family on synthetic patches and evaluate on real data.
     model, metrics = train_model_on_resolutions(
-        synthetic_folder,
+        synthetic_folder = synthetic_folder,
         real_noisy_folder=TARGET_PATH,
-        model_name="synthetic_blackbox",
+        model_name="clean_blackbox",
         workspace=workspace,
         model_family=model_family,
         model_weights_file=model_weights_file,
@@ -517,10 +529,8 @@ def run_gp_loop(
     n_test=500,
     beta=1.96,
     model_family="unet",
-    model_weights_file=None,
-    use_pretrained=False,
-    dice_weight=1.0,
-    count_weight=0.5996,
+    model_weights_file="./models/seg_model.keras",
+    use_pretrained=True
 ):
     """Template Bayesian optimization loop around the expensive black box."""
     X_prev, y_prev = load_gp_data(data_path)
@@ -541,9 +551,7 @@ def run_gp_loop(
                 theta_initial,
                 model_family=model_family,
                 model_weights_file=model_weights_file,
-                use_pretrained=use_pretrained,
-                dice_weight=dice_weight,
-                count_weight=count_weight,
+                use_pretrained=use_pretrained
             )
         ])
         save_gp_data(data_path, X_train, y_train)
@@ -564,9 +572,7 @@ def run_gp_loop(
             theta_next,
             model_family=model_family,
             model_weights_file=model_weights_file,
-            use_pretrained=use_pretrained,
-            dice_weight=dice_weight,
-            count_weight=count_weight,
+            use_pretrained=use_pretrained
         )
         print(f"Result: f(theta) = {y_next}")
 
@@ -581,7 +587,7 @@ def run_gp_loop(
     return X_train, y_train
 
 if __name__ == "__main__":
-    N_ITERATIONS = 5  # Change this to control how many searches to run
+    N_ITERATIONS = 1  # Change this to control how many searches to run
 
     X_final, y_final = run_gp_loop(n_iterations=N_ITERATIONS)
 
