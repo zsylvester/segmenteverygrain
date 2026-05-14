@@ -13,13 +13,9 @@ import copy
 import random
 from pathlib import Path
 import segmenteverygrain as seg
-from synthetic_noise import (
-    get_noise_loss,
-)
 from create_synthetic_images import (
     generate_synthetic_images as generate_synthetic_images_from_script,
     load_image_mask_pairs,
-    load_image,
 )
 import tensorflow as tf
 from sklearn.model_selection import train_test_split
@@ -27,7 +23,7 @@ from glob import glob
 from sklearn.gaussian_process import GaussianProcessRegressor
 from sklearn.gaussian_process.kernels import RBF, ConstantKernel as C
 from scipy.stats import qmc
-from scipy.optimize import linear_sum_assignment
+
 import json
 import torch
 from PIL import Image
@@ -38,7 +34,7 @@ from segmenteverygrain.resnext_model import MaskingResNeXt, weighted_crossentrop
 
 TARGET_PATH = "./real_noisy_images/"
 CLEAN_PATH = "./real_clean_images/"
-PREDICT_PATH = TARGET_PATH
+PREDICT_PATH = "./prediction_noisy_images/"
 
 
 # Workspace helper: recreate a directory from scratch for each run.
@@ -313,12 +309,97 @@ def train_model_on_resolutions(
     }
     return model, metrics
 
+def dice_loss(predicted_probs, true_masks, eps=1e-7):
+    """Multi-class Dice loss averaged over images. Lower = more similar."""
+    total = 0.0
+    for pred, true in zip(predicted_probs, true_masks):
+        h, w = min(pred.shape[0], true.shape[0]), min(pred.shape[1], true.shape[1])
+        pred, true = pred[:h, :w], true[:h, :w]
+        one_hot = np.eye(pred.shape[-1])[true]
+        intersection = np.sum(pred * one_hot, axis=(0, 1))
+        union = np.sum(pred + one_hot, axis=(0, 1))
+        total += float(1 - np.mean((2 * intersection + eps) / (union + eps)))
+    return total / max(1, len(predicted_probs))
+
+
+def count_penalty(predicted_probs, true_masks):
+    """Normalized absolute difference in number of grain instances. Lower = more similar."""
+    total = 0.0
+    for pred, true in zip(predicted_probs, true_masks):
+        h, w = min(pred.shape[0], true.shape[0]), min(pred.shape[1], true.shape[1])
+        pred_label = np.argmax(pred[:h, :w], axis=-1).astype(np.uint8)
+        true_label = true[:h, :w].astype(np.uint8)
+        n_pred = max(cv2.connectedComponents((pred_label == 1).astype(np.uint8))[0] - 1, 0)
+        n_true = max(cv2.connectedComponents((true_label == 1).astype(np.uint8))[0] - 1, 0)
+        total += abs(n_pred - n_true) / max(n_true, 1)
+    return total / max(1, len(predicted_probs))
+
+
+def compute_mask_loss(predicted_probs, true_masks, dice_weight=1.0, count_weight=0.1):
+    """Composite loss: Dice (per-pixel overlap) + count penalty (grain consistency)."""
+    dice = dice_loss(predicted_probs, true_masks)
+    count = count_penalty(predicted_probs, true_masks)
+    return dice_weight * dice + count_weight * count
+
+
+def evaluate_model_masks(model, image_dir, patch_dir, model_family, device=None, tile_size=256):
+    """Run model inference on images and return per-image predictions + true masks."""
+    pairs = load_image_mask_pairs(image_dir)
+    pair_dir = stage_pairs(pairs, Path(patch_dir) / "staged")
+    staged_pairs = load_image_mask_pairs(str(pair_dir))
+
+    if model_family in {"unet", "unet_modified"}:
+        pred_probs_list = []
+        true_masks_list = []
+        for img_path, mask_path in staged_pairs:
+            img = cv2.imread(img_path, cv2.IMREAD_COLOR)
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            pred = seg.predict_image_mirror(img, model, tile_size)
+            pred_probs_list.append(pred)
+            mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
+            true_masks_list.append(mask)
+        return pred_probs_list, true_masks_list
+
+    elif model_family == "resnext":
+        img_dir, mask_dir = seg.patchify_training_data(f"{pair_dir}/", Path(patch_dir) / "patched")
+        image_files = sorted(glob(img_dir + "/*.png"))
+        mask_files = sorted(glob(mask_dir + "/*.png"))
+
+        if device is None:
+            device = torch.device(
+                "mps" if torch.backends.mps.is_available()
+                else ("cuda" if torch.cuda.is_available() else "cpu")
+            )
+        loader = DataLoader(
+            PatchDataset(image_files, mask_files, augment=False),
+            batch_size=8, shuffle=False, num_workers=0,
+        )
+        model.eval()
+        all_preds = []
+        with torch.no_grad():
+            for imgs, _ in loader:
+                imgs = imgs.to(device)
+                preds = torch.softmax(model(imgs), dim=1).cpu().numpy()
+                all_preds.append(preds)
+        pred_probs = np.concatenate(all_preds, axis=0)
+        pred_probs = np.transpose(pred_probs, (0, 2, 3, 1))
+
+        true_masks = []
+        for mp in mask_files:
+            mask = cv2.imread(mp, cv2.IMREAD_GRAYSCALE)
+            true_masks.append(mask)
+        return [pred_probs[i] for i in range(len(pred_probs))], true_masks
+    else:
+        raise ValueError(f"Unsupported model_family '{model_family}'")
+
+
 def black_box(
     theta,
     model_family="unet",
     model_weights_file=None,
     use_pretrained=False,
-    resolution_weight=0.35,
+    dice_weight=1.0,
+    count_weight=0.5996,
 ):
     """Evaluate one candidate theta and return a single scalar score."""
     theta = np.asarray(theta, dtype=float)
@@ -336,7 +417,7 @@ def black_box(
     )
 
     # 2) Train the chosen model family on synthetic patches and evaluate on real data.
-    _, metrics = train_model_on_resolutions(
+    model, metrics = train_model_on_resolutions(
         synthetic_folder,
         real_noisy_folder=TARGET_PATH,
         model_name="synthetic_blackbox",
@@ -346,21 +427,17 @@ def black_box(
         use_pretrained=use_pretrained,
     )
 
-    # 3) Compare generated synthetic images to held-out real validation images.
-    synthetic_pairs = load_image_mask_pairs(synthetic_folder)
-    real_val_pairs = load_image_mask_pairs(metrics["real_val_dir"])
-    cost = np.zeros((len(synthetic_pairs), len(real_val_pairs)), dtype=np.float32)
+    # 3) Predict masks on PREDICT_PATH images and compare with ground truth masks.
+    pred_probs, true_masks = evaluate_model_masks(
+        model,
+        image_dir=PREDICT_PATH,
+        patch_dir=workspace / "eval_patches",
+        model_family=model_family,
+    )
+    mask_loss = compute_mask_loss(pred_probs, true_masks, dice_weight, count_weight)
 
-    for i, (synthetic_img_path, _) in enumerate(synthetic_pairs):
-        synthetic_img = load_image(synthetic_img_path)
-        for j, (real_img_path, _) in enumerate(real_val_pairs):
-            real_img = load_image(real_img_path)
-            cost[i, j] = get_noise_loss(synthetic_img, real_img)
-
-    # 4) Final score: real-data validation loss + weighted image-domain mismatch.
-    row_ind, col_ind = linear_sum_assignment(cost)
-    resolution_loss = float(np.mean(cost[row_ind, col_ind]))
-    objective_value = float(metrics["val_loss"] + resolution_weight * resolution_loss)
+    # 4) Final score: composite mask prediction loss.
+    objective_value = float(mask_loss)
 
     summary = {
         "theta": theta.tolist(),
@@ -368,8 +445,10 @@ def black_box(
         "model_weights_file": model_weights_file,
         "use_pretrained": use_pretrained,
         "objective": objective_value,
-        "resolution_loss": resolution_loss,
-        "resolution_weight": resolution_weight,
+        "dice_loss": dice_loss(pred_probs, true_masks),
+        "count_penalty": count_penalty(pred_probs, true_masks),
+        "dice_weight": dice_weight,
+        "count_weight": count_weight,
         "metrics": metrics,
     }
     with open(workspace / "last_blackbox_metrics.json", "w") as f:
@@ -380,7 +459,8 @@ def black_box(
         f"objective={objective_value:.6f}, "
         f"val_loss={metrics['val_loss']:.6f}, "
         f"test_loss={metrics['test_loss']:.6f}, "
-        f"resolution_loss={resolution_loss:.6f}, "
+        f"dice={dice_loss(pred_probs, true_masks):.6f}, "
+        f"count_pen={count_penalty(pred_probs, true_masks):.6f}, "
         f"test_accuracy={metrics['test_accuracy']:.6f}"
     )
     return objective_value
@@ -439,7 +519,8 @@ def run_gp_loop(
     model_family="unet",
     model_weights_file=None,
     use_pretrained=False,
-    resolution_weight=0.35,
+    dice_weight=1.0,
+    count_weight=0.5996,
 ):
     """Template Bayesian optimization loop around the expensive black box."""
     X_prev, y_prev = load_gp_data(data_path)
@@ -461,7 +542,8 @@ def run_gp_loop(
                 model_family=model_family,
                 model_weights_file=model_weights_file,
                 use_pretrained=use_pretrained,
-                resolution_weight=resolution_weight,
+                dice_weight=dice_weight,
+                count_weight=count_weight,
             )
         ])
         save_gp_data(data_path, X_train, y_train)
@@ -483,7 +565,8 @@ def run_gp_loop(
             model_family=model_family,
             model_weights_file=model_weights_file,
             use_pretrained=use_pretrained,
-            resolution_weight=resolution_weight,
+            dice_weight=dice_weight,
+            count_weight=count_weight,
         )
         print(f"Result: f(theta) = {y_next}")
 
