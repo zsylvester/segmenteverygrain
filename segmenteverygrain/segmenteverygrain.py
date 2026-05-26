@@ -38,7 +38,6 @@ from keras.optimizers import Adam
 from keras.callbacks import ReduceLROnPlateau
 
 from segment_anything import SamPredictor
-from train_edge_completion import predict_edges
 
 
 def predict_image_tile(im_tile, model):
@@ -2362,8 +2361,8 @@ def patchify_training_data(input_dir, patch_dir):
         print(f"Warning: The directory {input_dir} does not exist.")
         return
 
-    images = sorted(glob(input_dir + "*image*"))
-    labels = sorted(glob(input_dir + "*mask*"))
+    images = sorted(glob(os.path.join(input_dir, "*image*")))
+    labels = sorted(glob(os.path.join(input_dir, "*mask*")))
 
     if not images or not labels:
         print(f"Warning: No files containing 'image' or 'mask' found in {input_dir}.")

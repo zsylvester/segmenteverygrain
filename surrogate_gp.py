@@ -179,7 +179,7 @@ def train_model_on_resolutions(
     workspace = Path(workspace)
     patch_dir = reset_dir(workspace / "patches")
 
-    syn_image_dir, syn_mask_dir = seg.patchify_training_data(synthetic_folder, Path(patch_dir) / "synthetic")
+    syn_image_dir, syn_mask_dir = seg.patchify_training_data(str(synthetic_folder), Path(patch_dir) / "synthetic")
     real_image_dir, real_mask_dir = seg.patchify_training_data(real_noisy_folder, Path(patch_dir) / "real")
 
     syn_images = sorted(glob(syn_image_dir + "/*.png"))
@@ -240,7 +240,7 @@ def train_model_on_resolutions(
                 train_dataset,
                 val_dataset,
                 test_dataset,
-                epochs=80,
+                epochs=100,
                 learning_rate=1e-2,
                 model_type=model_family,
                 save_plot_path=f"loss_plots/training_loss_plot_{model_name}.png",
@@ -347,7 +347,7 @@ def count_penalty(predicted_probs, true_masks):
     return total / max(1, len(predicted_probs))
 
 
-def compute_mask_loss(predicted_probs, true_masks, dice_weight=1.0, count_weight=3.1664):
+def compute_mask_loss(predicted_probs, true_masks, dice_weight=1.0, count_weight=0.4):
     """Composite loss: Dice (per-pixel overlap) + count penalty (grain consistency)."""
     dice = dice_loss(predicted_probs, true_masks)
     count = count_penalty(predicted_probs, true_masks)
@@ -411,11 +411,14 @@ def black_box(
     model_weights_file=None,
     use_pretrained=False,
     dice_weight=1.0,
-    count_weight=3.1664,
+    count_weight=0.4,
+    tag=None,
+    combine_with_clean=False,
 ):
     """Evaluate one candidate theta and return a single scalar score."""
     theta = np.asarray(theta, dtype=float)
     theta_tag = "_".join(f"{value:.4g}" for value in theta)
+    tag = tag if tag is not None else theta_tag
     workspace = reset_dir("./blackbox_workspace")
 
     # 1) Generate synthetic noisy image/mask pairs from the candidate theta.
@@ -428,11 +431,23 @@ def black_box(
         seed=42,
     )
 
+    if combine_with_clean:
+        combined_folder = workspace / "combined_training"
+        reset_dir(combined_folder)
+        for f in Path(CLEAN_PATH).iterdir():
+            shutil.copy2(f, combined_folder / f"clean_{f.name}")
+        for f in Path(synthetic_folder).iterdir():
+            shutil.copy2(f, combined_folder / f.name)
+        training_folder = str(combined_folder)
+        print(f"Combined clean + synthetic training folder: {training_folder}")
+    else:
+        training_folder = synthetic_folder
+
     # 2) Train the chosen model family on synthetic patches and evaluate on real data.
     model, metrics = train_model_on_resolutions(
-        synthetic_folder = synthetic_folder,
+        synthetic_folder = training_folder,
         real_noisy_folder=TARGET_PATH,
-        model_name="clean_blackbox",
+        model_name=f"synthetic_blackbox_{tag}",
         workspace=workspace,
         model_family=model_family,
         model_weights_file=model_weights_file,
@@ -463,9 +478,6 @@ def black_box(
         "count_weight": count_weight,
         "metrics": metrics,
     }
-    with open(workspace / "last_blackbox_metrics.json", "w") as f:
-        json.dump(summary, f, indent=2)
-
     print(
         "Black-box metrics: "
         f"objective={objective_value:.6f}, "
@@ -475,7 +487,7 @@ def black_box(
         f"count_pen={count_penalty(pred_probs, true_masks):.6f}, "
         f"test_accuracy={metrics['test_accuracy']:.6f}"
     )
-    return objective_value
+    return summary
 
 
 # Parameter bounds for theta = [a, b, sigma_r, l, k] from synthetic_noise.py differential_evolution bounds
@@ -490,21 +502,43 @@ n_dim = bounds.shape[0]
 lb, ub = bounds[:, 0], bounds[:, 1]
 
 DATA_PATH = "gp_data.json"
+MAX_KEPT_MODELS = 5
+
+
+def prune_old_models(records, keep_last=MAX_KEPT_MODELS):
+    if len(records) <= keep_last:
+        return
+    all_paths = [Path(r["metrics"]["model_path"]) for r in records if r.get("metrics", {}).get("model_path")]
+    if len(all_paths) <= keep_last:
+        return
+    for p in all_paths[:-keep_last]:
+        if p.exists():
+            print(f"  Pruning old model: {p}")
+            p.unlink()
 
 def load_gp_data(path):
     p = Path(path)
     if p.exists():
         with open(p) as f:
             data = json.load(f)
-        X = np.array(data["X"])
-        y = np.array(data["y"])
-        print(f"Loaded {X.shape[0]} previous data points from {path}")
-        return X, y
-    return None, None
+        if "records" in data:
+            records = data["records"]
+            X = np.array([r["theta"] for r in records])
+            y = np.array([r["objective"] for r in records])
+            print(f"Loaded {len(records)} records from {path}")
+            return records, X, y
+        else:
+            # Backward compat: old format with just X, y keys
+            X = np.array(data["X"])
+            y = np.array(data["y"])
+            print(f"Loaded {X.shape[0]} previous data points from {path} (old format)")
+            return None, X, y
+    return None, None, None
 
-def save_gp_data(path, X, y):
+def save_gp_data(path, records):
     with open(path, "w") as f:
-        json.dump({"X": X.tolist(), "y": y.tolist()}, f, indent=2)
+        json.dump({"records": records}, f, indent=2)
+    prune_old_models(records)
 
 def suggest_next(X_scaled, y, n_test=500, beta=1.96):
     """Fit a GP surrogate and propose the next theta to evaluate."""
@@ -530,12 +564,14 @@ def run_gp_loop(
     beta=1.96,
     model_family="unet",
     model_weights_file="./models/seg_model.keras",
-    use_pretrained=True
+    use_pretrained=True,
+    combine_with_clean=False,
 ):
     """Template Bayesian optimization loop around the expensive black box."""
-    X_prev, y_prev = load_gp_data(data_path)
+    records, X_prev, y_prev = load_gp_data(data_path)
 
     if X_prev is not None and len(X_prev) > 0:
+        records = records if records is not None else []
         X_train = X_prev.copy()
         y_train = y_prev.copy()
         print(f"Continuing with {len(X_train)} existing data points")
@@ -546,21 +582,24 @@ def run_gp_loop(
             theta_initial = np.array(initial_theta)
         print(f"Evaluating initial theta: {theta_initial}")
         X_train = theta_initial.reshape(1, -1)
-        y_train = np.array([
-            black_box(
-                theta_initial,
-                model_family=model_family,
-                model_weights_file=model_weights_file,
-                use_pretrained=use_pretrained
-            )
-        ])
-        save_gp_data(data_path, X_train, y_train)
+        summary = black_box(
+            theta_initial,
+            model_family=model_family,
+            model_weights_file=model_weights_file,
+            use_pretrained=use_pretrained,
+            tag="init",
+            combine_with_clean=combine_with_clean,
+        )
+        y_train = np.array([summary["objective"]])
+        records = [{"iteration": 0, "tag": "init", **summary}]
+        save_gp_data(data_path, records)
 
     for i in range(n_iterations):
-        print(f"\n--- Iteration {i+1}/{n_iterations} ---")
+        iter_num = len(records)
+        iter_tag = f"iter_{iter_num:03d}"
+        print(f"\n--- Iteration {i+1}/{n_iterations} (total #{iter_num}) ---")
         print(f"Current dataset size: {len(X_train)}")
 
-        # Fit/update the surrogate, ask it for the next theta, then evaluate.
         X_scaled = (X_train - lb) / (ub - lb)
         gp, theta_next, pred_mean, pred_std = suggest_next(X_scaled, y_train, n_test=n_test, beta=beta)
 
@@ -568,17 +607,20 @@ def run_gp_loop(
         print(f"GP prediction: mean={pred_mean:.4f}, std={pred_std:.4f}")
 
         print("Evaluating black_box(theta_next)...")
-        y_next = black_box(
+        summary = black_box(
             theta_next,
             model_family=model_family,
             model_weights_file=model_weights_file,
-            use_pretrained=use_pretrained
+            use_pretrained=use_pretrained,
+            tag=iter_tag,
+            combine_with_clean=combine_with_clean,
         )
-        print(f"Result: f(theta) = {y_next}")
+        print(f"Result: f(theta) = {summary['objective']:.6f}")
 
         X_train = np.vstack([X_train, theta_next])
-        y_train = np.append(y_train, y_next)
-        save_gp_data(data_path, X_train, y_train)
+        y_train = np.append(y_train, summary["objective"])
+        records.append({"iteration": iter_num, "tag": iter_tag, **summary})
+        save_gp_data(data_path, records)
 
         best_idx = np.argmin(y_train)
         print(f"Best theta so far (iter {best_idx}): f={y_train[best_idx]:.4f}")
@@ -587,9 +629,10 @@ def run_gp_loop(
     return X_train, y_train
 
 if __name__ == "__main__":
-    N_ITERATIONS = 1  # Change this to control how many searches to run
+    N_ITERATIONS = 100  # Change this to control how many searches to run
+    COMBINE_WITH_CLEAN = True  # Set True to include pre-injection clean images in training
 
-    X_final, y_final = run_gp_loop(n_iterations=N_ITERATIONS)
+    X_final, y_final = run_gp_loop(n_iterations=N_ITERATIONS, combine_with_clean=COMBINE_WITH_CLEAN)
 
     print("\n=== Final Results ===")
     for i in range(len(X_final)):
