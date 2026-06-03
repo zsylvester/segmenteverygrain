@@ -3,6 +3,10 @@ import warnings
 import os
 import json
 import sys
+import gc
+import io
+import contextlib
+from functools import partialmethod
 from glob import glob
 
 import pandas as pd
@@ -1263,6 +1267,76 @@ def create_labeled_image(all_grains, image):
     return rasterized, mask_all
 
 
+def _free_memory():
+    """
+    Release GPU/CPU memory accumulated during patch processing.
+
+    Called after every patch in :func:`predict_large_image`. Running this on
+    each iteration is what keeps memory flat over a long run: it collects
+    Python garbage, empties the PyTorch (SAM) GPU cache for the active backend
+    (CUDA or Apple-Silicon MPS), and clears the Keras/TensorFlow session that
+    ``model.predict`` otherwise leaks across calls. Every step is wrapped so a
+    missing backend is silently ignored.
+    """
+    gc.collect()
+    try:
+        import torch
+
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        elif torch.backends.mps.is_available():
+            torch.mps.empty_cache()
+    except Exception:
+        pass
+    try:
+        tf.keras.backend.clear_session()
+    except Exception:
+        pass
+
+
+@contextlib.contextmanager
+def _suppress_progress():
+    """
+    Temporarily silence the per-patch ``print`` calls and all ``tqdm`` progress
+    bars emitted by the inner segmentation functions.
+
+    Used by :func:`predict_large_image` when ``verbose=False``. On a large image
+    the inner functions emit ~10 lines plus several in-place progress bars per
+    patch; over a hundred-plus patches that flood of output can make notebook
+    frontends (e.g. Cursor/Jupyter) sluggish or appear to hang while re-rendering
+    the growing cell. This swallows ``stdout`` and globally disables ``tqdm`` for
+    the duration, restoring both afterwards. Exceptions still propagate.
+    """
+    orig_init = tqdm.__init__
+    tqdm.__init__ = partialmethod(tqdm.__init__, disable=True)
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            yield
+    finally:
+        tqdm.__init__ = orig_init
+
+
+# Images above this many megapixels trigger an advisory hint to enable
+# checkpointing (purely informational; behavior is never changed automatically).
+_LARGE_IMAGE_MEGAPIXELS = 100
+
+# Parameters that affect per-patch results; a resumed checkpoint run must match
+# these to avoid silently reusing stale patches.
+_CHECKPOINT_PARAM_KEYS = (
+    "patch_size",
+    "overlap",
+    "dbs_max_dist",
+    "min_grain_area",
+    "min_area",
+    "remove_large_objects",
+    "remove_edge_grains",
+    "use_sam",
+    "dilation",
+    "img_height",
+    "img_width",
+)
+
+
 def predict_large_image(
     fname,
     model,
@@ -1277,6 +1351,8 @@ def predict_large_image(
     keep_edges=None,
     use_sam=True,
     dilation=0,
+    checkpoint_dir=None,
+    verbose=True,
 ):
     """
     Predicts the location of grains in a large image using a patch-based approach.
@@ -1312,13 +1388,33 @@ def predict_large_image(
         polygons. Only used when ``use_sam=False``. This compensates for the
         U-Net boundary channel consuming a few pixels between grains.
         Defaults to 0 (no dilation).
+    checkpoint_dir : str, optional
+        If provided, enables resumable processing. Each patch's grains are
+        written to GeoJSON (in global image coordinates) as soon as the patch is
+        processed, the blended U-Net prediction is stored as an on-disk
+        ``numpy.memmap`` instead of a large in-RAM array, and a manifest records
+        completed patches. Re-running with the same ``checkpoint_dir`` (and the
+        same parameters) skips finished patches and resumes where it stopped.
+        When None (default), behavior is identical to before: nothing is written
+        to disk and everything is held in memory. Recommended for very large
+        images. Defaults to None.
+    verbose : bool, optional
+        When True (default), the inner segmentation functions print their usual
+        per-patch messages and progress bars. When False, that output is
+        suppressed and only one concise line per patch is printed
+        (``"patch N/total - K grains"``). Recommended for large images, where
+        the volume of progress-bar output can overwhelm notebook frontends
+        (e.g. Cursor/Jupyter) and make them sluggish or appear to hang.
+        Defaults to True.
 
     Returns
     -------
     All_Grains : list
         A list of grains represented as polygons.
     image_pred : numpy.ndarray
-        The Unet predictions for the entire image.
+        The Unet predictions for the entire image. When ``checkpoint_dir`` is
+        set this is a ``numpy.memmap`` backed by a file in that directory; copy
+        it (``np.array(image_pred)``) if you need it to outlive the file.
     all_coords : numpy.ndarray
         The coordinates of the SAM prompts (empty array when ``use_sam=False``).
     """
@@ -1327,24 +1423,117 @@ def predict_large_image(
     step_size = patch_size - overlap  # step size for overlapping patches
     image = np.array(load_img(fname))
     img_height, img_width = image.shape[:2]  # get the height and width of the image
+
+    # Advisory hint for very large images (never changes behavior automatically).
+    megapixels = (img_height * img_width) / 1e6
+    if checkpoint_dir is None and megapixels >= _LARGE_IMAGE_MEGAPIXELS:
+        warnings.warn(
+            f"Image is large ({megapixels:.0f} MP). Consider passing "
+            "checkpoint_dir=... to enable resumable, lower-memory processing "
+            "so a crash or interruption does not lose progress.",
+            stacklevel=2,
+        )
+
     # loop over the image and extract patches:
     All_Grains = []
     total_patches = max(1, (img_height - patch_size + step_size) // step_size + 1) * max(
         1, (img_width - patch_size + step_size) // step_size + 1
     )
-    # Initialize an array to store the Unet predictions for the entire image
-    image_pred = np.zeros((img_height, img_width, 3), dtype=np.float32)
+
+    # ------------------------------------------------------------------
+    # Checkpointing setup (only when checkpoint_dir is provided).
+    # ------------------------------------------------------------------
+    grains_dir = None
+    manifest_path = None
+    done = set()
+    if checkpoint_dir is not None:
+        grains_dir = os.path.join(checkpoint_dir, "patch_grains")
+        os.makedirs(grains_dir, exist_ok=True)
+
+        # Validate that a resumed run uses the same parameters; otherwise stale
+        # patches would be silently reused.
+        current_params = {
+            "patch_size": patch_size,
+            "overlap": overlap,
+            "dbs_max_dist": dbs_max_dist,
+            "min_grain_area": min_grain_area,
+            "min_area": min_area,
+            "remove_large_objects": remove_large_objects,
+            "remove_edge_grains": remove_edge_grains,
+            "use_sam": use_sam,
+            "dilation": dilation,
+            "img_height": img_height,
+            "img_width": img_width,
+        }
+        manifest_path = os.path.join(checkpoint_dir, "manifest.json")
+        if os.path.exists(manifest_path):
+            with open(manifest_path) as f:
+                manifest = json.load(f)
+            saved_params = manifest.get("params", {})
+            mismatched = {
+                k: (saved_params.get(k), current_params.get(k))
+                for k in _CHECKPOINT_PARAM_KEYS
+                if saved_params.get(k) != current_params.get(k)
+            }
+            if mismatched:
+                raise ValueError(
+                    "checkpoint_dir was created with different parameters; "
+                    f"mismatches (saved, current): {mismatched}. Use a fresh "
+                    "checkpoint_dir or restore the original parameters."
+                )
+            done = set(manifest.get("done", []))
+        else:
+            manifest = {"params": current_params, "done": []}
+            with open(manifest_path, "w") as f:
+                json.dump(manifest, f)
+
+    # ------------------------------------------------------------------
+    # image_pred: an on-disk memmap when checkpointing, else an in-RAM array.
+    # ------------------------------------------------------------------
+    pred_shape = (img_height, img_width, 3)
+    if checkpoint_dir is not None:
+        pred_path = os.path.join(checkpoint_dir, "image_pred.dat")
+        pred_exists = os.path.exists(pred_path)
+        image_pred = np.memmap(
+            pred_path,
+            dtype=np.float32,
+            mode="r+" if pred_exists else "w+",
+            shape=pred_shape,
+        )
+        if not pred_exists:
+            image_pred[:] = 0
+            image_pred.flush()
+    else:
+        image_pred = np.zeros(pred_shape, dtype=np.float32)
+
+    # When verbose=False, silence the inner functions' prints/progress bars to
+    # avoid flooding notebook frontends; a fresh context is needed per call.
+    quiet = contextlib.nullcontext if verbose else _suppress_progress
 
     all_coords = np.empty((0, 2), dtype=np.int32)
     for i in range(0, max(1, img_height - patch_size + step_size + 1), step_size):
         for j in range(0, max(1, img_width - patch_size + step_size + 1), step_size):
+            patch_num = (
+                i // step_size * max(1, (img_width - patch_size + step_size) // step_size + 1)
+                + j // step_size
+                + 1
+            )
+            key = f"{i}_{j}"
+
+            # Resume: skip patches already completed in a previous run.
+            if key in done:
+                print(
+                    f"skipping completed patch #{patch_num} out of "
+                    f"{total_patches} patches"
+                )
+                continue
+
             patch = image[
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ]
             # use the Unet model to predict the mask on the patch:
-            patch_pred = predict_image(
-                patch, model, I=256
-            )
+            with quiet():
+                patch_pred = predict_image(patch, model, I=256)
 
             # Define the weights for blending the overlapping regions
             weights = np.ones_like(patch_pred)
@@ -1362,6 +1551,8 @@ def predict_large_image(
                 i : min(i + patch_size, img_height), j : min(j + patch_size, img_width)
             ] += (patch_pred * weights)
 
+            patch_grains = []
+            patch_coords = np.empty((0, 2), dtype=np.int32)
             if use_sam:
                 labels, coords = label_grains(patch, patch_pred, dbs_max_dist=dbs_max_dist, min_grain_area=min_grain_area)
                 # Determine which edges of this patch are on the outer boundary
@@ -1375,30 +1566,64 @@ def predict_large_image(
                     }
 
                 if len(coords) > 0:
-                    all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
-                        sam,
-                        patch,
-                        patch_pred,
-                        coords,
-                        labels,
-                        min_area=min_area,
-                        plot_image=False,
-                        remove_edge_grains=not remove_edge_grains if patch_keep_edges else remove_edge_grains,
-                        remove_large_objects=remove_large_objects,
-                        keep_edges=patch_keep_edges,
-                    )
-                    for grain in all_grains:
-                        All_Grains.append(translate(grain, xoff=j, yoff=i))
+                    with quiet():
+                        all_grains, labels, mask_all, grain_data, fig, ax = sam_segmentation(
+                            sam,
+                            patch,
+                            patch_pred,
+                            coords,
+                            labels,
+                            min_area=min_area,
+                            plot_image=False,
+                            remove_edge_grains=not remove_edge_grains if patch_keep_edges else remove_edge_grains,
+                            remove_large_objects=remove_large_objects,
+                            keep_edges=patch_keep_edges,
+                        )
+                    patch_grains = [translate(grain, xoff=j, yoff=i) for grain in all_grains]
                     coords[:, 0] = coords[:, 0] + j
                     coords[:, 1] = coords[:, 1] + i
-                    all_coords = np.vstack((all_coords, coords))
+                    patch_coords = coords
 
-            patch_num = (
-                i // step_size * max(1, (img_width - patch_size + step_size) // step_size + 1)
-                + j // step_size
-                + 1
-            )
-            print(f"processed patch #{patch_num} out of {total_patches} patches")
+            # Persist this patch (checkpointing) or accumulate in memory.
+            if checkpoint_dir is not None:
+                if use_sam:
+                    save_polygons(
+                        patch_grains,
+                        os.path.join(grains_dir, f"patch_{key}.geojson"),
+                    )
+                    np.save(
+                        os.path.join(grains_dir, f"coords_{key}.npy"), patch_coords
+                    )
+                image_pred.flush()
+                done.add(key)
+                with open(manifest_path, "w") as f:
+                    json.dump({"params": current_params, "done": sorted(done)}, f)
+            else:
+                All_Grains.extend(patch_grains)
+                if len(patch_coords) > 0:
+                    all_coords = np.vstack((all_coords, patch_coords))
+
+            if verbose:
+                print(f"processed patch #{patch_num} out of {total_patches} patches")
+            else:
+                print(f"patch {patch_num}/{total_patches} - {len(patch_grains)} grains")
+            _free_memory()
+
+    # When resuming/checkpointing with SAM, reload all per-patch results from disk.
+    if checkpoint_dir is not None and use_sam:
+        print(f"loading saved grains from {len(done)} checkpoint patches...")
+        All_Grains = []
+        coord_arrays = []
+        for key in sorted(done):
+            gf = os.path.join(grains_dir, f"patch_{key}.geojson")
+            if os.path.exists(gf):
+                All_Grains.extend(read_polygons(gf))
+            cf = os.path.join(grains_dir, f"coords_{key}.npy")
+            if os.path.exists(cf):
+                coord_arrays.append(np.load(cf))
+        if coord_arrays:
+            all_coords = np.vstack([all_coords] + coord_arrays)
+        print(f"loaded {len(All_Grains)} grains from checkpoint.")
 
     if not use_sam:
         # Run label_grains once on the full blended prediction to avoid
@@ -1418,10 +1643,22 @@ def predict_large_image(
         )
 
     if use_sam and len(All_Grains) > 0:
+        # Final whole-image step: de-duplicate/merge grains across patch seams.
+        # Cost scales with total grain count, so this can take several minutes
+        # on a large image. The milestone prints below show it is progressing
+        # even where the underlying steps have no per-item progress bar (the
+        # R-tree build, and the graph/connected-components computation).
+        print(
+            f"merging {len(All_Grains)} grains across patch seams "
+            "(final whole-image step; building spatial index, this can take "
+            "a few minutes with no bar)..."
+        )
         new_grains, comps, g = find_connected_components(All_Grains, min_area if min_area is not None else 0)
+        print(f"resolving {len(comps)} overlapping grain groups...")
         All_Grains = merge_overlapping_polygons(
             All_Grains, new_grains, comps, min_area if min_area is not None else 0, image_pred
         )
+        print(f"final grain count after merging: {len(All_Grains)}")
     # Final filter: remove prompts that fall outside the grain mask in the blended prediction
     if len(all_coords) > 0:
         blended_grains = image_pred[:, :, 1] >= 0.5
