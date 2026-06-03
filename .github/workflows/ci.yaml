@@ -32,6 +32,11 @@ jobs:
         pip install .[dev]
         pip install pytest
         pip install -r requirements.txt
+        # triton is a GPU-only dependency pulled in by torch. On the CPU-only
+        # CI runner its native module can segfault on import, which crashes
+        # pytest during collection (exit 139). torch handles its absence
+        # gracefully (has_triton_package() returns False), so remove it.
+        pip uninstall -y triton pytorch-triton || true
     # - name: Lint with flake8
     #   run: |
     #     # stop the build if there are Python syntax errors or undefined names
