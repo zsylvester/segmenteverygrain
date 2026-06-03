@@ -530,24 +530,29 @@ def find_overlapping_polygons(polygons, min_overlap=0.4):
     for i, poly in enumerate(polygons):
         bounds = poly.bounds
         idx.insert(i, bounds)
-    # Find overlapping polygons using the index
+    # Find overlapping polygons using the index. Each unordered pair is
+    # considered exactly once (j > i): this avoids the O(n) ``(j, i) not in
+    # list`` deduplication check (which made dense patches with many thousands
+    # of overlapping polygons effectively hang) and halves the number of
+    # expensive intersection-area computations. The resulting edge set is
+    # identical.
     for i, poly1 in tqdm(enumerate(polygons)):
         bounds1 = poly1.bounds
         overlapping_indices = list(idx.intersection(bounds1))
+        if not poly1.is_valid:
+            poly1 = poly1.buffer(0)
         for j in overlapping_indices:
+            if j <= i:
+                continue
             poly2 = polygons[j]
             with warnings.catch_warnings():
                 warnings.simplefilter("ignore", RuntimeWarning)
-                if not poly1.is_valid:
-                    poly1 = poly1.buffer(0)
                 if not poly2.is_valid:
                     poly2 = poly2.buffer(0)
                 if (
-                    i != j
-                    and poly1.intersects(poly2)
+                    poly1.intersects(poly2)
                     and poly1.intersection(poly2).area
                     > min_overlap * (min(poly1.area, poly2.area))
-                    and (j, i) not in overlapping_polygons
                 ):
                     overlapping_polygons.append((i, j))
     return overlapping_polygons
@@ -1027,6 +1032,59 @@ def find_connected_components(all_grains, min_area):
     return new_grains, comps, g
 
 
+def _polygon_pred_values(polygon, image_pred, channel=1):
+    """
+    Return the ``image_pred`` values (for the given channel) at the pixels
+    covered by ``polygon``, rasterizing only within the polygon's bounding box.
+
+    This is a fast, equivalent replacement for rasterizing a single grain over
+    the entire image and then masking: for a small grain on a large image it
+    does work proportional to the grain's bounding box (hundreds to thousands of
+    pixels) instead of the whole image (hundreds of millions of pixels). The set
+    of selected pixels is identical to the full-image approach, so downstream
+    statistics (e.g. the grain-pixel fraction) are unchanged.
+
+    Parameters
+    ----------
+    polygon : shapely.geometry.Polygon
+        The polygon whose covered pixels are sampled.
+    image_pred : numpy.ndarray
+        The U-Net prediction array (may be a memmap); only the polygon's
+        bounding-box window is read.
+    channel : int, optional
+        The channel of ``image_pred`` to sample. Defaults to 1 (grain channel).
+
+    Returns
+    -------
+    numpy.ndarray
+        1-D array of the channel values at the pixels inside the polygon.
+    """
+    h_img, w_img = image_pred.shape[:2]
+    minx, miny, maxx, maxy = polygon.bounds
+    # Pixel window for the bounding box, clamped to the image.
+    c0 = max(0, int(np.floor(minx)))
+    r0 = max(0, int(np.floor(miny)))
+    c1 = min(w_img, int(np.ceil(maxx)) + 1)
+    r1 = min(h_img, int(np.ceil(maxy)) + 1)
+    if c1 <= c0 or r1 <= r0:
+        return np.empty(0, dtype=image_pred.dtype)
+    h, w = r1 - r0, c1 - c0
+    # Local transform matching rasterize_grains' convention (polygon x -> column,
+    # y -> row), offset to the bounding-box window.
+    transform = rasterio.transform.from_bounds(
+        c0 - 0.5, r0 + h - 0.5, c0 + w - 0.5, r0 - 0.5, w, h
+    )
+    mask = rasterize(
+        [(polygon, 1)],
+        out_shape=(h, w),
+        transform=transform,
+        fill=0,
+        dtype="int32",
+    )
+    window = np.asarray(image_pred[r0:r1, c0:c1, channel])
+    return window[mask == 1]
+
+
 def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, image_pred):
     """
     Merge overlapping polygons in a connected component.
@@ -1066,8 +1124,7 @@ def merge_overlapping_polygons(all_grains, new_grains, comps, min_area, image_pr
             if polygon != most_similar_polygon:
                 diff_polygon = polygon.difference(most_similar_polygon)
                 if diff_polygon.area > min_area:
-                    diff_raster = rasterize_grains([diff_polygon], image_pred)
-                    diff_grain = image_pred[diff_raster == 1][:, 1]
+                    diff_grain = _polygon_pred_values(diff_polygon, image_pred, channel=1)
                     if len(diff_grain) > 0:
                         # if a large fraction of the pixels in the difference polygon are grains:
                         if len(np.where(diff_grain > 0.5)[0]) / len(diff_grain) > 0.1:
