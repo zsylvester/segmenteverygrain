@@ -564,5 +564,242 @@ class TestClassifyPoints(unittest.TestCase):
         self.assertEqual(classifications, [0, 0, 1, 1])
 
 
+class TestWeightedEcdf(unittest.TestCase):
+
+    def setUp(self):
+        rng = np.random.default_rng(42)
+        self.values = rng.normal(size=200)
+        self.weights = rng.uniform(0.1, 10.0, 200)
+
+    def test_unweighted_matches_legacy_curve(self):
+        # The pre-weighting code plotted np.arange(1, n + 1) / n reversed;
+        # the unweighted ECDF must reproduce it exactly
+        values_sorted = np.sort(self.values)
+        n = len(values_sorted)
+        legacy = (np.arange(1, n + 1) / n)[::-1]
+        v, cdf, exceedance = seg.weighted_ecdf(self.values)
+        np.testing.assert_array_equal(v, values_sorted)
+        np.testing.assert_allclose(exceedance, legacy)
+
+    def test_values_are_sorted(self):
+        v, _, _ = seg.weighted_ecdf(self.values, self.weights)
+        np.testing.assert_array_equal(v, np.sort(self.values))
+
+    def test_cdf_is_monotonic_and_ends_at_one(self):
+        _, cdf, _ = seg.weighted_ecdf(self.values, self.weights)
+        self.assertTrue(np.all(np.diff(cdf) >= 0))
+        self.assertAlmostEqual(cdf[-1], 1.0)
+        self.assertGreater(cdf[0], 0.0)
+
+    def test_exceedance_is_monotonic_and_starts_at_one(self):
+        _, _, exceedance = seg.weighted_ecdf(self.values, self.weights)
+        self.assertTrue(np.all(np.diff(exceedance) <= 0))
+        self.assertAlmostEqual(exceedance[0], 1.0)
+        self.assertGreater(exceedance[-1], 0.0)
+
+    def test_integer_weights_match_replication_exactly(self):
+        # Weighting by w must be identical to repeating each value w times,
+        # evaluated at the top (CDF) and bottom (exceedance) of each step
+        rng = np.random.default_rng(7)
+        values = rng.uniform(0.01, 2.0, 100)
+        weights = rng.integers(1, 12, 100).astype(float)
+        replicated = np.repeat(values, weights.astype(int))
+
+        v_w, cdf_w, exc_w = seg.weighted_ecdf(values, weights)
+        v_r, cdf_r, exc_r = seg.weighted_ecdf(replicated)
+
+        top = np.searchsorted(v_r, v_w, side="right") - 1
+        bottom = np.searchsorted(v_r, v_w, side="left")
+        np.testing.assert_allclose(cdf_r[top], cdf_w, atol=1e-12)
+        np.testing.assert_allclose(exc_r[bottom], exc_w, atol=1e-12)
+
+    def test_invariant_to_weight_scaling(self):
+        # Only the relative weights matter, so the units of the areas do not
+        _, cdf_a, _ = seg.weighted_ecdf(self.values, self.weights)
+        _, cdf_b, _ = seg.weighted_ecdf(self.values, self.weights * 1e6)
+        np.testing.assert_allclose(cdf_a, cdf_b)
+
+    def test_uniform_weights_match_no_weights(self):
+        _, cdf_a, _ = seg.weighted_ecdf(self.values)
+        _, cdf_b, _ = seg.weighted_ecdf(self.values, np.full(200, 3.0))
+        np.testing.assert_allclose(cdf_a, cdf_b)
+
+    def test_mismatched_weights_raise(self):
+        with self.assertRaises(ValueError):
+            seg.weighted_ecdf(self.values, self.weights[:10])
+
+    def test_single_value(self):
+        v, cdf, exceedance = seg.weighted_ecdf([2.5], [7.0])
+        np.testing.assert_array_equal(v, [2.5])
+        np.testing.assert_allclose(cdf, [1.0])
+        np.testing.assert_allclose(exceedance, [1.0])
+
+
+class TestWeightedPercentile(unittest.TestCase):
+
+    def setUp(self):
+        rng = np.random.default_rng(42)
+        self.values = rng.normal(size=500)
+        self.percentiles = np.array([5, 16, 25, 50, 75, 84, 95])
+
+    def test_equal_weights_approximate_numpy(self):
+        # The midpoint convention differs slightly from numpy's, but not much
+        result = seg.weighted_percentile(self.values, self.percentiles)
+        expected = np.percentile(self.values, self.percentiles)
+        np.testing.assert_allclose(result, expected, atol=0.02)
+
+    def test_integer_weights_match_replication(self):
+        rng = np.random.default_rng(7)
+        values = rng.uniform(0.01, 2.0, 200)
+        weights = rng.integers(1, 12, 200).astype(float)
+        replicated = np.repeat(values, weights.astype(int))
+        result = seg.weighted_percentile(values, self.percentiles, weights=weights)
+        expected = np.percentile(replicated, self.percentiles)
+        np.testing.assert_allclose(result, expected, atol=0.02)
+
+    def test_monotonic_in_percentile(self):
+        weights = np.abs(self.values) + 0.1
+        result = seg.weighted_percentile(self.values, self.percentiles, weights)
+        self.assertTrue(np.all(np.diff(result) >= 0))
+
+    def test_endpoints_are_min_and_max(self):
+        weights = np.abs(self.values) + 0.1
+        result = seg.weighted_percentile(self.values, [0, 100], weights)
+        self.assertAlmostEqual(result[0], np.min(self.values))
+        self.assertAlmostEqual(result[1], np.max(self.values))
+
+    def test_invariant_to_weight_scaling(self):
+        weights = np.abs(self.values) + 0.1
+        a = seg.weighted_percentile(self.values, self.percentiles, weights)
+        b = seg.weighted_percentile(self.values, self.percentiles, weights * 1e6)
+        np.testing.assert_allclose(a, b)
+
+    def test_weighting_pulls_median_toward_heavy_values(self):
+        # Weighting grain sizes by area must shift the median toward the
+        # large grains, which is the whole point of area weighting
+        values = np.array([1.0, 2.0, 3.0, 4.0, 100.0])
+        areas = values ** 2
+        unweighted = seg.weighted_percentile(values, 50)
+        weighted = seg.weighted_percentile(values, 50, weights=areas)
+        self.assertAlmostEqual(float(unweighted), 3.0)
+        self.assertGreater(float(weighted), 50.0)
+
+    def test_scalar_percentile(self):
+        result = seg.weighted_percentile(self.values, 50)
+        self.assertEqual(np.asarray(result).shape, ())
+
+    def test_mismatched_weights_raise(self):
+        with self.assertRaises(ValueError):
+            seg.weighted_percentile(self.values, self.percentiles, weights=[1.0, 2.0])
+
+
+class TestPlotHistogramOfAxisLengths(unittest.TestCase):
+
+    def setUp(self):
+        rng = np.random.default_rng(0)
+        self.major = rng.uniform(0.2, 4.0, 120)
+        self.minor = self.major * rng.uniform(0.4, 0.95, 120)
+        self.area = np.pi * 0.25 * self.major * self.minor
+
+    def tearDown(self):
+        plt.close("all")
+
+    def bar_heights(self, ax):
+        return np.array([patch.get_height() for patch in ax.containers[0]])
+
+    def test_unweighted_labels_count(self):
+        fig, ax = seg.plot_histogram_of_axis_lengths(self.major, self.minor)
+        self.assertEqual(ax.get_ylabel(), "count")
+        # Without weights the bars are plain counts, so they sum to the
+        # number of grains inside the binning range
+        self.assertLessEqual(self.bar_heights(ax).sum(), len(self.major))
+
+    def test_weighted_labels_area_weighted_count(self):
+        fig, ax = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=self.area
+        )
+        self.assertEqual(ax.get_ylabel(), "area-weighted count")
+
+    def test_weights_are_normalized_to_grain_count(self):
+        # Weights sum to the number of grains, so the y axis stays on a
+        # count-like scale no matter what units the areas are in
+        fig, ax = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=self.area
+        )
+        self.assertAlmostEqual(self.bar_heights(ax).sum(), len(self.major), places=6)
+
+    def test_invariant_to_area_units(self):
+        fig_a, ax_a = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=self.area
+        )
+        fig_b, ax_b = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=self.area * 1e6
+        )
+        np.testing.assert_allclose(self.bar_heights(ax_a), self.bar_heights(ax_b))
+
+    def test_weighting_changes_the_distribution(self):
+        fig_a, ax_a = seg.plot_histogram_of_axis_lengths(self.major, self.minor)
+        fig_b, ax_b = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=self.area
+        )
+        self.assertFalse(
+            np.allclose(self.bar_heights(ax_a), self.bar_heights(ax_b))
+        )
+
+    def test_nan_does_not_misalign_weights(self):
+        # A NaN axis length must drop that grain's area too; previously the
+        # arrays were filtered separately and zip() paired sizes with the
+        # wrong areas
+        major = self.major.copy()
+        major[17] = np.nan
+        fig_a, ax_a = seg.plot_histogram_of_axis_lengths(
+            major, self.minor, area=self.area
+        )
+        keep = np.ones(len(self.major), dtype=bool)
+        keep[17] = False
+        fig_b, ax_b = seg.plot_histogram_of_axis_lengths(
+            self.major[keep], self.minor[keep], area=self.area[keep]
+        )
+        np.testing.assert_allclose(self.bar_heights(ax_a), self.bar_heights(ax_b))
+
+    def test_nan_in_area_is_dropped(self):
+        area = self.area.copy()
+        area[3] = np.nan
+        fig, ax = seg.plot_histogram_of_axis_lengths(
+            self.major, self.minor, area=area
+        )
+        heights = self.bar_heights(ax)
+        self.assertTrue(np.all(np.isfinite(heights)))
+        self.assertAlmostEqual(heights.sum(), len(self.major) - 1, places=6)
+
+    def test_mismatched_area_raises(self):
+        with self.assertRaises(ValueError):
+            seg.plot_histogram_of_axis_lengths(
+                self.major, self.minor, area=self.area[:10]
+            )
+
+    def test_all_nan_returns_placeholder(self):
+        nans = np.full(5, np.nan)
+        fig, ax = seg.plot_histogram_of_axis_lengths(nans, nans)
+        self.assertEqual(len(ax.containers), 0)
+        self.assertEqual(ax.get_ylabel(), "count")
+
+
+class TestGetAreaWeightedDistribution(unittest.TestCase):
+
+    def test_deprecation_warning(self):
+        with self.assertWarns(DeprecationWarning):
+            seg.get_area_weighted_distribution([1.0, 2.0, 3.0], [1.0, 2.0, 3.0])
+
+    def test_still_replicates(self):
+        import warnings
+
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", DeprecationWarning)
+            result = seg.get_area_weighted_distribution([1.0, 2.0], [1.0, 3.0])
+        # mean area is 2.0, so the copy counts are int(1/1) and int(3/1)
+        self.assertEqual(result, [1.0, 2.0, 2.0, 2.0])
+
+
 if __name__ == "__main__":
     unittest.main()
