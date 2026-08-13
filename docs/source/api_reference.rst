@@ -114,6 +114,8 @@ Utility Functions
 .. autofunction:: segmenteverygrain.classify_points
 .. autofunction:: segmenteverygrain.compute_curvature
 .. autofunction:: segmenteverygrain.find_grain_size_classes
+.. autofunction:: segmenteverygrain.weighted_ecdf
+.. autofunction:: segmenteverygrain.weighted_percentile
 .. autofunction:: segmenteverygrain.get_area_weighted_distribution
 .. autofunction:: segmenteverygrain.click_for_scale
 .. autofunction:: segmenteverygrain.get_grains_from_patches

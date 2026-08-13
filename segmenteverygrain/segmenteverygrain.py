@@ -2734,20 +2734,122 @@ def read_polygons(fname):
 
 def get_area_weighted_distribution(grain_sizes, areas):
     """
-    Generate an area-weighted distribution of grain sizes.
-    
-    Parameters:
-    grain_sizes (list): A list of grain sizes.
-    areas (list): A list of corresponding areas for the grain sizes.
-    
-    Returns:
-    list: An area-weighted list of grain sizes.
+    Generate an area-weighted distribution of grain sizes by replication.
+
+    .. deprecated::
+        Use explicit weights instead. Each grain size is repeated
+        ``int(area / (0.5 * mean_area))`` times, so grains smaller than half the
+        mean area are dropped entirely and the truncation biases the result
+        slightly coarse. :func:`weighted_ecdf` and :func:`weighted_percentile`
+        compute the same quantities exactly, and Matplotlib's ``hist`` accepts a
+        ``weights`` argument directly.
+
+    Parameters
+    ----------
+    grain_sizes : array-like
+        Grain sizes (any linear measure, e.g. axis length).
+    areas : array-like
+        Grain areas corresponding to `grain_sizes`.
+
+    Returns
+    -------
+    list
+        An area-weighted list of grain sizes.
     """
+    warnings.warn(
+        "get_area_weighted_distribution() is deprecated; pass the areas as "
+        "weights instead (see weighted_ecdf and weighted_percentile).",
+        DeprecationWarning,
+        stacklevel=2,
+    )
     area_weighted_grain_size = []
     mean_area = np.mean(areas)
     for grain_size, area in zip(grain_sizes, areas):
         area_weighted_grain_size.extend([grain_size] * int(area / (0.5 * mean_area)))
     return area_weighted_grain_size
+
+
+def weighted_ecdf(values, weights=None):
+    """
+    Compute a weighted empirical cumulative distribution function.
+
+    Parameters
+    ----------
+    values : array-like
+        The values to build the distribution from (e.g. grain axis lengths in
+        phi units).
+    weights : array-like, optional
+        Non-negative weight for each value, e.g. grain area for an
+        area-weighted distribution. If None, all values are weighted equally,
+        which reproduces the ordinary (count-based) ECDF.
+
+    Returns
+    -------
+    values_sorted : numpy.ndarray
+        `values` sorted in ascending order.
+    cdf : numpy.ndarray
+        Fraction of the total weight at or below each sorted value.
+    exceedance : numpy.ndarray
+        Fraction of the total weight at or above each sorted value, i.e.
+        ``1 - cdf`` shifted so that the smallest value maps to 1.
+    """
+    values = np.asarray(values, dtype=float)
+    if weights is None:
+        weights = np.ones(len(values))
+    weights = np.asarray(weights, dtype=float)
+    if len(weights) != len(values):
+        raise ValueError(
+            f"weights has length {len(weights)} but values has length {len(values)}"
+        )
+    order = np.argsort(values)
+    values_sorted = values[order]
+    weights_sorted = weights[order]
+    total = weights_sorted.sum()
+    cumulative = np.cumsum(weights_sorted)
+    cdf = cumulative / total
+    # 'at or above' rather than 'strictly above', so the smallest value maps to 1
+    exceedance = 1.0 - (cumulative - weights_sorted) / total
+    return values_sorted, cdf, exceedance
+
+
+def weighted_percentile(values, percentiles, weights=None):
+    """
+    Compute weighted percentiles of a distribution.
+
+    Uses the midpoint convention: the cumulative weight assigned to each sorted
+    value is the weight below it plus half its own weight. With equal weights
+    this is very close to :func:`numpy.percentile`, and it is exact for
+    area-weighted grain size statistics such as D50.
+
+    Parameters
+    ----------
+    values : array-like
+        The values to compute percentiles of.
+    percentiles : float or array-like
+        Percentile(s) to compute, in the range [0, 100].
+    weights : array-like, optional
+        Non-negative weight for each value, e.g. grain area. If None, all values
+        are weighted equally.
+
+    Returns
+    -------
+    numpy.ndarray or float
+        The requested percentile(s) of `values`.
+    """
+    values = np.asarray(values, dtype=float)
+    if weights is None:
+        weights = np.ones(len(values))
+    weights = np.asarray(weights, dtype=float)
+    if len(weights) != len(values):
+        raise ValueError(
+            f"weights has length {len(weights)} but values has length {len(values)}"
+        )
+    order = np.argsort(values)
+    values_sorted = values[order]
+    weights_sorted = weights[order]
+    cumulative = np.cumsum(weights_sorted) - 0.5 * weights_sorted
+    cumulative = cumulative / weights_sorted.sum()
+    return np.interp(np.asarray(percentiles, dtype=float) / 100.0, cumulative, values_sorted)
 
 
 def plot_histogram_of_axis_lengths(
@@ -2763,7 +2865,10 @@ def plot_histogram_of_axis_lengths(
     minor_axis_length : array-like
         The lengths of the minor axes of the grains in millimeters.
     area : array-like, optional
-        The areas of the grains in square millimeters. If provided, the axis lengths will be weighted by the area.
+        The areas of the grains in square millimeters. If provided, the axis
+        lengths are weighted by grain area, so that the distributions are more
+        consistent with those from sieving, point counting, or Wolman counts.
+        Must be the same length as the axis length arrays.
     binsize : float, optional
         The size of the bins for the histogram. Default is 0.1.
     xlimits : tuple, optional
@@ -2777,29 +2882,44 @@ def plot_histogram_of_axis_lengths(
         The axes object containing the plot.
     """
     # Handle empty input data or NaN values
-    major_axis_length = np.array(major_axis_length)
-    minor_axis_length = np.array(minor_axis_length)
-    
-    # Remove NaN values
-    valid_major = major_axis_length[~np.isnan(major_axis_length)]
-    valid_minor = minor_axis_length[~np.isnan(minor_axis_length)]
-    
-    if len(valid_major) == 0 or len(valid_minor) == 0:
+    major_axis_length = np.asarray(major_axis_length, dtype=float)
+    minor_axis_length = np.asarray(minor_axis_length, dtype=float)
+    area = np.asarray(area, dtype=float)
+    if len(area) > 0 and len(area) != len(major_axis_length):
+        raise ValueError(
+            f"area has length {len(area)} but the axis length arrays have "
+            f"length {len(major_axis_length)}"
+        )
+
+    # Drop grains with a NaN in either axis, so that the two arrays and the
+    # area weights stay aligned with each other
+    valid = ~np.isnan(major_axis_length) & ~np.isnan(minor_axis_length)
+    if len(area) > 0:
+        valid &= ~np.isnan(area)
+
+    if not np.any(valid):
         fig, ax = plt.subplots(figsize=(8, 6))
-        ax.text(0.5, 0.5, 'No valid grain data available', 
+        ax.text(0.5, 0.5, 'No valid grain data available',
                 horizontalalignment='center', verticalalignment='center',
                 transform=ax.transAxes, fontsize=14)
         ax.set_xlabel("grain axis length (mm)")
         ax.set_ylabel("count")
         return fig, ax
-    
+
     # Use only valid data
-    major_axis_length = valid_major
-    minor_axis_length = valid_minor
-    
+    major_axis_length = major_axis_length[valid]
+    minor_axis_length = minor_axis_length[valid]
+
     if len(area) > 0:
-        major_axis_length = get_area_weighted_distribution(major_axis_length, area)
-        minor_axis_length = get_area_weighted_distribution(minor_axis_length, area)
+        # Scale the weights so that they sum to the number of grains; this keeps
+        # the y axis on the same order of magnitude as an unweighted count and
+        # makes it independent of the units the areas are given in
+        weights = area[valid]
+        weights = weights * (len(weights) / weights.sum())
+        count_label = "area-weighted count"
+    else:
+        weights = np.ones(len(major_axis_length))
+        count_label = "count"
     phi_major = -np.log2(major_axis_length)  # major axis length in phi scale
     phi_minor = -np.log2(minor_axis_length)
     if xlimits:
@@ -2809,10 +2929,16 @@ def plot_histogram_of_axis_lengths(
         phi_max = int(np.ceil(max(np.max(phi_minor), np.max(phi_major))))
         phi_min = int(np.floor(min(np.min(phi_minor), np.min(phi_major))))
     fig, ax = plt.subplots(figsize=(8, 6))
-    n, bins, patches = plt.hist(
-        phi_major, np.arange(phi_min, phi_max, binsize), alpha=0.5, zorder=2
+    n, bins, patches = ax.hist(
+        phi_major,
+        np.arange(phi_min, phi_max, binsize),
+        weights=weights,
+        alpha=0.5,
+        zorder=2,
     )
-    ax.hist(phi_minor, np.arange(phi_min, phi_max, binsize), alpha=0.5)
+    ax.hist(
+        phi_minor, np.arange(phi_min, phi_max, binsize), weights=weights, alpha=0.5
+    )
     y_loc = max(n) - 0.2 * max(n)
     grain_size_classes = {
         "very fine silt": [7, 8],
@@ -2856,7 +2982,7 @@ def plot_histogram_of_axis_lengths(
             [np.round(2**i, 3) for i in range(-bounds[-1], -bounds[0] - 1, -1)]
         )
         ax.set_xlabel("grain axis length (mm)")
-        ax.set_ylabel("count")
+        ax.set_ylabel(count_label)
         ax2 = ax.twiny()
         ax2.set_xlim(ax.get_xlim())
         ax2.set_xticks(bounds)
@@ -2870,18 +2996,12 @@ def plot_histogram_of_axis_lengths(
             ax.set_xlim(phi_max, phi_min)
         ax.set_ylim(0, max(n) + 0.1 * max(n) if len(n) > 0 else 1)
         ax.set_xlabel("grain axis length")
-        ax.set_ylabel("count")
-    phi_major_sorted = np.sort(phi_major)
-    ecdf_major = np.arange(1, len(phi_major_sorted) + 1) / len(phi_major_sorted)
-    phi_minor_sorted = np.sort(phi_minor)
-    ecdf_minor = np.arange(1, len(phi_minor_sorted) + 1) / len(phi_minor_sorted)
+        ax.set_ylabel(count_label)
+    phi_major_sorted, _, ecdf_major = weighted_ecdf(phi_major, weights)
+    phi_minor_sorted, _, ecdf_minor = weighted_ecdf(phi_minor, weights)
     ax3 = ax.twinx()
-    ax3.plot(
-        phi_major_sorted, ecdf_major[::-1], color="tab:blue", linewidth=2, zorder=3
-    )
-    ax3.plot(
-        phi_minor_sorted, ecdf_minor[::-1], color="tab:orange", linewidth=2, zorder=3
-    )
+    ax3.plot(phi_major_sorted, ecdf_major, color="tab:blue", linewidth=2, zorder=3)
+    ax3.plot(phi_minor_sorted, ecdf_minor, color="tab:orange", linewidth=2, zorder=3)
     ax3.set_ylim(0, 1)
     return fig, ax
 

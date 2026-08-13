@@ -1597,8 +1597,9 @@ def save_summary(fn: str, grains: list, px_per_m: float = 1.):
 def get_histogram(
         grains: list = [],
         px_per_m: float = 1.,
-        summary: pd.DataFrame = None) -> tuple[object, object]:
-    ''' 
+        summary: pd.DataFrame = None,
+        area_weighted: bool = True) -> tuple[object, object]:
+    '''
     Produce a histogram of grain size measurements.
 
     Parameters
@@ -1610,6 +1611,11 @@ def get_histogram(
         pre-generated summary.
     summary : pd.DataFrame (optional, must provide grains if not given)
         Grain summary, if already generated from get_summary().
+    area_weighted : bool, default True
+        Weight the distributions by grain area, so that they are more
+        consistent with grain size distributions from sieving, point counting,
+        or Wolman counts. Set to False for a count-based histogram. Ignored if
+        the summary has no 'area' column.
 
     Returns
     -------
@@ -1618,10 +1624,15 @@ def get_histogram(
     '''
     if isinstance(summary, type(None)):
         summary = get_summary(grains, px_per_m)
+    if area_weighted and 'area' in summary.columns:
+        area = summary['area'] * 1e6  # m^2 to mm^2
+    else:
+        area = []
     # plot_histogram_of_axis_lengths() takes values in mm, not m
     ret = segmenteverygrain.plot_histogram_of_axis_lengths(
         summary['major_axis_length'] * 1000,
-        summary['minor_axis_length'] * 1000)
+        summary['minor_axis_length'] * 1000,
+        area=area)
     return ret
 
 
@@ -1629,8 +1640,9 @@ def save_histogram(
         fn: str,
         grains: list = [],
         px_per_m: float = 1.,
-        summary: pd.DataFrame = None) -> None:
-    ''' 
+        summary: pd.DataFrame = None,
+        area_weighted: bool = True) -> None:
+    '''
     Save histogram of grain size measurements as an image.
 
     Parameters
@@ -1644,8 +1656,12 @@ def save_histogram(
         pre-generated summary.
     summary : pd.DataFrame (optional, must provide grains if not given)
         Grain summary, if already generated from get_summary().
+    area_weighted : bool, default True
+        Weight the distributions by grain area. Set to False for a count-based
+        histogram. Ignored if the summary has no 'area' column.
     '''
-    fig, ax = get_histogram(grains, px_per_m=px_per_m, summary=summary)
+    fig, ax = get_histogram(grains, px_per_m=px_per_m, summary=summary,
+                            area_weighted=area_weighted)
     fig.savefig(fn, bbox_inches='tight', pad_inches=0)
     plt.close(fig)
 

@@ -212,7 +212,8 @@ The ``interactions`` module provides convenient functions for saving all results
    # Save grain measurements as CSV
    summary = si.save_summary(out_fn + '_summary.csv', grains, px_per_m=plot.px_per_m)
 
-   # Save histogram as image
+   # Save histogram as image (area-weighted by default;
+   # pass area_weighted=False for a count-based histogram)
    si.save_histogram(out_fn + '_summary.jpg', summary=summary)
 
    # Save binary mask for training (0-1 values)
