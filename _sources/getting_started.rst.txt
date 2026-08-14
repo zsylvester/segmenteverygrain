@@ -42,6 +42,18 @@ The SAM 2.1 model can be downloaded from this `link <https://huggingface.co/face
 Running the segmentation
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
+The recommended way of running the segmentation is the ``predict_large_image``
+function, which is what the ``Segment_every_grain.ipynb`` notebook uses by
+default. Despite its name, it works well on images of any size: it splits the
+image into overlapping patches (a single patch for small images), runs the
+U-Net prediction and the SAM segmentation on each patch, and blends the
+results. It is described in the :ref:`Large image processing` section below.
+
+The functions in this section and the next two expose the individual steps of
+the pipeline — running them one by one is useful for understanding the
+workflow and for QC-ing the intermediate U-Net output, especially when working
+with a new image type.
+
 To run the U-Net segmentation on an image and label the grains in the U-Net output:
 
 .. code-block:: python
@@ -301,7 +313,11 @@ The ``interactions`` module provides convenient functions for saving all results
 Large image processing
 ~~~~~~~~~~~~~~~~~~~~~~
 
-If you want to detect grains in large images, you should use the ``predict_large_image`` function, which will split the image into patches and run the segmentation on each patch:
+The ``predict_large_image`` function is the recommended default for running
+the segmentation, whatever the image size: it splits the image into
+overlapping patches (small images are processed as a single patch), runs the
+U-Net prediction and the SAM segmentation on each patch, and blends the
+results:
 
 .. code-block:: python
 
@@ -315,10 +331,14 @@ If you want to detect grains in large images, you should use the ``predict_large
 
    all_grains, image_pred, all_coords = seg.predict_large_image(
        fname, unet, sam,
+       use_sam=True,          # use SAM for grain boundary detection
        min_area=400.0,
        patch_size=2000,
-       overlap=200,
-       remove_edge_grains=False  # Keep grains on outer edges of the full image
+       overlap=600,           # the larger the grains, the larger this overlap needs to be
+                              # (~ the size of the largest grains)
+       dbs_max_dist=100.0,    # reduce this if there are not enough prompts and
+                              # some grains are not detected
+       remove_edge_grains=False  # keep grains on outer edges of the full image
    )
 
 You can also run the segmentation using the U-Net only, without SAM refinement. This is
@@ -339,6 +359,50 @@ When ``use_sam=False``, grain labeling is performed once on the full blended U-N
 prediction (rather than per patch), so grains that straddle patch boundaries are handled
 correctly. The ``dilation`` parameter expands each grain label by the specified number of
 pixels, compensating for the boundary channel that the U-Net predicts between grains.
+
+Interrupting and resuming long runs
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Segmenting a very large image can take hours, and before v0.5.0 a crash, an
+interrupted kernel, or a machine going to sleep meant starting over. As of
+v0.5.0, passing a ``checkpoint_dir`` to ``predict_large_image`` makes the run
+resumable:
+
+.. code-block:: python
+
+   all_grains, image_pred, all_coords = seg.predict_large_image(
+       fname, unet, sam,
+       min_area=400.0,
+       patch_size=2000,
+       overlap=600,
+       remove_edge_grains=False,
+       checkpoint_dir="./my_large_image_checkpoints",
+       verbose=False,
+   )
+
+With ``checkpoint_dir`` set, the grains of each patch are written to GeoJSON
+(in global image coordinates) as soon as the patch is processed, the blended
+U-Net prediction is stored on disk as a ``numpy.memmap`` instead of a large
+in-memory array (which also lowers the RAM footprint), and a manifest keeps
+track of the completed patches. If the run is interrupted for any reason,
+re-running the same call with the same ``checkpoint_dir`` — and the same
+parameters — skips the finished patches and continues where it stopped.
+
+A few things to keep in mind:
+
+- The returned ``image_pred`` is a ``numpy.memmap`` backed by a file in the
+  checkpoint directory; copy it with ``np.array(image_pred)`` if you need it
+  to outlive the directory.
+- Once the run has finished and the results are saved, the checkpoint
+  directory can be deleted.
+- For images of about 100 megapixels or more, ``predict_large_image`` emits a
+  warning if ``checkpoint_dir`` is not set, as a reminder that an
+  interruption would otherwise lose all progress.
+
+The ``verbose=False`` setting used above is also new in v0.5.0: it replaces
+the per-patch progress bars with a single concise line per patch. This is
+recommended for large images, where the volume of progress-bar output can
+make notebook frontends sluggish or appear to hang.
 
 Just like before, the ``all_grains`` list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:
 

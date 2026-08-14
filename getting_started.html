@@ -67,6 +67,16 @@ and earlier (e.g. <code class="docutils literal notranslate"><span class="pre">s
 </section>
 <section id="running-the-segmentation">
 <h2>Running the segmentation<a class="headerlink" href="#running-the-segmentation" title="Link to this heading">¶</a></h2>
+<p>The recommended way of running the segmentation is the <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code>
+function, which is what the <code class="docutils literal notranslate"><span class="pre">Segment_every_grain.ipynb</span></code> notebook uses by
+default. Despite its name, it works well on images of any size: it splits the
+image into overlapping patches (a single patch for small images), runs the
+U-Net prediction and the SAM segmentation on each patch, and blends the
+results. It is described in the <a class="reference internal" href="#large-image-processing"><span class="std std-ref">Large image processing</span></a> section below.</p>
+<p>The functions in this section and the next two expose the individual steps of
+the pipeline — running them one by one is useful for understanding the
+workflow and for QC-ing the intermediate U-Net output, especially when working
+with a new image type.</p>
 <p>To run the U-Net segmentation on an image and label the grains in the U-Net output:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">numpy</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">np</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">matplotlib.pyplot</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">plt</span>
@@ -294,7 +304,11 @@ analyses.</p>
 </section>
 <section id="large-image-processing">
 <h2>Large image processing<a class="headerlink" href="#large-image-processing" title="Link to this heading">¶</a></h2>
-<p>If you want to detect grains in large images, you should use the <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> function, which will split the image into patches and run the segmentation on each patch:</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> function is the recommended default for running
+the segmentation, whatever the image size: it splits the image into
+overlapping patches (small images are processed as a single patch), runs the
+U-Net prediction and the SAM segmentation on each patch, and blends the
+results:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">PIL</span><span class="w"> </span><span class="kn">import</span> <span class="n">Image</span>
 <span class="kn">import</span><span class="w"> </span><span class="nn">segmenteverygrain.interactions</span><span class="w"> </span><span class="k">as</span><span class="w"> </span><span class="nn">si</span>
 
@@ -305,10 +319,14 @@ analyses.</p>
 
 <span class="n">all_grains</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">all_coords</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">predict_large_image</span><span class="p">(</span>
     <span class="n">fname</span><span class="p">,</span> <span class="n">unet</span><span class="p">,</span> <span class="n">sam</span><span class="p">,</span>
+    <span class="n">use_sam</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>          <span class="c1"># use SAM for grain boundary detection</span>
     <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span>
     <span class="n">patch_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
-    <span class="n">overlap</span><span class="o">=</span><span class="mi">200</span><span class="p">,</span>
-    <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># Keep grains on outer edges of the full image</span>
+    <span class="n">overlap</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>           <span class="c1"># the larger the grains, the larger this overlap needs to be</span>
+                           <span class="c1"># (~ the size of the largest grains)</span>
+    <span class="n">dbs_max_dist</span><span class="o">=</span><span class="mf">100.0</span><span class="p">,</span>    <span class="c1"># reduce this if there are not enough prompts and</span>
+                           <span class="c1"># some grains are not detected</span>
+    <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span>  <span class="c1"># keep grains on outer edges of the full image</span>
 <span class="p">)</span>
 </pre></div>
 </div>
@@ -328,6 +346,45 @@ significantly faster and avoids the need to load the SAM model:</p>
 prediction (rather than per patch), so grains that straddle patch boundaries are handled
 correctly. The <code class="docutils literal notranslate"><span class="pre">dilation</span></code> parameter expands each grain label by the specified number of
 pixels, compensating for the boundary channel that the U-Net predicts between grains.</p>
+<section id="interrupting-and-resuming-long-runs">
+<h3>Interrupting and resuming long runs<a class="headerlink" href="#interrupting-and-resuming-long-runs" title="Link to this heading">¶</a></h3>
+<p>Segmenting a very large image can take hours, and before v0.5.0 a crash, an
+interrupted kernel, or a machine going to sleep meant starting over. As of
+v0.5.0, passing a <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> to <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> makes the run
+resumable:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">all_coords</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">predict_large_image</span><span class="p">(</span>
+    <span class="n">fname</span><span class="p">,</span> <span class="n">unet</span><span class="p">,</span> <span class="n">sam</span><span class="p">,</span>
+    <span class="n">min_area</span><span class="o">=</span><span class="mf">400.0</span><span class="p">,</span>
+    <span class="n">patch_size</span><span class="o">=</span><span class="mi">2000</span><span class="p">,</span>
+    <span class="n">overlap</span><span class="o">=</span><span class="mi">600</span><span class="p">,</span>
+    <span class="n">remove_edge_grains</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+    <span class="n">checkpoint_dir</span><span class="o">=</span><span class="s2">&quot;./my_large_image_checkpoints&quot;</span><span class="p">,</span>
+    <span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
+<span class="p">)</span>
+</pre></div>
+</div>
+<p>With <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> set, the grains of each patch are written to GeoJSON
+(in global image coordinates) as soon as the patch is processed, the blended
+U-Net prediction is stored on disk as a <code class="docutils literal notranslate"><span class="pre">numpy.memmap</span></code> instead of a large
+in-memory array (which also lowers the RAM footprint), and a manifest keeps
+track of the completed patches. If the run is interrupted for any reason,
+re-running the same call with the same <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> — and the same
+parameters — skips the finished patches and continues where it stopped.</p>
+<p>A few things to keep in mind:</p>
+<ul class="simple">
+<li><p>The returned <code class="docutils literal notranslate"><span class="pre">image_pred</span></code> is a <code class="docutils literal notranslate"><span class="pre">numpy.memmap</span></code> backed by a file in the
+checkpoint directory; copy it with <code class="docutils literal notranslate"><span class="pre">np.array(image_pred)</span></code> if you need it
+to outlive the directory.</p></li>
+<li><p>Once the run has finished and the results are saved, the checkpoint
+directory can be deleted.</p></li>
+<li><p>For images of about 100 megapixels or more, <code class="docutils literal notranslate"><span class="pre">predict_large_image</span></code> emits a
+warning if <code class="docutils literal notranslate"><span class="pre">checkpoint_dir</span></code> is not set, as a reminder that an
+interruption would otherwise lose all progress.</p></li>
+</ul>
+<p>The <code class="docutils literal notranslate"><span class="pre">verbose=False</span></code> setting used above is also new in v0.5.0: it replaces
+the per-patch progress bars with a single concise line per patch. This is
+recommended for large images, where the volume of progress-bar output can
+make notebook frontends sluggish or appear to hang.</p>
 <p>Just like before, the <code class="docutils literal notranslate"><span class="pre">all_grains</span></code> list contains shapely polygons of the grains detected in the image. The image containing the grain labels can be generated like this:</p>
 <div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">labels</span> <span class="o">=</span> <span class="n">seg</span><span class="o">.</span><span class="n">rasterize_grains</span><span class="p">(</span><span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="p">)</span>
 </pre></div>
@@ -347,6 +404,7 @@ pixels, compensating for the boundary channel that the U-Net predicts between gr
 </div>
 <p>See the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain.ipynb">Segment_every_grain.ipynb</a> notebook for a complete example
 of how the models can be loaded and used for segmenting an image and QC-ing the result. The notebook goes through all the steps described above in an interactive format.</p>
+</section>
 </section>
 </section>
 <section id="grain-extraction-and-clustering">
