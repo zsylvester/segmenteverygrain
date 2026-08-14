@@ -2,6 +2,16 @@
 
 All notable changes to `segmenteverygrain` are documented here.
 
+## [Unreleased]
+
+### Added
+
+- `sam_segmentation` raises an informative `ValueError` when called with an
+  empty prompt list, and `predict_large_image` emits a warning when no grains
+  are detected in the image. Previously a failed U-Net prediction (e.g., a
+  model that did not load correctly) could surface as a cryptic downstream
+  error such as "attempt to get argmax of an empty sequence" (issue #10).
+
 ## [0.5.0]
 
 ### Changed

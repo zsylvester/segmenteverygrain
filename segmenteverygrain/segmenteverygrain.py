@@ -806,7 +806,22 @@ def sam_segmentation(
         The figure object if plot_image is True, otherwise None.
     ax : matplotlib.axes.Axes or None
         The axes object if plot_image is True, otherwise None.
+
+    Raises
+    ------
+    ValueError
+        If `coords` is empty, i.e., no SAM prompts were generated from the
+        U-Net prediction.
     """
+    if len(coords) == 0:
+        raise ValueError(
+            "No SAM prompts were provided ('coords' is empty), so there are no "
+            "grains to segment. This usually means that the U-Net model found "
+            "no grains in the image: check that the model file loaded "
+            "correctly and that the U-Net prediction looks reasonable (plot "
+            "'image_pred'). If the prediction is poor, consider finetuning "
+            "the model for this image type."
+        )
     predictor = SAM2ImagePredictor(sam)
     predictor.set_image(image)
     all_grains = []
@@ -1664,6 +1679,14 @@ def predict_large_image(
         blended_grains = image_pred[:, :, 1] >= 0.5
         inds = np.where(blended_grains[all_coords[:, 1], all_coords[:, 0]])[0]
         all_coords = all_coords[inds, :]
+    if len(All_Grains) == 0:
+        warnings.warn(
+            "No grains were detected in the image. Check that the U-Net model "
+            "file loaded correctly and that its prediction looks reasonable "
+            "(plot the returned 'image_pred'). If the prediction is poor, "
+            "consider finetuning the model for this image type.",
+            stacklevel=2,
+        )
     return All_Grains, image_pred, all_coords
 
 

@@ -1,7 +1,10 @@
+import os
+import tempfile
 import unittest
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib.patches import Polygon as MplPolygon
+from PIL import Image
 from shapely.geometry import Polygon
 import segmenteverygrain as seg
 import tensorflow as tf
@@ -156,6 +159,47 @@ class TestLabelGrains(unittest.TestCase):
         labels_simple, all_coords = seg.label_grains(self.image, self.prediction)
         background_probs = self.prediction[:, :, 0][all_coords[:, 1], all_coords[:, 0]]
         self.assertTrue(np.all(background_probs < 0.3))
+
+
+class TestSamSegmentationEmptyPrompts(unittest.TestCase):
+
+    def test_empty_coords_raises_informative_error(self):
+        image = np.zeros((100, 100, 3), dtype=np.uint8)
+        image_pred = np.zeros((100, 100, 3), dtype=np.float32)
+        labels = np.zeros((100, 100), dtype=int)
+        coords = np.empty((0, 2), dtype=np.int32)
+        # The guard fires before the SAM model is used, so sam can be None
+        with self.assertRaisesRegex(ValueError, "No SAM prompts"):
+            seg.sam_segmentation(
+                None, image, image_pred, coords, labels, min_area=400.0
+            )
+
+
+class TestPredictLargeImageNoGrains(unittest.TestCase):
+
+    def test_no_grains_detected_warns(self):
+        # Mock model that predicts background everywhere (as logits, since
+        # predict_image_tile applies softmax to the model output)
+        class BackgroundModel:
+            def predict(self, x, verbose=0):
+                pred = np.zeros(x.shape[:-1] + (3,), dtype=np.float32)
+                pred[..., 0] = 10.0  # large background logit
+                return pred
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            fname = os.path.join(tmpdir, "blank.png")
+            Image.fromarray(np.zeros((256, 256, 3), dtype=np.uint8)).save(fname)
+            with self.assertWarnsRegex(UserWarning, "No grains were detected"):
+                all_grains, image_pred, all_coords = seg.predict_large_image(
+                    fname,
+                    BackgroundModel(),
+                    use_sam=False,
+                    min_area=400.0,
+                    patch_size=2000,
+                    overlap=300,
+                )
+        self.assertEqual(len(all_grains), 0)
+        self.assertEqual(len(all_coords), 0)
 
 
 class TestFindOverlappingPolygons(unittest.TestCase):
