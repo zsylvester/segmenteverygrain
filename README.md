@@ -16,21 +16,7 @@
 
 ## Requirements
 
-- numpy
-- matplotlib
-- scipy
-- pandas
-- pillow
-- scikit-image
-- opencv-python
-- networkx
-- rasterio
-- shapely
-- tensorflow
-- pytorch
-- sam2
-- rtree
-- tqdm
+Python 3.10 or higher. All dependencies (TensorFlow, PyTorch, SAM 2, and others) are handled by the conda environment files or by pip — see the installation instructions below.
 
 ## Documentation
 
@@ -38,49 +24,41 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 
 ## Installation
 
-'segmenteverygrain' is available through pypi.org, so you can install it by running:
-```
-pip install segmenteverygrain
-```
-If you are using 'pip', you need to make sure that the Python version is 3.10 or higher, so that all dependencies work correctly.
+The quickest way to try 'segmenteverygrain' — without installing anything — is to run the [Segment_every_grain_colab.ipynb](notebooks/Segment_every_grain_colab.ipynb) notebook in Google Colab.
 
-Note that you need to clone the repository to get the U-Net model file and the example images in one go; otherwise you need to download these manually and place them in the right folders.
+For local use, we recommend cloning the repository (it contains the trained U-Net model and the example images) and creating a conda environment from the provided environment files. If you do not have conda, install [miniforge](https://conda-forge.org/download) first.
 
-The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the ['environment.yml'](environment.yml) file with conda (or mamba).
-
-We recommend that you install [conda or mamba](https://docs.conda.io/projects/conda/en/stable/user-guide/install/index.html) to manage your Python environments. Due to licensing restrictions on Aanconda, [miniforge](https://conda-forge.org/download) might be the best option as there are no strings attached and it allows you to rely on the `mamba` package solver, which is faster than `conda`. If you are using `mamba`, you can simply replace `conda` with `mamba` in the commands below.
-
-In Anaconda Prompt (Windows), or Terminal (Mac), enter the following to install pip and git packages:
-
-```
-conda install pip git
-```
-
-Download the segmenteverygrain files.
-
-Windows:
+Clone the repository:
 ```
 git clone --depth 1 https://github.com/zsylvester/segmenteverygrain.git
 ```
-Linux/Mac:
-```
-git clone --depth 1 git@github.com:zsylvester/segmenteverygrain.git
-```
 
-Set up the `segmenteverygrain` environment with conda (Windows):
+Create the environment (this also installs the `segmenteverygrain` package and JupyterLab).
+
+Linux/Windows:
 ```
 conda env create -f segmenteverygrain/environment.yml
 ```
-
-Set up the `segmenteverygrain` environment with conda (Mac):
+Mac (Apple Silicon):
 ```
 conda env create -f segmenteverygrain/environment_macos.yml
 ```
 
-Activate environment:
+Activate the environment and launch JupyterLab from the repository folder:
 ```
 conda activate segmenteverygrain
+cd segmenteverygrain
+jupyter lab
 ```
+
+Then open [notebooks/Segment_every_grain.ipynb](notebooks/Segment_every_grain.ipynb) and run the cells from the top; the first cells download the SAM 2.1 model checkpoint (~860 MB) automatically.
+
+If you only need the library as a dependency in an existing environment (without the notebooks and model files), 'segmenteverygrain' is also available on PyPI:
+```
+pip install segmenteverygrain
+```
+
+Detailed step-by-step instructions — including conda setup from scratch, GPU notes for each platform, and troubleshooting — are in the [installation guide](https://zsylvester.github.io/segmenteverygrain/installation.html).
 
 ## Getting started
 
@@ -92,9 +70,12 @@ The interactive editing interface (`GrainPlot`) provides the following controls:
 - **Alt + Left-click**: Foreground prompt for multi-prompt grain creation
 - **Alt + Right-click**: Background prompt for multi-prompt grain creation
 - **Shift + drag**: Draw scale bar for unit conversion
+- **c**: Create grain from placed prompts
 - **d**: Delete selected grains
 - **m**: Merge selected grains
 - **z**: Undo last created grain
+- **h**: Toggle coverage mask (highlights unsegmented areas in red)
+- **Esc**: Clear all selections and prompts
 - **Ctrl** (hold): Temporarily hide grain masks
 
 The screen recording below shows how new grains can be added and objects that are not proper grains can be deleted. The green dots are 'grain' prompts (Alt + Left-click); the red dots are background prompts (Alt + Right-click).
@@ -157,7 +138,7 @@ git push origin feature/my-feature
 
 ## Reporting Issues
 
-If you encounter any issues or problems while using segmentanygrain, we encourage you to report them to us. This helps us identify and address any bugs or areas for improvement.
+If you encounter any issues or problems while using segmenteverygrain, we encourage you to report them to us. This helps us identify and address any bugs or areas for improvement.
 
 To report an issue, please follow these steps:
 

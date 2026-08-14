@@ -24,33 +24,11 @@ The package includes an ``interactions`` module with the ``GrainPlot`` class for
 and a ``grain_utils`` module for extracting individual grain images, feature extraction using pre-trained CNNs, and clustering
 grains for classification tasks.
 
-Installation
-------------
-.. toctree::
-   :caption: Installation
-
-To install ``segmenteverygrain`` you can use ``pip``:
-
-.. code-block:: shell
-
-   pip install segmenteverygrain
-
-Or you can install it from the source code:
-
-.. code-block:: shell
-
-   git clone https://github.com/zsylvester/segmenteverygrain.git
-   cd segmenteverygrain
-   pip install .
-
-The easiest way of creating a Python environment in which 'segmenteverygrain' works well is to use the `environment.yml <https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml>`_ file with conda (or mamba).
-
-For Apple Silicon users, the `environment_macos.yml <https://github.com/zsylvester/segmenteverygrain/blob/main/environment_macos.yml>`_ file is recommended. This will make it possible to use the GPU for training the U-Net models.
-
 Contents
 --------
 .. toctree::
    :maxdepth: 2
 
+   installation
    getting_started
    api_reference
