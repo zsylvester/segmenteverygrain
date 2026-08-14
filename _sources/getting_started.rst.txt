@@ -28,7 +28,7 @@ To load the U-Net model, you can use the 'load_model' function from Keras. The U
 
 This assumes that you are using Keras 3 and 'seg_model_smooth_labels.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with the latest version of the package.
 
-The SAM 2.1 model can be downloaded from this `link <https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
+The SAM 2.1 model can be downloaded from this `link <https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 
 .. code-block:: python
 
@@ -36,7 +36,7 @@ The SAM 2.1 model can be downloaded from this `link <https://dl.fbaipublicfiles.
    import urllib.request
 
    if not os.path.exists("./models/sam2.1_hiera_large.pt"):
-       url = "https://dl.fbaipublicfiles.com/segment_anything_2/092424/sam2.1_hiera_large.pt"
+       url = "https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt"
        urllib.request.urlretrieve(url, "./models/sam2.1_hiera_large.pt")
 
 Running the segmentation
@@ -194,6 +194,82 @@ Generate a summary dataframe and histogram of grain measurements:
        binsize=0.25
    )
 
+Area-weighted grain size distributions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Counting grains in an image produces a *number-weighted* distribution: every
+grain contributes equally, no matter how small. Field and laboratory methods
+such as sieving, point counting, and Wolman pebble counts instead sample
+grains roughly in proportion to their size, so their distributions are
+coarser than a per-grain count of the same sediment. To make image-based
+results comparable with these methods, the grain size distribution can be
+weighted by grain area.
+
+As of v0.5.0, area weighting uses explicit weights: each grain's area is used
+directly as its weight when building histograms, cumulative distributions,
+and percentiles. Earlier versions approximated this by replicating each grain
+size in proportion to its area; because the replication count was truncated
+to an integer, grains smaller than half the mean area were dropped entirely,
+which biased the statistics coarse. The old
+``get_area_weighted_distribution`` function is therefore deprecated (it still
+works, but emits a ``DeprecationWarning``), and area-weighted results
+computed with v0.5.0 or later will differ somewhat from earlier ones — the
+fine tail of the distribution is now fully represented.
+
+To plot an area-weighted histogram, pass the grain areas to
+``plot_histogram_of_axis_lengths``:
+
+.. code-block:: python
+
+   # Area-weighted histogram (axis lengths in mm, areas in mm^2)
+   fig, ax = seg.plot_histogram_of_axis_lengths(
+       summary['major_axis_length'] * 1000,  # m to mm
+       summary['minor_axis_length'] * 1000,
+       area=summary['area'] * 1e6,           # m^2 to mm^2
+       binsize=0.25,
+   )
+
+When ``area`` is provided, the y axis is labeled 'area-weighted count'. The
+weights are normalized so that they sum to the number of grains; this keeps
+the bar heights on a count-like scale and makes them independent of the units
+the areas are given in. Omit ``area`` for an ordinary count-based histogram.
+
+The ``get_histogram`` and ``save_histogram`` functions of the
+``interactions`` module are area-weighted by default (as long as the summary
+dataframe has an 'area' column); pass ``area_weighted=False`` for a
+count-based histogram.
+
+For statistics computed directly from the data, without binning, two
+functions accept an optional ``weights`` argument:
+
+- ``weighted_ecdf(values, weights=None)`` returns the sorted values together
+  with the cumulative and exceedance fractions of the total weight, i.e. a
+  weighted empirical cumulative distribution function.
+- ``weighted_percentile(values, percentiles, weights=None)`` computes
+  weighted percentiles, such as the D50 or D84 of an area-weighted
+  distribution. It uses the midpoint convention, so with equal weights the
+  results are very close to ``numpy.percentile``.
+
+.. code-block:: python
+
+   major_mm = summary['major_axis_length'] * 1000  # m to mm
+   areas = summary['area'] * 1e6                   # m^2 to mm^2
+
+   # Area-weighted cumulative distribution
+   sizes, cdf, exceedance = seg.weighted_ecdf(major_mm, weights=areas)
+   plt.figure()
+   plt.plot(sizes, cdf)
+   plt.xscale('log')
+   plt.xlabel('major axis length (mm)')
+   plt.ylabel('cumulative fraction (area-weighted)')
+
+   # Area-weighted percentiles
+   d16, d50, d84 = seg.weighted_percentile(major_mm, [16, 50, 84], weights=areas)
+
+With ``weights=None``, both functions fall back to ordinary count-based
+statistics, so the same code can be used for weighted and unweighted
+analyses.
+
 Saving results
 ~~~~~~~~~~~~~~
 
@@ -212,7 +288,8 @@ The ``interactions`` module provides convenient functions for saving all results
    # Save grain measurements as CSV
    summary = si.save_summary(out_fn + '_summary.csv', grains, px_per_m=plot.px_per_m)
 
-   # Save histogram as image
+   # Save histogram as image (area-weighted by default;
+   # pass area_weighted=False for a count-based histogram)
    si.save_histogram(out_fn + '_summary.jpg', summary=summary)
 
    # Save binary mask for training (0-1 values)

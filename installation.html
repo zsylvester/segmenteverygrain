@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="./">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Installation &#8212; segmenteverygrain 0.5.0 documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
+    <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/doctools.js?v=9bcbadda"></script>
+    <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Getting started" href="getting_started.html" />
+    <link rel="prev" title="segmenteverygrain" href="index.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+
+  
+  
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          
+
+          <div class="body" role="main">
+            
+  <section id="installation">
+<h1>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h1>
+<div class="toctree-wrapper compound">
+</div>
+<p>There are three ways to use <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code>:</p>
+<ol class="arabic simple">
+<li><p><strong>Google Colab</strong> — no installation required; good for a quick test drive.</p></li>
+<li><p><strong>Local conda environment (recommended)</strong> — clone the repository and create a
+conda environment from the provided environment files. This gives you the
+notebooks, the example images, and the trained U-Net model in one go.</p></li>
+<li><p><strong>pip only</strong> — if you just need the library as a dependency in an existing
+environment.</p></li>
+</ol>
+<section id="trying-it-in-google-colab">
+<h2>Trying it in Google Colab<a class="headerlink" href="#trying-it-in-google-colab" title="Link to this heading">¶</a></h2>
+<p>The <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/notebooks/Segment_every_grain_colab.ipynb">Segment_every_grain_colab.ipynb</a>
+notebook has been adjusted so that the segmentation can be run in
+<a class="reference external" href="https://colab.research.google.com">Google Colab</a>, without installing anything
+on your machine. Note that the interactive editing of the results is not as
+smooth in Colab as it is in a local Jupyter session, so for serious work a local
+installation is recommended.</p>
+</section>
+<section id="step-by-step-local-installation-with-conda-recommended">
+<h2>Step-by-step: local installation with conda (recommended)<a class="headerlink" href="#step-by-step-local-installation-with-conda-recommended" title="Link to this heading">¶</a></h2>
+<p>These instructions assume no prior setup — only a terminal (macOS/Linux) or the
+Miniforge/Anaconda Prompt (Windows).</p>
+<p><strong>1. Install conda (if you do not have it already).</strong>
+We recommend <a class="reference external" href="https://conda-forge.org/download">miniforge</a>: unlike the full
+Anaconda distribution, it has no licensing restrictions, and it includes
+<code class="docutils literal notranslate"><span class="pre">mamba</span></code>, a faster drop-in replacement for the <code class="docutils literal notranslate"><span class="pre">conda</span></code> command. If you use
+<code class="docutils literal notranslate"><span class="pre">mamba</span></code>, simply replace <code class="docutils literal notranslate"><span class="pre">conda</span></code> with <code class="docutils literal notranslate"><span class="pre">mamba</span></code> in the commands below.</p>
+<p><strong>2. Install git (if you do not have it already).</strong>
+In the terminal (macOS/Linux) or Miniforge Prompt (Windows):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>install<span class="w"> </span>git
+</pre></div>
+</div>
+<p><strong>3. Clone the repository.</strong>
+Cloning (rather than only pip-installing the package) is important because the
+repository contains the trained U-Net model and the example images used by the
+notebooks. Use the HTTPS address on all platforms:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>--depth<span class="w"> </span><span class="m">1</span><span class="w"> </span>https://github.com/zsylvester/segmenteverygrain.git
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you have seen <code class="docutils literal notranslate"><span class="pre">git&#64;github.com:...</span></code> addresses elsewhere: those use SSH
+and fail with a <code class="docutils literal notranslate"><span class="pre">Permission</span> <span class="pre">denied</span> <span class="pre">(publickey)</span></code> error unless you have set
+up SSH keys with GitHub. The HTTPS address above works without any setup.</p>
+</div>
+<p><strong>4. Create the conda environment.</strong>
+The environment files install all dependencies <em>and</em> the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code>
+package itself (from PyPI), plus JupyterLab for running the notebooks.</p>
+<p>On Linux or Windows:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>segmenteverygrain/environment.yml
+</pre></div>
+</div>
+<p>On macOS (Apple Silicon):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>segmenteverygrain/environment_macos.yml
+</pre></div>
+</div>
+<p>This step downloads several gigabytes of packages (TensorFlow, PyTorch, SAM 2),
+so it can take a while.</p>
+<p><strong>5. Activate the environment.</strong></p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>segmenteverygrain
+</pre></div>
+</div>
+<p><strong>6. Launch JupyterLab and open the main notebook.</strong>
+Start JupyterLab from the repository folder, so that the relative paths in the
+notebooks point to the right places:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>segmenteverygrain
+jupyter<span class="w"> </span>lab
+</pre></div>
+</div>
+<p>Then open <code class="docutils literal notranslate"><span class="pre">notebooks/Segment_every_grain.ipynb</span></code> in the JupyterLab file
+browser and run the cells from the top.</p>
+</section>
+<section id="model-files">
+<h2>Model files<a class="headerlink" href="#model-files" title="Link to this heading">¶</a></h2>
+<p>Two trained models are needed to run the segmentation workflow:</p>
+<ul class="simple">
+<li><p><strong>U-Net model</strong> (<code class="docutils literal notranslate"><span class="pre">models/seg_model_smooth_labels.keras</span></code>, ~25 MB): included
+in the repository, so nothing needs to be downloaded if you cloned it.</p></li>
+<li><p><strong>SAM 2.1 checkpoint</strong> (<code class="docutils literal notranslate"><span class="pre">models/sam2.1_hiera_large.pt</span></code>, ~860 MB): <em>not</em>
+included in the repository. The first cells of the
+<code class="docutils literal notranslate"><span class="pre">Segment_every_grain.ipynb</span></code> notebook download it automatically into the
+<code class="docutils literal notranslate"><span class="pre">models</span></code> folder. You can also download it manually from
+<a class="reference external" href="https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt">this link</a>
+and place it in the <code class="docutils literal notranslate"><span class="pre">models</span></code> folder.</p></li>
+</ul>
+</section>
+<section id="verifying-the-installation">
+<h2>Verifying the installation<a class="headerlink" href="#verifying-the-installation" title="Link to this heading">¶</a></h2>
+<p>With the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> environment activated, run:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import segmenteverygrain; import tensorflow as tf; import torch; print(&#39;segmenteverygrain OK&#39;); print(&#39;TensorFlow:&#39;, tf.__version__); print(&#39;PyTorch:&#39;, torch.__version__); print(&#39;CUDA available:&#39;, torch.cuda.is_available()); print(&#39;MPS available:&#39;, torch.backends.mps.is_available())&quot;</span>
+</pre></div>
+</div>
+<p>If this prints the version numbers without errors, the installation works. On
+Apple Silicon Macs, <code class="docutils literal notranslate"><span class="pre">MPS</span> <span class="pre">available:</span> <span class="pre">True</span></code> means SAM 2.1 will run on the GPU;
+on machines with an NVIDIA GPU, look for <code class="docutils literal notranslate"><span class="pre">CUDA</span> <span class="pre">available:</span> <span class="pre">True</span></code>.</p>
+</section>
+<section id="installing-with-pip-only">
+<h2>Installing with pip only<a class="headerlink" href="#installing-with-pip-only" title="Link to this heading">¶</a></h2>
+<p>If you only need <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> as a library in an existing environment:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>segmenteverygrain
+</pre></div>
+</div>
+<p>Python 3.10 or higher is required. Note that a pip install does <em>not</em> include
+the notebooks, the example images, or the U-Net model file — clone the
+repository (see above) to get those.</p>
+</section>
+<section id="development-install">
+<h2>Development install<a class="headerlink" href="#development-install" title="Link to this heading">¶</a></h2>
+<p>To work on the package itself, install the cloned repository in editable mode
+inside the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> environment:</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span><span class="nb">cd</span><span class="w"> </span>segmenteverygrain
+pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </span>.
+</pre></div>
+</div>
+</section>
+<section id="platform-notes">
+<h2>Platform notes<a class="headerlink" href="#platform-notes" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><strong>macOS (Apple Silicon):</strong> use <code class="docutils literal notranslate"><span class="pre">environment_macos.yml</span></code>. It pins
+<code class="docutils literal notranslate"><span class="pre">tensorflow&lt;=2.18.1</span></code> and adds <code class="docutils literal notranslate"><span class="pre">tensorflow-metal</span></code> so that the U-Net model
+can use the GPU; SAM 2.1 uses the GPU through PyTorch’s MPS backend. All code
+in the package auto-detects the available device (CUDA, MPS, or CPU).</p></li>
+<li><p><strong>Windows:</strong> run all commands in the Miniforge Prompt (or Anaconda Prompt).</p></li>
+<li><p><strong>Linux:</strong> <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> installs the standard pip builds of TensorFlow
+and PyTorch; on machines with an NVIDIA GPU these use CUDA automatically.</p></li>
+</ul>
+</section>
+<section id="troubleshooting">
+<h2>Troubleshooting<a class="headerlink" href="#troubleshooting" title="Link to this heading">¶</a></h2>
+<ul class="simple">
+<li><p><code class="docutils literal notranslate"><span class="pre">Permission</span> <span class="pre">denied</span> <span class="pre">(publickey)</span></code> <strong>when cloning:</strong> you used the SSH address;
+use the HTTPS address given in step 3 above.</p></li>
+<li><p><strong>Environment creation is very slow:</strong> use <code class="docutils literal notranslate"><span class="pre">mamba</span> <span class="pre">env</span> <span class="pre">create</span> <span class="pre">-f</span> <span class="pre">...</span></code>
+instead of <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">env</span> <span class="pre">create</span> <span class="pre">-f</span> <span class="pre">...</span></code> (mamba is included with miniforge).</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> <strong>for model files when running the notebook:</strong> make
+sure you started JupyterLab from the repository folder and opened the
+notebook in place — the notebook refers to the models as
+<code class="docutils literal notranslate"><span class="pre">../models/seg_model_smooth_labels.keras</span></code>, relative to the <code class="docutils literal notranslate"><span class="pre">notebooks</span></code>
+folder.</p></li>
+<li><p><strong>The interactive editing window does not respond:</strong> the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code>
+interface requires an interactive matplotlib backend. The notebook sets this
+up with the <code class="docutils literal notranslate"><span class="pre">%matplotlib</span> <span class="pre">qt</span></code> magic (PyQt is included in the conda
+environments); make sure that cell has been run.</p></li>
+<li><p><strong>Old U-Net models fail to load:</strong> as of v0.4.0, the U-Net model outputs raw
+logits, and models trained with v0.3.0 or earlier (e.g., <code class="docutils literal notranslate"><span class="pre">seg_model.keras</span></code>)
+are incompatible. Use <code class="docutils literal notranslate"><span class="pre">seg_model_smooth_labels.keras</span></code> or retrain your
+custom models. Similarly, models saved with Keras 2 do not load under the
+current Keras 3-based package.</p></li>
+</ul>
+</section>
+</section>
+
+
+          </div>
+          
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">segmenteverygrain</a></h1>
+
+
+
+
+
+
+
+
+
+<search id="searchbox" style="display: none" role="search">
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" placeholder="Search"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
+<ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#trying-it-in-google-colab">Trying it in Google Colab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#step-by-step-local-installation-with-conda-recommended">Step-by-step: local installation with conda (recommended)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#model-files">Model files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#verifying-the-installation">Verifying the installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#installing-with-pip-only">Installing with pip only</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#development-install">Development install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#platform-notes">Platform notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#grain-extraction-and-clustering">Grain extraction and clustering</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#finetuning-the-u-net-model">Finetuning the U-Net model</a></li>
+<li class="toctree-l1"><a class="reference internal" href="getting_started.html#training-the-u-net-model-from-scratch">Training the U-Net model from scratch</a></li>
+<li class="toctree-l1"><a class="reference internal" href="api_reference.html">API Reference</a></li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="index.html" title="previous chapter">segmenteverygrain</a></li>
+      <li>Next: <a href="getting_started.html" title="next chapter">Getting started</a></li>
+  </ul></li>
+</ul>
+</div>
+
+
+
+
+
+
+
+
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &#169;2024, Zoltan Sylvester.
+      
+      |
+      Powered by <a href="https://www.sphinx-doc.org/">Sphinx 8.1.3</a>
+      &amp; <a href="https://alabaster.readthedocs.io">Alabaster 1.0.0</a>
+      
+      |
+      <a href="_sources/installation.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

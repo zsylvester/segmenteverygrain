@@ -5,16 +5,16 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>segmenteverygrain &#8212; segmenteverygrain 0.2.1 documentation</title>
+    <title>segmenteverygrain &#8212; segmenteverygrain 0.5.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
-    <script src="_static/documentation_options.js?v=37f418d5"></script>
+    <script src="_static/documentation_options.js?v=1dd76d02"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="Getting started" href="getting_started.html" />
+    <link rel="next" title="Installation" href="installation.html" />
    
   <link rel="stylesheet" href="_static/custom.css" type="text/css" />
   
@@ -51,27 +51,21 @@ added to a dataset of grain images. These images then can be used to improve the
 <p>The package includes an <code class="docutils literal notranslate"><span class="pre">interactions</span></code> module with the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code> class for interactive editing of grain segmentations,
 and a <code class="docutils literal notranslate"><span class="pre">grain_utils</span></code> module for extracting individual grain images, feature extraction using pre-trained CNNs, and clustering
 grains for classification tasks.</p>
-<section id="installation">
-<h2>Installation<a class="headerlink" href="#installation" title="Link to this heading">¶</a></h2>
-<div class="toctree-wrapper compound">
-</div>
-<p>To install <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> you can use <code class="docutils literal notranslate"><span class="pre">pip</span></code>:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>pip<span class="w"> </span>install<span class="w"> </span>segmenteverygrain
-</pre></div>
-</div>
-<p>Or you can install it from the source code:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>git<span class="w"> </span>clone<span class="w"> </span>https://github.com/zsylvester/segmenteverygrain.git
-<span class="nb">cd</span><span class="w"> </span>segmenteverygrain
-pip<span class="w"> </span>install<span class="w"> </span>.
-</pre></div>
-</div>
-<p>The easiest way of creating a Python environment in which ‘segmenteverygrain’ works well is to use the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/environment.yml">environment.yml</a> file with conda (or mamba).</p>
-<p>For Apple Silicon users, the <a class="reference external" href="https://github.com/zsylvester/segmenteverygrain/blob/main/environment_macos.yml">environment_macos.yml</a> file is recommended. This will make it possible to use the GPU for training the U-Net models.</p>
-</section>
 <section id="contents">
 <h2>Contents<a class="headerlink" href="#contents" title="Link to this heading">¶</a></h2>
 <div class="toctree-wrapper compound">
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#trying-it-in-google-colab">Trying it in Google Colab</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#step-by-step-local-installation-with-conda-recommended">Step-by-step: local installation with conda (recommended)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#model-files">Model files</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#verifying-the-installation">Verifying the installation</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#installing-with-pip-only">Installing with pip only</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#development-install">Development install</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#platform-notes">Platform notes</a></li>
+<li class="toctree-l2"><a class="reference internal" href="installation.html#troubleshooting">Troubleshooting</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a><ul>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#loading-the-models">Loading the models</a></li>
 <li class="toctree-l2"><a class="reference internal" href="getting_started.html#running-the-segmentation">Running the segmentation</a></li>
@@ -133,6 +127,7 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 </search>
 <script>document.getElementById('searchbox').style.display = "block"</script><h3>Navigation</h3>
 <ul>
+<li class="toctree-l1"><a class="reference internal" href="installation.html">Installation</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html">Getting started</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#grain-extraction-and-clustering">Grain extraction and clustering</a></li>
 <li class="toctree-l1"><a class="reference internal" href="getting_started.html#finetuning-the-u-net-model">Finetuning the U-Net model</a></li>
@@ -144,7 +139,7 @@ pip<span class="w"> </span>install<span class="w"> </span>.
 <h3>Related Topics</h3>
 <ul>
   <li><a href="#">Documentation overview</a><ul>
-      <li>Next: <a href="getting_started.html" title="next chapter">Getting started</a></li>
+      <li>Next: <a href="installation.html" title="next chapter">Installation</a></li>
   </ul></li>
 </ul>
 </div>
