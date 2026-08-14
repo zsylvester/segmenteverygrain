@@ -14,7 +14,7 @@ sys.path.insert(0, os.path.abspath('../..'))
 project = 'segmenteverygrain'
 copyright = '2024, Zoltan Sylvester'
 author = 'Zoltan Sylvester'
-release = '0.2.1'
+release = '0.5.0'
 
 # -- General configuration ---------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#general-configuration
@@ -28,6 +28,16 @@ extensions = [
 
 templates_path = ['_templates']
 exclude_patterns = []
+
+# Mock the heavy ML dependencies so that autodoc can import the package
+# without installing TensorFlow, PyTorch, or SAM 2 (used by the docs CI).
+autodoc_mock_imports = [
+    'tensorflow',
+    'keras',
+    'torch',
+    'torchvision',
+    'sam2',
+]
 
 
 # -- Options for HTML output -------------------------------------------------
