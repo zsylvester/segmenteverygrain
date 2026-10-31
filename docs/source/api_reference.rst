@@ -98,13 +98,25 @@ Visualization
 Model Training
 ~~~~~~~~~~~~~~
 
+.. autoclass:: segmenteverygrain.UNet
+   :members: forward, config
+
 .. autofunction:: segmenteverygrain.Unet
+.. autofunction:: segmenteverygrain.load_unet
+.. autofunction:: segmenteverygrain.save_unet
+.. autofunction:: segmenteverygrain.convert_keras_model
+.. autofunction:: segmenteverygrain.predict_batch
+.. autofunction:: segmenteverygrain.get_device
 .. autofunction:: segmenteverygrain.weighted_crossentropy
 .. autofunction:: segmenteverygrain.patchify_training_data
 .. autofunction:: segmenteverygrain.create_train_val_test_data
+.. autofunction:: segmenteverygrain.train_model
+.. autofunction:: segmenteverygrain.plot_training_history
 .. autofunction:: segmenteverygrain.create_and_train_model
 .. autofunction:: segmenteverygrain.evaluate_model
-.. autofunction:: segmenteverygrain.load_and_preprocess
+.. autofunction:: segmenteverygrain.augment_pair
+
+.. autoclass:: segmenteverygrain.GrainPatchDataset
 
 Utility Functions
 ~~~~~~~~~~~~~~~~~

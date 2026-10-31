@@ -21,6 +21,19 @@ from .unet import (
     get_device,
 )
 
+# U-Net training (loss, datasets, training loop, evaluation)
+from .training import (
+    weighted_crossentropy,
+    augment_pair,
+    GrainPatchDataset,
+    patchify_training_data,
+    create_train_val_test_data,
+    train_model,
+    plot_training_history,
+    create_and_train_model,
+    evaluate_model,
+)
+
 # Interactive editing tools
 from .interactions import (
     GrainPlot,

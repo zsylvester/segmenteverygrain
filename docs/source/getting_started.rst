@@ -569,17 +569,25 @@ The mask is an 8-bit image and should contain only three numbers: 0, 1, and 2. 0
 
 The ``patch_dir`` is the directory where the patches will be saved. A folder named 'Patches' will be created in this directory, and the patches will be saved in subfolders named 'images' and 'labels'.
 
-Next, training, validation, and test datasets are created from the patches:
+Next, training, validation, and test data loaders are created from the patches (60% / 25% / 15% split):
 
 .. code-block:: python
 
    train_dataset, val_dataset, test_dataset = seg.create_train_val_test_data(image_dir, mask_dir, augmentation=True)
 
+The training loader applies random flips, rotations, crop-and-zoom, and color
+augmentations to each patch. Patches are loaded in background processes;
+pass ``num_workers=0`` to load them in the main process instead.
+
 Now we are ready to load the existing model weights and to train the model:
 
 .. code-block:: python
 
-   model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model.keras', epochs=100)
+   model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model_smooth_labels.pt', epochs=100)
+
+Training runs on the GPU (CUDA or Apple-Silicon MPS) when one is available.
+A ``.keras`` model file can be passed as ``model_file`` as well; it is
+converted on the fly, which requires Keras and TensorFlow to be installed.
 
 You can also evaluate the model separately on any dataset to get per-class IoU scores:
 
@@ -594,13 +602,13 @@ If you are happy with the finetuned model, you will want to save it:
 
 .. code-block:: python
 
-   model.save('seg_model_finetuned.keras')
+   seg.save_unet(model, 'seg_model_finetuned.pt')
 
-If you want to use this new model to make predictions, you will need to load it with the custom loss function:
+If you want to use this new model to make predictions, load it with ``load_unet``:
 
 .. code-block:: python
 
-   model = load_model("seg_model_finetuned.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = seg.load_unet("seg_model_finetuned.pt")
 
 
 Training the U-Net model from scratch
@@ -612,7 +620,6 @@ If you want to train a U-Net model from scratch, you can use the `Train_Unet_mod
 
    import segmenteverygrain as seg
    model = seg.Unet() # create model
-   model.compile(optimizer=Adam(), loss=seg.weighted_crossentropy, metrics=["accuracy"])
 
 If you place the training images and masks in the 'images' directory (the filenames are supposed to terminate with '_image.png' and '_mask.png'), you can create the training dataset like this:
 
@@ -631,10 +638,17 @@ Then you can train and test the model:
 
    model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, epochs=200)
 
-The model can be saved using the Keras save method:
+To continue training an existing model (for example with a lower learning rate), use ``train_model`` directly; it returns the per-epoch loss and accuracy history:
 
 .. code-block:: python
 
-   model.save('seg_model.keras')
+   history = seg.train_model(model, train_dataset, val_dataset, epochs=50, learning_rate=1e-4)
+   seg.plot_training_history(history)
 
-The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as 'seg_model_smooth_labels.keras'.
+The model can be saved with ``save_unet``:
+
+.. code-block:: python
+
+   seg.save_unet(model, 'seg_model.pt')
+
+The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as 'seg_model_smooth_labels.pt' (converted from the original Keras model).

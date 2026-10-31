@@ -7,7 +7,7 @@ from matplotlib.patches import Polygon as MplPolygon
 from PIL import Image
 from shapely.geometry import Polygon
 import segmenteverygrain as seg
-import tensorflow as tf
+import torch
 
 
 class TestGetGrainsFromPatches(unittest.TestCase):
@@ -257,88 +257,45 @@ class TestFindOverlappingPolygons(unittest.TestCase):
 class TestUnet(unittest.TestCase):
 
     def test_unet_output_shape(self):
-        model = seg.Unet()
-        input_shape = (1, 256, 256, 3)
-        dummy_input = np.zeros(input_shape, dtype=np.float32)
-        output = model.predict(dummy_input)
-        self.assertEqual(output.shape, (1, 256, 256, 3))
+        model = seg.Unet().eval()
+        dummy_input = torch.zeros((1, 3, 256, 256))
+        with torch.no_grad():
+            output = model(dummy_input)
+        self.assertEqual(tuple(output.shape), (1, 3, 256, 256))
 
-    def test_unet_layer_names(self):
+    def test_unet_is_pytorch_module(self):
         model = seg.Unet()
-        expected_layer_names = [
-            "input",
-            "conv2d",
-            "conv2d_1",
-            "batch_normalization",
-            "max_pooling2d",
-            "conv2d_2",
-            "conv2d_3",
-            "batch_normalization_1",
-            "max_pooling2d_1",
-            "conv2d_4",
-            "conv2d_5",
-            "batch_normalization_2",
-            "max_pooling2d_2",
-            "conv2d_6",
-            "conv2d_7",
-            "batch_normalization_3",
-            "max_pooling2d_3",
-            "conv2d_8",
-            "conv2d_9",
-            "batch_normalization_4",
-            "conv2d_transpose",
-            "concatenate",
-            "conv2d_10",
-            "conv2d_11",
-            "batch_normalization_5",
-            "conv2d_transpose_1",
-            "concatenate_1",
-            "conv2d_12",
-            "conv2d_13",
-            "batch_normalization_6",
-            "conv2d_transpose_2",
-            "concatenate_2",
-            "conv2d_14",
-            "conv2d_15",
-            "batch_normalization_7",
-            "conv2d_transpose_3",
-            "concatenate_3",
-            "conv2d_16",
-            "conv2d_17",
-            "batch_normalization_8",
-            "conv2d_18",
-        ]
-        actual_layer_names = [layer.name for layer in model.layers]
-        self.assertEqual(actual_layer_names, expected_layer_names)
-
-    def test_unet_compile(self):
-        model = seg.Unet()
-        model.compile(
-            optimizer="adam", loss="categorical_crossentropy", metrics=["accuracy"]
-        )
-        self.assertIsNotNone(model.optimizer)
-        self.assertIsNotNone(model.loss)
-        self.assertIsNotNone(model.metrics)
+        self.assertIsInstance(model, torch.nn.Module)
+        self.assertIsInstance(model, seg.UNet)
 
 
 class TestWeightedCrossentropy(unittest.TestCase):
 
-    def test_weighted_crossentropy_shape(self):
-        y_true = tf.constant([[[[1, 0, 0], [0, 1, 0], [0, 0, 1]]]], dtype=tf.float32)
-        y_pred = tf.constant(
-            [[[[2.0, 1.0, 0.1], [0.5, 2.0, 0.5], [0.1, 0.5, 2.0]]]], dtype=tf.float32
+    def setUp(self):
+        # Three pixels, one of each class (channels-first: (N, C, H, W))
+        self.y_true = torch.tensor(
+            [[[[1, 0, 0]], [[0, 1, 0]], [[0, 0, 1]]]], dtype=torch.float32
         )
-        loss = seg.weighted_crossentropy(y_true, y_pred)
-        self.assertEqual(loss.shape, ())
+        self.y_pred = torch.tensor(
+            [[[[2.0, 0.5, 0.1]], [[1.0, 2.0, 0.5]], [[0.1, 0.5, 2.0]]]], dtype=torch.float32
+        )
+
+    def test_weighted_crossentropy_shape(self):
+        loss = seg.weighted_crossentropy(self.y_true, self.y_pred)
+        self.assertEqual(tuple(loss.shape), ())
 
     def test_weighted_crossentropy_value(self):
-        y_true = tf.constant([[[[1, 0, 0], [0, 1, 0], [0, 0, 1]]]], dtype=tf.float32)
-        y_pred = tf.constant(
-            [[[[2.0, 1.0, 0.1], [0.5, 2.0, 0.5], [0.1, 0.5, 2.0]]]], dtype=tf.float32
-        )
-        loss = seg.weighted_crossentropy(y_true, y_pred)
-        expected_loss = 0.9759197  # Precomputed expected loss value (with label smoothing=0.1)
-        self.assertAlmostEqual(loss.numpy(), expected_loss, places=5)
+        loss = seg.weighted_crossentropy(self.y_true, self.y_pred)
+        # Precomputed with the original TensorFlow implementation
+        # (label smoothing = 0.1, class weights 0.6 / 1.0 / 5.0)
+        expected_loss = 0.9759197
+        self.assertAlmostEqual(float(loss), expected_loss, places=5)
+
+    def test_class_index_targets_match_one_hot(self):
+        y_idx = torch.tensor([[[0, 1, 2]]])
+        loss_idx = seg.weighted_crossentropy(y_idx, self.y_pred)
+        loss_onehot = seg.weighted_crossentropy(self.y_true, self.y_pred)
+        self.assertAlmostEqual(float(loss_idx), float(loss_onehot), places=6)
 
 
 class TestCalculateIoU(unittest.TestCase):

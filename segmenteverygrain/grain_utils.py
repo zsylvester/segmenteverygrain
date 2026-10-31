@@ -19,11 +19,6 @@ from shapely.affinity import translate
 from skimage.measure import regionprops, label as label_image
 from skimage.draw import polygon as draw_polygon
 from skimage import exposure
-from keras.applications import VGG16, ResNet50, InceptionV3
-from keras.models import Model
-from keras.applications.vgg16 import preprocess_input as preprocess_vgg16
-from keras.applications.resnet50 import preprocess_input as preprocess_resnet
-from keras.applications.inception_v3 import preprocess_input as preprocess_inception
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.decomposition import PCA
 
@@ -328,6 +323,14 @@ def extract_vgg16_features(grain_images, model_name='VGG16', layer_name='fc2',
     >>> print(features_640.shape)
     (336, 4096)
     """
+    # Keras is imported lazily so that the package itself does not depend on
+    # TensorFlow at import time (the feature extractors are the only users).
+    from keras.applications import VGG16, ResNet50, InceptionV3
+    from keras.models import Model
+    from keras.applications.vgg16 import preprocess_input as preprocess_vgg16
+    from keras.applications.resnet50 import preprocess_input as preprocess_resnet
+    from keras.applications.inception_v3 import preprocess_input as preprocess_inception
+
     # Load the appropriate model
     if model_name.upper() == 'VGG16':
         base_model = VGG16(weights='imagenet')
