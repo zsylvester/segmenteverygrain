@@ -1,6 +1,7 @@
 # SAM checkpoints (very large!)
 *.pt
 *.pth
+!models/seg_model*.pt
 
 # IDE settings
 .vscode

@@ -20,7 +20,7 @@ setuptools.setup(
     packages=['segmenteverygrain'],
     install_requires=['numpy','matplotlib',
         'scipy','pillow','scikit-image','tqdm','opencv-python',
-        'networkx','rasterio','shapely','tensorflow','sam2',
+        'networkx','rasterio','shapely','tensorflow','torch','sam2',
         'scikit-learn','rtree','pandas','geopandas','keras'],
     license_files=[],
     classifiers=[

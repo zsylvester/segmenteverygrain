@@ -11,6 +11,16 @@ This package provides tools for:
 # Core segmentation functionality
 from .segmenteverygrain import *
 
+# PyTorch U-Net (model, loading/saving, Keras conversion)
+from .unet import (
+    UNet,
+    load_unet,
+    save_unet,
+    convert_keras_model,
+    predict_batch,
+    get_device,
+)
+
 # Interactive editing tools
 from .interactions import (
     GrainPlot,
