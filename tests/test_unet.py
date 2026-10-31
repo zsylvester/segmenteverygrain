@@ -174,5 +174,65 @@ class TestKerasConversion(unittest.TestCase):
             self.assertEqual(model.num_classes, 3)
 
 
+
+class TestPredictImageWithUNet(unittest.TestCase):
+    """predict_image / predict_image_tile running on the PyTorch model."""
+
+    def setUp(self):
+        self.model = UNet(base_filters=4).eval()
+
+    def test_predict_image_tile(self):
+        pred = segmenteverygrain.predict_image_tile(np.random.rand(256, 256, 3), self.model)
+        self.assertEqual(pred.shape, (256, 256, 3))
+        np.testing.assert_allclose(pred.sum(axis=-1), 1.0, atol=1e-5)
+
+    def test_predict_image_shapes_and_batching(self):
+        image = (np.random.rand(300, 420, 3) * 255).astype(np.uint8)
+        pred_a = segmenteverygrain.predict_image(image, self.model, I=256, batch_size=4)
+        pred_b = segmenteverygrain.predict_image(image, self.model, I=256, batch_size=64)
+        self.assertEqual(pred_a.shape, (300, 420, 3))
+        self.assertEqual(pred_a.dtype, np.float32)
+        np.testing.assert_allclose(pred_a, pred_b, atol=1e-4)
+
+    def test_predict_image_grayscale(self):
+        image = np.random.rand(256, 256)
+        pred = segmenteverygrain.predict_image(image, self.model, I=256)
+        self.assertEqual(pred.shape, (256, 256, 3))
+
+    def test_rejects_unknown_model(self):
+        with self.assertRaises(TypeError):
+            segmenteverygrain.predict_image_tile(np.zeros((256, 256, 3)), object())
+
+    def test_keras_style_model_warns(self):
+        class MockKeras:
+            def predict(self, x, verbose=0):
+                return np.ones_like(x)
+
+        with self.assertWarns(FutureWarning):
+            pred = segmenteverygrain.predict_image_tile(np.zeros((256, 256, 3)), MockKeras())
+        self.assertTrue(np.allclose(pred, 1.0 / 3.0))
+
+
+@unittest.skipUnless(
+    HAS_KERAS and os.path.exists(KERAS_MODEL) and os.path.exists(PT_MODEL),
+    "keras or shipped models not available",
+)
+class TestPredictImageParity(unittest.TestCase):
+    """The full tiled prediction gives the same result with the .pt and .keras models."""
+
+    def test_predict_image_matches_keras(self):
+        import keras
+        import warnings
+
+        keras_model = keras.saving.load_model(KERAS_MODEL, compile=False)
+        torch_model = load_unet(PT_MODEL, device="cpu")
+        rng = np.random.default_rng(3)
+        image = (rng.random((300, 400, 3)) * 255).astype(np.uint8)
+        pred_torch = segmenteverygrain.predict_image(image, torch_model, I=256)
+        with warnings.catch_warnings():
+            warnings.simplefilter("ignore", FutureWarning)
+            pred_keras = segmenteverygrain.predict_image(image, keras_model, I=256)
+        self.assertLess(float(np.abs(pred_torch - pred_keras).max()), 1e-3)
+
 if __name__ == "__main__":
     unittest.main()

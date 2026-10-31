@@ -2,7 +2,6 @@
 import copy
 # Pip imports
 from PIL import Image
-import keras.utils
 import logging
 import matplotlib as mpl
 import matplotlib.style as mplstyle
@@ -1482,7 +1481,7 @@ def load_image(fn: str) -> np.ndarray:
     np.ndarray
         Memory representation of loaded image.
     '''
-    return np.array(keras.utils.load_img(fn))
+    return np.array(segmenteverygrain.load_img(fn))
 
 
 def polygons_to_grains(polygons: list, image: np.ndarray = None) -> list:
@@ -1680,12 +1679,16 @@ def get_mask(grains: list, image: np.ndarray) -> np.ndarray:
     Returns
     -------
     np.ndarray
-        Binary mask image.
+        Mask image of shape ``(H, W, 1)``, float32, with 0 = background,
+        1 = grain, 2 = grain boundary.
     '''
     polys = [g.polygon for g in grains]
     rasterized_image, mask = segmenteverygrain.create_labeled_image(
         polys, image)
-    return keras.utils.img_to_array(mask)
+    mask = np.asarray(mask, dtype=np.float32)
+    if mask.ndim == 2:
+        mask = mask[:, :, np.newaxis]
+    return mask
 
 
 def save_mask(fn: str, grains: list, image: np.ndarray, scale: bool = False):
@@ -1704,7 +1707,14 @@ def save_mask(fn: str, grains: list, image: np.ndarray, scale: bool = False):
         Whether to scale from 0-255 for human readability (True)
         or 0-1 for model training (False).
     '''
-    keras.utils.save_img(fn, get_mask(grains, image), scale=scale)
+    mask = get_mask(grains, image)
+    if scale:
+        mask = mask - np.min(mask)
+        mask_max = np.max(mask)
+        if mask_max != 0:
+            mask = mask / mask_max
+        mask = mask * 255
+    Image.fromarray(mask[:, :, 0].astype(np.uint8), "L").save(fn)
 
 
 # Point count ----------------------------------------------------------------

@@ -271,5 +271,41 @@ class TestDownscaledGrainPlot(unittest.TestCase):
         self.assertTrue((testxy == plotxy).all())
 
 
+
+class TestMaskHelpers(unittest.TestCase):
+    ''' get_mask / save_mask without Keras. '''
+
+    @classmethod
+    def setUpClass(cls):
+        cls.image = np.zeros((100, 100, 3), dtype=np.uint8)
+        polys = [
+            shapely.Polygon([(10, 10), (40, 10), (40, 40), (10, 40)]),
+            shapely.Polygon([(50, 50), (80, 50), (80, 80), (50, 80)]),
+        ]
+        cls.grains = si.polygons_to_grains(polys, cls.image)
+
+    def test_get_mask(self):
+        mask = si.get_mask(self.grains, self.image)
+        self.assertEqual(mask.shape, (100, 100, 1))
+        self.assertEqual(mask.dtype, np.float32)
+        self.assertEqual(set(np.unique(mask).tolist()), {0.0, 1.0, 2.0})
+
+    def test_save_mask(self):
+        import os
+        import tempfile
+        from PIL import Image
+
+        with tempfile.TemporaryDirectory() as tmp:
+            raw = os.path.join(tmp, 'raw.png')
+            scaled = os.path.join(tmp, 'scaled.png')
+            si.save_mask(raw, self.grains, self.image, scale=False)
+            si.save_mask(scaled, self.grains, self.image, scale=True)
+            raw_arr = np.array(Image.open(raw))
+            scaled_arr = np.array(Image.open(scaled))
+        self.assertEqual(raw_arr.shape, (100, 100))
+        self.assertEqual(set(np.unique(raw_arr).tolist()), {0, 1, 2})
+        self.assertEqual(set(np.unique(scaled_arr).tolist()), {0, 127, 255})
+
+
 if __name__ == '__main__':
     unittest.main()

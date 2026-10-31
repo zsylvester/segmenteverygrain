@@ -11,22 +11,35 @@ The notebook goes through the steps of loading the models, running the segmentat
 Loading the models
 ~~~~~~~~~~~~~~~~~~
 
-To load the U-Net model, you can use the 'load_model' function from Keras. The U-Net model is saved in the 'seg_model_smooth_labels.keras' file.
+The U-Net model is a PyTorch model saved in the 'seg_model_smooth_labels.pt' file. Load it with ``load_unet``, which places it on the GPU (CUDA or Apple-Silicon MPS) when one is available and on the CPU otherwise:
 
 .. code-block:: python
 
    import segmenteverygrain as seg
-   from keras.saving import load_model
-   model = load_model("seg_model_smooth_labels.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = seg.load_unet("seg_model_smooth_labels.pt")
 
 .. note::
 
-   As of v0.4.0, the U-Net model outputs raw logits (pre-softmax). Softmax is applied
-   automatically at inference time in ``predict_image_tile``. Models trained with v0.3.0
-   and earlier (e.g. ``seg_model.keras``) are **incompatible** with this version — use
-   ``seg_model_smooth_labels.keras`` or retrain your custom models.
+   The U-Net model outputs raw logits (pre-softmax). Softmax is applied
+   automatically at inference time in ``predict_image_tile``.
 
-This assumes that you are using Keras 3 and 'seg_model_smooth_labels.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with the latest version of the package.
+.. note::
+
+   **Converting a Keras model.** Earlier versions of ``segmenteverygrain`` used a
+   Keras U-Net saved as a ``.keras`` file. If you have a custom or fine-tuned Keras
+   model, convert it once (this requires ``keras`` and ``tensorflow`` to be installed)
+   and use the resulting ``.pt`` file from then on:
+
+   .. code-block:: python
+
+      seg.convert_keras_model("my_model.keras", "my_model.pt")
+      model = seg.load_unet("my_model.pt")
+
+   Only models that output logits (trained with v0.4.0 or later, e.g.
+   ``seg_model_smooth_labels.keras``) can be converted; models trained with v0.3.0 and
+   earlier (e.g. ``seg_model.keras``) are incompatible and need to be retrained.
+   Passing a Keras model directly to the segmentation functions still works for now
+   but is deprecated.
 
 The SAM 2.1 model can be downloaded from this `link <https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 
@@ -60,11 +73,10 @@ To run the U-Net segmentation on an image and label the grains in the U-Net outp
 
    import numpy as np
    import matplotlib.pyplot as plt
-   from keras.utils import load_img
-   
-   # Load your image
+
+   # Load your image (as an RGB numpy array)
    fname = "path/to/your/image.jpg"
-   image = np.array(load_img(fname))
+   image = np.array(seg.load_img(fname))
    
    # Run U-Net prediction
    image_pred = seg.predict_image(image, model, I=256)

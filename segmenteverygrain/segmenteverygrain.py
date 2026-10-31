@@ -37,11 +37,72 @@ from keras.layers import Input, BatchNormalization
 from keras.layers import Conv2D, Conv2DTranspose
 from keras.layers import MaxPooling2D
 from keras.layers import concatenate
-from keras.utils import load_img
 from keras.saving import load_model
 from keras.optimizers import Adam
 
 from sam2.sam2_image_predictor import SAM2ImagePredictor
+
+from .unet import UNet, predict_batch
+
+
+def load_img(path):
+    """
+    Load an image file from disk as an RGB ``PIL.Image``.
+
+    Drop-in replacement for ``keras.utils.load_img``; wrap the result in
+    ``np.array`` to get an ``(H, W, 3)`` uint8 array.
+
+    Parameters
+    ----------
+    path : str
+        Path to the image file.
+
+    Returns
+    -------
+    PIL.Image.Image
+        The image converted to RGB.
+    """
+    with Image.open(path) as im:
+        return im.convert("RGB")
+
+
+def _predict_tiles(tiles, model):
+    """
+    Run the U-Net on a batch of tiles and return class probabilities.
+
+    Parameters
+    ----------
+    tiles : numpy.ndarray
+        Array of shape ``(N, H, W, 3)`` with pixel values scaled to ``[0, 1]``.
+    model : UNet or keras.Model
+        The segmentation model. :class:`segmenteverygrain.unet.UNet` is the
+        supported model type; Keras models (anything with a ``predict``
+        method returning logits) are still accepted for backward
+        compatibility but are deprecated.
+
+    Returns
+    -------
+    numpy.ndarray
+        Softmax probabilities of shape ``(N, H, W, 3)``, float32.
+    """
+    tiles = np.asarray(tiles, dtype=np.float32)
+    if isinstance(model, UNet):
+        return predict_batch(model, tiles, batch_size=len(tiles))
+    if hasattr(model, "predict"):
+        warnings.warn(
+            "Passing a Keras U-Net model is deprecated and will stop working in "
+            "a future release. Convert it with "
+            "segmenteverygrain.convert_keras_model() and load the result with "
+            "segmenteverygrain.load_unet().",
+            FutureWarning,
+            stacklevel=3,
+        )
+        logits = np.asarray(model.predict(tiles, verbose=0), dtype=np.float32)
+        return scipy_softmax(logits, axis=-1)
+    raise TypeError(
+        "model must be a segmenteverygrain UNet (see load_unet) or a Keras model; "
+        f"got {type(model).__name__}."
+    )
 
 
 def predict_image_tile(im_tile, model):
@@ -51,14 +112,15 @@ def predict_image_tile(im_tile, model):
     Parameters
     ----------
     im_tile : 3D array
-        The image tile for which the prediction will be done.
-    model
-        Tensorflow model used for semantic segmentation.
+        The image tile for which the prediction will be done, with pixel
+        values scaled to ``[0, 1]``.
+    model : UNet
+        The U-Net model (see :func:`segmenteverygrain.load_unet`).
 
     Returns
     -------
     im_tile_pred : 3D array
-        Predicted tile.
+        Predicted tile (class probabilities).
     """
 
     # Check for invalid input
@@ -69,29 +131,34 @@ def predict_image_tile(im_tile, model):
     if len(im_tile.shape) == 3 and im_tile.shape[2] != 3:
         raise ValueError("3D input image tile must have 3 channels.")
     im_tile = np.expand_dims(im_tile, axis=0)  # add batch dimension
-    im_tile_pred = model.predict(im_tile, verbose=0)  # make prediction
-    im_tile_pred = im_tile_pred[0]  # remove batch dimension
-    im_tile_pred = scipy_softmax(im_tile_pred, axis=-1)  # convert logits to probabilities
-    return im_tile_pred
+    return _predict_tiles(im_tile, model)[0]  # remove batch dimension
 
 
-def predict_image(image, model, I):
+def predict_image(image, model, I, batch_size=32):
     """
-    Segmantic segmentation of the entire image using a Unet model.
+    Semantic segmentation of the entire image using a Unet model.
+
+    The image is covered by overlapping ``I x I`` tiles (offset by half a tile
+    in both directions); the per-tile predictions are blended with Hann
+    window weights. Tiles are run through the model in batches.
 
     Parameters
     ----------
     image : 2D or 3D array
         The image that is being segmented. Can have one or more channels.
-    model
-        Tensorflow model used for semantic segmentation.
+    model : UNet
+        The U-Net model (see :func:`segmenteverygrain.load_unet`).
     I : int
         Size of the square-shaped image tiles in pixels.
+    batch_size : int, optional
+        Number of tiles per forward pass. Defaults to 32; lower it if the
+        GPU runs out of memory.
 
     Returns
     -------
     image_pred : 3D array
-        Semantic segmentation result for the input image.
+        Semantic segmentation result for the input image (float32 class
+        probabilities, shape ``(H, W, 3)``).
     """
 
     # Check for invalid input
@@ -106,73 +173,38 @@ def predict_image(image, model, I):
     pad_cols = I - np.mod(image.shape[1], I)
     if image.ndim == 2:
         image = np.stack((image, image, image), axis=-1)  # convert to 3 channels
-    if image.ndim == 3:
-        image = np.vstack((image, np.zeros((pad_rows, image.shape[1], image.shape[2]))))
-        image = np.hstack((image, np.zeros((image.shape[0], pad_cols, image.shape[2]))))
+    image = np.pad(
+        image.astype(np.float32), ((0, pad_rows), (0, pad_cols), (0, 0))
+    )
     r = int(np.floor(image.shape[0] / I))  # number of rows of image tiles
     c = int(np.floor(image.shape[1] / I))  # number of columns of image tiles
 
     I2 = int(I / 2)
-    W = np.hanning(I) * np.hanning(I)[:, np.newaxis]
+    W = (np.hanning(I) * np.hanning(I)[:, np.newaxis]).astype(np.float32)
     Wup = W.copy()
     Wup[:I2, :] = np.tile(np.hanning(I), (I2, 1))
     Wdown = W.copy()
     Wdown[I2:, :] = np.tile(np.hanning(I), (I2, 1))
 
-    image = np.hstack(
-        (np.zeros((r * I, I2, 3)), image, np.zeros((r * I, I2, 3)))
-    )  # padding on the left and right sides
-    image_pred = np.zeros((image.shape[0], image.shape[1], 3))
-    print("segmenting image tiles...")
-    for i in trange(c + 1):  # rows, no offset
-        for j in range(1, 2 * r - 2):  # columns
-            im_tile = image[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, :] / 255.0
-            im_tile_pred = predict_image_tile(im_tile, model)
-            for layer in range(3):
-                image_pred[j * I2 : (j + 2) * I2, i * I : (i + 1) * I, layer] += (
-                    im_tile_pred[:, :, layer] * W
-                )
-    for i in range(c + 1):  # first row
-        im_tile = image[: 2 * I2, i * I : (i + 1) * I, :] / 255.0
-        im_tile_pred = predict_image_tile(im_tile, model)
-        for layer in range(3):
-            image_pred[: 2 * I2, i * I : (i + 1) * I, layer] += (
-                im_tile_pred[:, :, layer] * Wup
-            )
-    for i in range(c + 1):  # last row
-        im_tile = image[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, :] / 255.0
-        im_tile_pred = predict_image_tile(im_tile, model)
-        for layer in range(3):
-            image_pred[(2 * r - 2) * I2 : 2 * r * I2, i * I : (i + 1) * I, layer] += (
-                im_tile_pred[:, :, layer] * Wdown
-            )
-    for i in trange(c):  # rows, half offset
-        for j in range(1, 2 * r - 2):  # columns
-            im_tile = (
-                image[j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
-            )
-            im_tile_pred = predict_image_tile(im_tile, model)
-            for layer in range(3):
-                image_pred[
-                    j * I2 : (j + 2) * I2, i * I + I2 : (i + 1) * I + I2, layer
-                ] += (im_tile_pred[:, :, layer] * W)
-    for i in range(c):  # first row
-        im_tile = image[: 2 * I2, i * I + I2 : (i + 1) * I + I2, :] / 255.0
-        im_tile_pred = predict_image_tile(im_tile, model)
-        for layer in range(3):
-            image_pred[: 2 * I2, i * I + I2 : (i + 1) * I + I2, layer] += (
-                im_tile_pred[:, :, layer] * Wup
-            )
-    for i in range(c):  # last row
-        im_tile = (
-            image[(2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, :]
-            / 255.0
-        )
-        im_tile_pred = predict_image_tile(im_tile, model)
-        for layer in range(3):
-            image_pred[
-                (2 * r - 2) * I2 : 2 * r * I2, i * I + I2 : (i + 1) * I + I2, layer
-            ] += (im_tile_pred[:, :, layer] * Wdown)
+    image = np.pad(image, ((0, 0), (I2, I2), (0, 0)))  # padding on the left and right sides
+    image_pred = np.zeros(image.shape, dtype=np.float32)
+
+    # Tile origins (row, column) and blending weights: a full grid of tiles
+    # plus a grid offset by half a tile horizontally; the first and last rows
+    # of tiles use weights that do not fade out toward the image edge.
+    tiles = []
+    for col0 in [i * I for i in range(c + 1)] + [i * I + I2 for i in range(c)]:
+        tiles.append((0, col0, Wup))
+        for j in range(1, 2 * r - 2):
+            tiles.append((j * I2, col0, W))
+        tiles.append(((2 * r - 2) * I2, col0, Wdown))
+
+    for start in trange(0, len(tiles), batch_size, desc="segmenting image tiles"):
+        batch = tiles[start : start + batch_size]
+        batch_tiles = np.stack([image[r0 : r0 + I, c0 : c0 + I] for r0, c0, _ in batch])
+        batch_pred = _predict_tiles(batch_tiles / 255.0, model)
+        for (r0, c0, w), tile_pred in zip(batch, batch_pred):
+            image_pred[r0 : r0 + I, c0 : c0 + I] += tile_pred * w[:, :, np.newaxis]
 
     image_pred = image_pred[:, I2:-I2, :]  # crop the left and right side padding
     image_pred = image_pred[:-pad_rows, :-pad_cols, :]  # get rid of padding
@@ -1288,10 +1320,9 @@ def _free_memory():
 
     Called after every patch in :func:`predict_large_image`. Running this on
     each iteration is what keeps memory flat over a long run: it collects
-    Python garbage, empties the PyTorch (SAM) GPU cache for the active backend
-    (CUDA or Apple-Silicon MPS), and clears the Keras/TensorFlow session that
-    ``model.predict`` otherwise leaks across calls. Every step is wrapped so a
-    missing backend is silently ignored.
+    Python garbage and empties the PyTorch GPU cache for the active backend
+    (CUDA or Apple-Silicon MPS). Every step is wrapped so a missing backend
+    is silently ignored.
     """
     gc.collect()
     try:
@@ -1301,10 +1332,6 @@ def _free_memory():
             torch.cuda.empty_cache()
         elif torch.backends.mps.is_available():
             torch.mps.empty_cache()
-    except Exception:
-        pass
-    try:
-        tf.keras.backend.clear_session()
     except Exception:
         pass
 
@@ -1376,8 +1403,9 @@ def predict_large_image(
     ----------
     fname : str
         The file path of the input image.
-    model : tensorflow.keras.Model
-        The Unet model used for the preliminary grain prediction.
+    model : UNet
+        The U-Net model used for the preliminary grain prediction (see
+        :func:`segmenteverygrain.load_unet`).
     sam : SAM2ImagePredictor, optional
         The SAM model used for grain segmentation. Required when ``use_sam=True``.
     min_area : int, optional

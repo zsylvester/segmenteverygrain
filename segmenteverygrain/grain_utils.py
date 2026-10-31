@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 from matplotlib.patches import Rectangle
 from tqdm import tqdm
 from PIL import Image
-import tensorflow as tf
+import torch
+import torch.nn.functional as F
 from shapely.affinity import translate
 from skimage.measure import regionprops, label as label_image
 from skimage.draw import polygon as draw_polygon
@@ -25,6 +26,30 @@ from keras.applications.resnet50 import preprocess_input as preprocess_resnet
 from keras.applications.inception_v3 import preprocess_input as preprocess_inception
 from sklearn.cluster import KMeans, DBSCAN, AgglomerativeClustering
 from sklearn.decomposition import PCA
+
+
+def _resize(arr, size, antialias=False):
+    """
+    Bilinear resize of an ``(H, W)`` or ``(H, W, C)`` array to ``(size, size)``.
+
+    Uses half-pixel-centered sampling (like ``tf.image.resize``); set
+    ``antialias=True`` to low-pass filter when downscaling.
+
+    Returns
+    -------
+    numpy.ndarray
+        float32 array with the same number of dimensions as the input.
+    """
+    x = torch.from_numpy(np.ascontiguousarray(arr, dtype=np.float32))
+    squeeze = x.ndim == 2
+    if squeeze:
+        x = x[:, :, None]
+    x = x.permute(2, 0, 1)[None]
+    y = F.interpolate(
+        x, size=(size, size), mode="bilinear", align_corners=False, antialias=antialias
+    )
+    y = y[0].permute(1, 2, 0).numpy()
+    return y[:, :, 0] if squeeze else y
 
 
 def extract_grain_image(grain_polygon, image, image_pred=None, target_size=224, pad=10):
@@ -53,9 +78,10 @@ def extract_grain_image(grain_polygon, image, image_pred=None, target_size=224, 
     grain_image : numpy.ndarray
         The extracted grain image (target_size, target_size, 3)
     grain_mask : numpy.ndarray
-        Binary mask of the grain (target_size, target_size)
+        Binary mask of the grain (target_size, target_size, 1), uint8
     grain_pred : numpy.ndarray or None
-        The prediction for the grain region (target_size, target_size) if image_pred provided
+        The prediction for the grain region (target_size, target_size, 1),
+        float32, if image_pred provided
     original_size : int
         The size of the square crop before resizing
         
@@ -135,11 +161,9 @@ def extract_grain_image(grain_polygon, image, image_pred=None, target_size=224, 
     original_size = grain_crop.shape[0]
     
     # Resize to target size
-    grain_image = tf.image.resize(grain_crop, (target_size, target_size), antialias=False)
-    grain_image = np.array(grain_image).astype('uint8')
-    
-    grain_mask = tf.image.resize(mask_rotated[..., None], (target_size, target_size), antialias=True)
-    grain_mask = np.array(grain_mask).astype('uint8')
+    grain_image = _resize(grain_crop, target_size, antialias=False).astype('uint8')
+
+    grain_mask = _resize(mask_rotated[..., None], target_size, antialias=True).astype('uint8')
     
     # Handle prediction if provided
     grain_pred = None
@@ -148,7 +172,7 @@ def extract_grain_image(grain_polygon, image, image_pred=None, target_size=224, 
             -np.rad2deg(orientation), fillcolor=0, expand=True
         ))
         pred_crop_rotated = make_square(pred_crop_rotated)
-        grain_pred = tf.image.resize(pred_crop_rotated[..., None], (target_size, target_size), antialias=False)
+        grain_pred = _resize(pred_crop_rotated[..., None], target_size, antialias=False)
     
     return grain_image, grain_mask, grain_pred, original_size
 
@@ -339,8 +363,7 @@ def extract_vgg16_features(grain_images, model_name='VGG16', layer_name='fc2',
         # Resize each image to 224x224
         resized_images = []
         for img in grain_batch:
-            resized_img = tf.image.resize(img, (224, 224), antialias=True)
-            resized_images.append(np.array(resized_img))
+            resized_images.append(_resize(img, 224, antialias=True))
         grain_batch = np.array(resized_images).astype('float32')
     
     if include_preprocessing:
