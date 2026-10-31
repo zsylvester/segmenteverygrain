@@ -279,107 +279,193 @@ def extract_all_grains(all_grains, image, image_pred=None, target_size=224):
     
     return grain_images, grain_masks, grain_preds
 
-def extract_vgg16_features(grain_images, model_name='VGG16', layer_name='fc2', 
-                          include_preprocessing=True, batch_size=32, verbose=0):
+_IMAGENET_MEAN = (0.485, 0.456, 0.406)
+_IMAGENET_STD = (0.229, 0.224, 0.225)
+
+
+def _build_feature_extractor(model_name, layer_name, pretrained=True):
+    """
+    Build a torchvision ImageNet model truncated at ``layer_name``.
+
+    Returns
+    -------
+    model : torch.nn.Module
+        Feature extractor in evaluation mode (on the CPU).
+    input_size : int
+        Side length the images are resized to before the forward pass.
+    """
+    import torch.nn as nn
+    from torchvision import models
+
+    name = model_name.upper()
+    layer = str(layer_name).lower()
+
+    if name == "VGG16":
+        weights = models.VGG16_Weights.IMAGENET1K_V1 if pretrained else None
+        base = models.vgg16(weights=weights)
+        # classifier: [0] fc1, [1] relu, [2] dropout, [3] fc2, [4] relu,
+        # [5] dropout, [6] predictions. Keras layer names map to the outputs
+        # after the ReLU of the corresponding dense layer.
+        n_classifier = {
+            "fc2": 5, "-2": 5, "fc1": 2, "-3": 2, "flatten": 0, "-4": 0,
+            "predictions": 7, "-1": 7,
+        }
+        if layer not in n_classifier:
+            raise ValueError(
+                f"Unknown layer {layer_name!r} for VGG16; use 'fc2', 'fc1', "
+                "'flatten' or 'predictions'."
+            )
+        model = nn.Sequential(
+            base.features, base.avgpool, nn.Flatten(), *base.classifier[: n_classifier[layer]]
+        )
+        input_size = 224
+    elif name == "RESNET50":
+        weights = models.ResNet50_Weights.IMAGENET1K_V1 if pretrained else None
+        base = models.resnet50(weights=weights)
+        if layer in ("avg_pool", "flatten", "-2"):
+            base.fc = nn.Identity()
+        elif layer not in ("predictions", "-1"):
+            raise ValueError(
+                f"Unknown layer {layer_name!r} for ResNet50; use 'avg_pool' or 'predictions'."
+            )
+        model = base
+        input_size = 224
+    elif name == "INCEPTIONV3":
+        weights = models.Inception_V3_Weights.IMAGENET1K_V1 if pretrained else None
+        base = models.inception_v3(weights=weights, aux_logits=True, init_weights=False)
+        base.aux_logits = False
+        base.AuxLogits = None
+        if layer in ("avg_pool", "flatten", "-2"):
+            base.fc = nn.Identity()
+        elif layer not in ("predictions", "-1"):
+            raise ValueError(
+                f"Unknown layer {layer_name!r} for InceptionV3; use 'avg_pool' or 'predictions'."
+            )
+        model = base
+        input_size = 299
+    else:
+        raise ValueError(f"Unknown model: {model_name}")
+    model.eval()
+    return model, input_size
+
+
+def extract_vgg16_features(grain_images, model_name='VGG16', layer_name=None,
+                          include_preprocessing=True, batch_size=32, verbose=0,
+                          model=None, pretrained=True, device=None):
     """
     Extract deep learning features from grain images using a pre-trained CNN.
-    
-    Images are automatically resized to 224x224 if they are not already that size.
-    
+
+    The CNNs are the ImageNet-trained models from ``torchvision`` and run on
+    the GPU (CUDA or Apple-Silicon MPS) when available. Images are
+    automatically resized to the model's input size (224x224, or 299x299 for
+    InceptionV3) if they are not already that size.
+
     Parameters
     ----------
     grain_images : list or numpy.ndarray
-        List of grain images, each of shape (H, W, 3). Images will be 
-        automatically resized to 224x224 if necessary.
+        List of grain images, each of shape (H, W, 3), uint8 or float in
+        0-255. Images will be automatically resized if necessary.
     model_name : str
-        Name of the pre-trained model to use ('VGG16', 'ResNet50', etc.)
-    layer_name : str
-        Layer to extract features from. Options:
-        - 'fc2' or -2: Second-to-last layer (default, 4096 features for VGG16)
-        - 'fc1' or -3: Third-to-last layer
-        - 'flatten': Flattened convolutional features
+        Name of the pre-trained model to use: 'VGG16' (default), 'ResNet50'
+        or 'InceptionV3'.
+    layer_name : str or int, optional
+        Layer to extract features from. For VGG16 (default 'fc2'):
+        - 'fc2' or -2: second fully connected layer (4096 features)
+        - 'fc1' or -3: first fully connected layer (4096 features)
+        - 'flatten': flattened convolutional features (25088 features)
+        - 'predictions' or -1: ImageNet class scores (1000 features)
+        For ResNet50 and InceptionV3 (default 'avg_pool'):
+        - 'avg_pool' or -2: globally pooled convolutional features (2048)
+        - 'predictions' or -1: ImageNet class scores (1000)
     include_preprocessing : bool
-        Whether to apply model-specific preprocessing (recommended)
+        Whether to normalize the images with the ImageNet mean and standard
+        deviation, as the models expect (recommended). When False the pixel
+        values are only scaled to 0-1.
     batch_size : int
-        Batch size for prediction (default: 32)
+        Number of images per forward pass (default: 32)
     verbose : int
-        Verbosity level for model.predict (default: 0)
-    
+        If > 0, show a progress bar over the batches (default: 0)
+    model : torch.nn.Module, optional
+        A feature extractor returned by a previous call, to reuse instead of
+        building (and possibly downloading) the model again.
+    pretrained : bool
+        Load the ImageNet weights (default True; the weights are downloaded
+        by torchvision on first use). False gives a randomly initialized
+        network, which is only useful for testing.
+    device : str or torch.device, optional
+        Device to run on; auto-detected when None.
+
     Returns
     -------
     features : numpy.ndarray
-        Extracted features of shape (n_grains, n_features)
-    model : keras.Model
+        Extracted features of shape (n_grains, n_features), float32
+    model : torch.nn.Module
         The feature extraction model (useful for processing more grains later)
-        
+
     Examples
     --------
     >>> features, model = extract_vgg16_features(grain_images)
     >>> print(features.shape)
     (336, 4096)
-    
+
     >>> # Works with any size images - they will be auto-resized
     >>> features_640, model = extract_vgg16_features(grain_images_640x640)
     >>> print(features_640.shape)
     (336, 4096)
-    """
-    # Keras is imported lazily so that the package itself does not depend on
-    # TensorFlow at import time (the feature extractors are the only users).
-    from keras.applications import VGG16, ResNet50, InceptionV3
-    from keras.models import Model
-    from keras.applications.vgg16 import preprocess_input as preprocess_vgg16
-    from keras.applications.resnet50 import preprocess_input as preprocess_resnet
-    from keras.applications.inception_v3 import preprocess_input as preprocess_inception
 
-    # Load the appropriate model
-    if model_name.upper() == 'VGG16':
-        base_model = VGG16(weights='imagenet')
-        preprocess_fn = preprocess_vgg16
-    elif model_name.upper() == 'RESNET50':
-        base_model = ResNet50(weights='imagenet')
-        preprocess_fn = preprocess_resnet
-    elif model_name.upper() == 'INCEPTIONV3':
-        base_model = InceptionV3(weights='imagenet')
-        preprocess_fn = preprocess_inception
+    Notes
+    -----
+    Earlier versions used the Keras ImageNet models. The torchvision weights
+    differ slightly, so features and cluster assignments are not identical to
+    those obtained with earlier versions of ``segmenteverygrain``.
+    """
+    from .unet import get_device
+
+    if layer_name is None:
+        layer_name = "fc2" if model_name.upper() == "VGG16" else "avg_pool"
+    if model is None:
+        model, input_size = _build_feature_extractor(model_name, layer_name, pretrained)
     else:
-        raise ValueError(f"Unknown model: {model_name}")
-    
-    # Select the layer to extract features from
-    if isinstance(layer_name, int) or (isinstance(layer_name, str) and layer_name.startswith('-')):
-        layer_idx = int(layer_name)
-        feature_layer = base_model.layers[layer_idx].output
-    else:
-        feature_layer = base_model.get_layer(layer_name).output
-    
-    # Create feature extraction model
-    feature_model = Model(inputs=base_model.inputs, outputs=feature_layer)
-    
-    # Convert grain images to numpy array
-    grain_batch = np.array(grain_images).astype('float32')
-    
+        input_size = 299 if model_name.upper() == "INCEPTIONV3" else 224
+    device = get_device(device)
+    model = model.to(device).eval()
+
+    # Convert grain images to a float array in 0-255
+    grain_batch = np.asarray(grain_images, dtype=np.float32)
+    if grain_batch.ndim != 4 or grain_batch.shape[-1] != 3:
+        raise ValueError(
+            f"grain_images must have shape (N, H, W, 3); got {grain_batch.shape}"
+        )
+
     # Check and resize if necessary
-    if grain_batch.shape[1] != 224 or grain_batch.shape[2] != 224:
+    if grain_batch.shape[1] != input_size or grain_batch.shape[2] != input_size:
         import logging
         logger = logging.getLogger(__name__)
-        logger.info(f'Resizing grain images from {grain_batch.shape[1]}x{grain_batch.shape[2]} to 224x224')
-        
-        # Resize each image to 224x224
-        resized_images = []
-        for img in grain_batch:
-            resized_images.append(_resize(img, 224, antialias=True))
-        grain_batch = np.array(resized_images).astype('float32')
-    
+        logger.info(
+            f'Resizing grain images from {grain_batch.shape[1]}x{grain_batch.shape[2]} '
+            f'to {input_size}x{input_size}'
+        )
+        grain_batch = np.stack([_resize(img, input_size, antialias=True) for img in grain_batch])
+
+    x = torch.from_numpy(np.ascontiguousarray(grain_batch)).permute(0, 3, 1, 2) / 255.0
     if include_preprocessing:
-        grain_batch = preprocess_fn(grain_batch)
-    
+        mean = torch.tensor(_IMAGENET_MEAN).view(1, 3, 1, 1)
+        std = torch.tensor(_IMAGENET_STD).view(1, 3, 1, 1)
+        x = (x - mean) / std
+
     # Extract features
-    features = feature_model.predict(grain_batch, batch_size=batch_size, verbose=verbose)
-    
-    # Flatten if necessary
-    if len(features.shape) > 2:
-        features = features.reshape(features.shape[0], -1)
-    
-    return features, feature_model
+    features = []
+    batches = range(0, x.shape[0], batch_size)
+    if verbose:
+        batches = tqdm(batches, desc="extracting features")
+    with torch.no_grad():
+        for start in batches:
+            out = model(x[start : start + batch_size].to(device))
+            features.append(out.reshape(out.shape[0], -1).cpu().numpy())
+    features = np.concatenate(features, axis=0).astype(np.float32)
+
+    return features, model
+
 
 def extract_color_features(grain_images, color_space='rgb', mask_background=True,
                           background_threshold=10):

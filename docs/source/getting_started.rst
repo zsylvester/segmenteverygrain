@@ -468,7 +468,7 @@ Extract standardized, square images of individual grains suitable for machine le
 Feature extraction
 ~~~~~~~~~~~~~~~~~~
 
-Extract deep learning features using pre-trained CNNs for clustering or classification:
+Extract deep learning features using pre-trained CNNs for clustering or classification. The networks are the ImageNet-trained ``torchvision`` models (VGG16, ResNet50 or InceptionV3); their weights are downloaded automatically on first use, and the extraction runs on the GPU when one is available:
 
 .. code-block:: python
 
@@ -476,6 +476,9 @@ Extract deep learning features using pre-trained CNNs for clustering or classifi
 
    # Extract VGG16 features (4096-dimensional)
    features, model = extract_vgg16_features(grain_images, model_name='VGG16')
+
+   # Reuse the loaded network for more grains later
+   more_features, _ = extract_vgg16_features(more_grain_images, model=model)
 
    # Or extract color-based features
    color_features = extract_color_features(grain_images, color_space='hsv')
