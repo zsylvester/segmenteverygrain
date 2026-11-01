@@ -35,11 +35,10 @@ The U-Net model is a PyTorch model saved in the 'seg_model_smooth_labels.pt' fil
       seg.convert_keras_model("my_model.keras", "my_model.pt")
       model = seg.load_unet("my_model.pt")
 
-   Only models that output logits (trained with v0.4.0 or later, e.g.
-   ``seg_model_smooth_labels.keras``) can be converted; models trained with v0.3.0 and
-   earlier (e.g. ``seg_model.keras``) are incompatible and need to be retrained.
-   Passing a Keras model directly to the segmentation functions still works for now
-   but is deprecated.
+   Keras models from any previous version can be converted, including those trained
+   with v0.3.0 or earlier that have the softmax built into the model (the converter
+   verifies the outputs accordingly). Passing a Keras model directly to the
+   segmentation functions still works for now but is deprecated.
 
 The SAM 2.1 model can be downloaded from this `link <https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 

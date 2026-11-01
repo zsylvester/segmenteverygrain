@@ -189,9 +189,9 @@ Troubleshooting
   up with the ``%matplotlib qt`` magic (PyQt is included in the conda
   environments); make sure that cell has been run.
 - **Old U-Net models fail to load:** the U-Net is now a PyTorch model
-  (``.pt`` file). A custom or fine-tuned Keras model (``.keras`` file, trained
-  with v0.4.0 or later) can be converted once with
+  (``.pt`` file). A custom or fine-tuned Keras model (``.keras`` file) can be
+  converted once with
   ``seg.convert_keras_model("my_model.keras", "my_model.pt")`` while Keras and
-  TensorFlow are installed. Models trained with v0.3.0 or earlier (e.g.,
-  ``seg_model.keras``) output probabilities instead of logits and are
-  incompatible; retrain them.
+  TensorFlow are installed. This works for models from any previous version,
+  including those trained with v0.3.0 or earlier that have the softmax built
+  into the model.

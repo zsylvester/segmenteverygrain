@@ -297,7 +297,17 @@ def convert_keras_model(
         :func:`save_unet`.
     verify : bool
         When True (default), run a random input through both models and raise
-        if the outputs differ by more than ``1e-3``.
+        if the outputs differ by more than ``1e-3``. Models whose last layer
+        has a ``softmax`` activation (trained with segmenteverygrain v0.3.0 or
+        earlier) are compared after applying softmax to the PyTorch logits.
+
+    Notes
+    -----
+    Keras models trained with v0.3.0 or earlier include the softmax in the
+    model, while later ones (and the PyTorch :class:`UNet`) output logits.
+    Both convert the same way: the weights are identical, and
+    :func:`predict_batch` applies the softmax to the logits of the converted
+    model.
 
     Returns
     -------
@@ -368,6 +378,9 @@ def convert_keras_model(
         keras_out = np.asarray(keras_model.predict(x, verbose=0))
         with torch.no_grad():
             torch_out = model(torch.from_numpy(x).permute(0, 3, 1, 2))
+        activation = getattr(getattr(convs[-1], "activation", None), "__name__", "linear")
+        if activation == "softmax":
+            torch_out = torch.softmax(torch_out, dim=1)
         torch_out = torch_out.permute(0, 2, 3, 1).numpy()
         max_diff = float(np.abs(keras_out - torch_out).max())
         if max_diff > 1e-3:

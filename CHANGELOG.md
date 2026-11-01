@@ -21,10 +21,11 @@ PyTorch U-Net reproduces the Keras model's predictions to within 1e-5.
 - **Custom or fine-tuned Keras models must be converted once**, in an
   environment where Keras and TensorFlow are still installed:
   `seg.convert_keras_model("my_model.keras", "my_model.pt")`. The converter
-  checks that the two models agree before writing the file. Only models
-  trained with v0.4.0 or later (logit outputs) can be converted. Passing a
-  Keras model object to the segmentation functions still works for now but
-  emits a `FutureWarning`; this fallback will be removed in a later release.
+  checks that the two models agree before writing the file. Models from any
+  previous version convert, including v0.3.0-era models with the softmax
+  built in. Passing a Keras model object to the segmentation functions still
+  works for now but emits a `FutureWarning`; this fallback will be removed in
+  a later release.
 - **Training API** (`create_train_val_test_data`, `create_and_train_model`,
   `evaluate_model`, `patchify_training_data`, `weighted_crossentropy`) now
   lives in the `training` submodule (re-exported at the package level) and is
