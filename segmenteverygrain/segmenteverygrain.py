@@ -2035,7 +2035,7 @@ def plot_image_w_colorful_grains(
     None
     """
     # Get the colormap object
-    cmap = plt.cm.get_cmap(cmap)
+    cmap = plt.get_cmap(cmap)
     # Generate random indices for colors
     num_colors = len(all_grains)  # Number of colors to choose
     color_indices = np.random.randint(0, cmap.N, num_colors)

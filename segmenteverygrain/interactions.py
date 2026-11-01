@@ -533,7 +533,7 @@ class GrainPlot(object):
         '''
         try:
             # Get the colormap
-            cmap = plt.cm.get_cmap(cmap_name)
+            cmap = plt.get_cmap(cmap_name)
             # Generate random indices for variety (similar to plot_image_w_colorful_grains)
             color_indices = np.random.randint(0, cmap.N, n_grains)
             colors = [cmap(i) for i in color_indices]
@@ -541,7 +541,7 @@ class GrainPlot(object):
         except ValueError:
             # If colormap name is invalid, fall back to default
             logger.warning(f'Unknown colormap "{cmap_name}", using "{DEFAULT_COLORMAP}"')
-            cmap = plt.cm.get_cmap(DEFAULT_COLORMAP)
+            cmap = plt.get_cmap(DEFAULT_COLORMAP)
             color_indices = np.random.randint(0, cmap.N, n_grains)
             colors = [cmap(i) for i in color_indices]
             return colors
@@ -566,7 +566,7 @@ class GrainPlot(object):
         '''
         try:
             # Get the colormap
-            cmap = plt.cm.get_cmap(cmap_name)
+            cmap = plt.get_cmap(cmap_name)
             
             # Extract property values from grains
             # First ensure all grains are measured

@@ -30,10 +30,8 @@ templates_path = ['_templates']
 exclude_patterns = []
 
 # Mock the heavy ML dependencies so that autodoc can import the package
-# without installing TensorFlow, PyTorch, or SAM 2 (used by the docs CI).
+# without installing PyTorch or SAM 2 (used by the docs CI).
 autodoc_mock_imports = [
-    'tensorflow',
-    'keras',
     'torch',
     'torchvision',
     'sam2',

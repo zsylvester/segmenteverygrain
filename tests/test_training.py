@@ -126,6 +126,10 @@ class TestTrainingLoop(unittest.TestCase):
         cls.train, cls.val, cls.test = create_train_val_test_data(
             images_dir, masks_dir, augmentation=True, batch_size=4, num_workers=0
         )
+        # Un-augmented loaders for the deterministic loss-reduction check
+        cls.train_plain, cls.val_plain, _ = create_train_val_test_data(
+            images_dir, masks_dir, augmentation=False, batch_size=4, num_workers=0
+        )
 
     @classmethod
     def tearDownClass(cls):
@@ -143,7 +147,9 @@ class TestTrainingLoop(unittest.TestCase):
     def test_train_model_reduces_loss(self):
         torch.manual_seed(0)
         model = UNet(base_filters=4)
-        history = train_model(model, self.train, self.val, epochs=3, device="cpu")
+        history = train_model(
+            model, self.train_plain, self.val_plain, epochs=3, device="cpu"
+        )
         self.assertEqual(len(history["loss"]), 3)
         self.assertEqual(len(history["val_accuracy"]), 3)
         self.assertLess(history["loss"][-1], history["loss"][0])

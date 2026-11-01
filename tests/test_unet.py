@@ -4,9 +4,10 @@ import unittest
 
 import numpy as np
 
-# Import the package (and with it TensorFlow/SciPy) before torch. On macOS,
-# importing torch first and TensorFlow afterwards loads two copies of the
-# OpenMP runtime and aborts the process; this ordering avoids that.
+# Import the package (and with it SciPy) before torch. In conda environments
+# where torch comes from pip, importing torch first and SciPy afterwards loads
+# two copies of the OpenMP runtime on macOS and aborts the process; this
+# ordering avoids that.
 import segmenteverygrain  # noqa: F401
 import torch
 

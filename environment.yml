@@ -1,29 +1,36 @@
 name: segmenteverygrain
 
+# Environment for Apple Silicon Macs (GPU through PyTorch's MPS backend) and
+# for Linux/Windows machines without an NVIDIA GPU (CPU). For NVIDIA GPUs use
+# environment_cuda.yml instead.
+#
+# PyTorch is installed from conda-forge rather than pip so that it shares the
+# environment's OpenMP runtime with numpy/scipy; mixing the pip wheel of torch
+# with conda-forge scipy can abort with "OMP: Error #15" on macOS.
+
 channels:
   - conda-forge
 
 dependencies:
-  - python=3.10
+  - python=3.11
   - numpy
+  - scipy
   - matplotlib
   - pyqt
   - pandas
   - jupyterlab
-  - scipy
   - scikit-image
   - scikit-learn
   - tqdm
   - networkx
   - shapely
+  - pillow
+  - rasterio
+  - rtree
+  - pytorch
+  - torchvision
   - pip
   - pip:
-    - pillow
-    - rasterio
     - opencv-python
-    - rtree
-    - tensorflow
-    - torch
-    - torchvision
     - sam2
     - segmenteverygrain

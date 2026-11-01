@@ -1,0 +1,34 @@
+name: segmenteverygrain
+
+# Environment for Linux or Windows machines with an NVIDIA GPU. It is the same
+# as environment.yml except that it requests the CUDA build of PyTorch through
+# the conda-forge 'pytorch-gpu' metapackage (the NVIDIA driver must already be
+# installed). Use environment.yml on Apple Silicon or on machines without an
+# NVIDIA GPU.
+
+channels:
+  - conda-forge
+
+dependencies:
+  - python=3.11
+  - numpy
+  - scipy
+  - matplotlib
+  - pyqt
+  - pandas
+  - jupyterlab
+  - scikit-image
+  - scikit-learn
+  - tqdm
+  - networkx
+  - shapely
+  - pillow
+  - rasterio
+  - rtree
+  - pytorch-gpu
+  - torchvision
+  - pip
+  - pip:
+    - opencv-python
+    - sam2
+    - segmenteverygrain

@@ -16,7 +16,7 @@
 
 ## Requirements
 
-Python 3.10 or higher. All dependencies (TensorFlow, PyTorch, SAM 2, and others) are handled by the conda environment files or by pip — see the installation instructions below.
+Python 3.10 or higher. All dependencies (PyTorch, SAM 2, and others) are handled by the conda environment file or by pip — see the installation instructions below. The U-Net and SAM 2 models run on NVIDIA GPUs (CUDA), Apple Silicon GPUs (MPS), or the CPU.
 
 ## Documentation
 
@@ -26,7 +26,7 @@ More documentation is available at [https://zsylvester.github.io/segmenteverygra
 
 The quickest way to try 'segmenteverygrain' — without installing anything — is to run the [Segment_every_grain_colab.ipynb](notebooks/Segment_every_grain_colab.ipynb) notebook in Google Colab.
 
-For local use, we recommend cloning the repository (it contains the trained U-Net model and the example images) and creating a conda environment from the provided environment files. If you do not have conda, install [miniforge](https://conda-forge.org/download) first.
+For local use, we recommend cloning the repository (it contains the trained U-Net model and the example images) and creating a conda environment from the provided environment file. If you do not have conda, install [miniforge](https://conda-forge.org/download) first.
 
 Clone the repository:
 ```
@@ -35,13 +35,13 @@ git clone --depth 1 https://github.com/zsylvester/segmenteverygrain.git
 
 Create the environment (this also installs the `segmenteverygrain` package and JupyterLab).
 
-Linux/Windows:
+Apple Silicon Macs, or machines without an NVIDIA GPU:
 ```
 conda env create -f segmenteverygrain/environment.yml
 ```
-Mac (Apple Silicon):
+Linux or Windows with an NVIDIA GPU:
 ```
-conda env create -f segmenteverygrain/environment_macos.yml
+conda env create -f segmenteverygrain/environment_cuda.yml
 ```
 
 Activate the environment and launch JupyterLab from the repository folder:

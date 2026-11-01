@@ -13,7 +13,6 @@ pillow
 rasterio
 opencv-python
 rtree
-tensorflow
 torch
 torchvision
 sam2
