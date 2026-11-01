@@ -34,6 +34,52 @@ from sam2.sam2_image_predictor import SAM2ImagePredictor
 from .unet import UNet, predict_batch
 
 
+# scikit-image 0.19 renamed several region properties (e.g. major_axis_length
+# -> axis_major_length); the old names are deprecated as of 0.26. The package
+# requests the new names but keeps the old ones as column names so that grain
+# summaries (DataFrames, CSV files, notebooks) keep a stable schema.
+_REGIONPROPS_NEW_NAMES = {
+    "major_axis_length": "axis_major_length",
+    "minor_axis_length": "axis_minor_length",
+    "max_intensity": "intensity_max",
+    "mean_intensity": "intensity_mean",
+    "min_intensity": "intensity_min",
+}
+_REGIONPROPS_OLD_NAMES = {new: old for old, new in _REGIONPROPS_NEW_NAMES.items()}
+_GRAIN_PROPERTIES = (
+    "label",
+    "area",
+    "centroid",
+    "axis_major_length",
+    "axis_minor_length",
+    "orientation",
+    "perimeter",
+    "intensity_max",
+    "intensity_mean",
+    "intensity_min",
+)
+
+
+def _rename_regionprops_columns(df: pd.DataFrame) -> pd.DataFrame:
+    """Rename ``regionprops_table`` columns from the current scikit-image
+    property names back to the legacy names used by segmenteverygrain
+    (e.g. ``axis_major_length`` -> ``major_axis_length``,
+    ``intensity_mean-0`` -> ``mean_intensity-0``)."""
+    rename = {}
+    for col in df.columns:
+        base, sep, suffix = col.partition("-")
+        if base in _REGIONPROPS_OLD_NAMES:
+            rename[col] = _REGIONPROPS_OLD_NAMES[base] + sep + suffix
+    return df.rename(columns=rename)
+
+
+def _grain_properties_table(labels: np.ndarray, image: np.ndarray) -> pd.DataFrame:
+    """Measure the standard grain properties of a label image as a DataFrame
+    with the legacy column names (see ``_rename_regionprops_columns``)."""
+    props = regionprops_table(labels, intensity_image=image, properties=_GRAIN_PROPERTIES)
+    return _rename_regionprops_columns(pd.DataFrame(props))
+
+
 def load_img(path):
     """
     Load an image file from disk as an RGB ``PIL.Image``.
@@ -272,23 +318,7 @@ def label_grains(image, image_pred, dbs_max_dist=20.0, min_grain_area=50):
         mask[tuple(coords.T)] = True
         markers, _ = ndi.label(mask)
         labels = watershed(-distance, markers, mask=bounds)
-        props = regionprops_table(
-            labels,
-            intensity_image=image,
-            properties=(
-                "label",
-                "area",
-                "centroid",
-                "major_axis_length",
-                "minor_axis_length",
-                "orientation",
-                "perimeter",
-                "max_intensity",
-                "mean_intensity",
-                "min_intensity",
-            ),
-        )
-        grain_data = pd.DataFrame(props)
+        grain_data = _grain_properties_table(labels, image)
         grain_data = grain_data[grain_data["area"] >= min_grain_area]  # filter out small noisy regions
         if len(grain_data) > 0:
             coords = np.vstack(
@@ -870,23 +900,7 @@ def sam_segmentation(
         plt.tight_layout()
     else:
         fig, ax = None, None
-    props = regionprops_table(
-        labels,
-        intensity_image=image,
-        properties=(
-            "label",
-            "area",
-            "centroid",
-            "major_axis_length",
-            "minor_axis_length",
-            "orientation",
-            "perimeter",
-            "max_intensity",
-            "mean_intensity",
-            "min_intensity",
-        ),
-    )
-    grain_data = pd.DataFrame(props)
+    grain_data = _grain_properties_table(labels, image)
     return all_grains, labels, mask_all, grain_data, fig, ax
 
 
@@ -2091,10 +2105,10 @@ def plot_grain_axes_and_centroids(all_grains, labels, ax, linewidth=1, markersiz
     for ind in range(len(regions)):
         y0, x0 = regions[ind].centroid
         orientation = regions[ind].orientation
-        x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].minor_axis_length
-        y1 = y0 - np.sin(orientation) * 0.5 * regions[ind].minor_axis_length
-        x2 = x0 - np.sin(orientation) * 0.5 * regions[ind].major_axis_length
-        y2 = y0 - np.cos(orientation) * 0.5 * regions[ind].major_axis_length
+        x1 = x0 + np.cos(orientation) * 0.5 * regions[ind].axis_minor_length
+        y1 = y0 - np.sin(orientation) * 0.5 * regions[ind].axis_minor_length
+        x2 = x0 - np.sin(orientation) * 0.5 * regions[ind].axis_major_length
+        y2 = y0 - np.cos(orientation) * 0.5 * regions[ind].axis_major_length
         ax.plot((x0, x1), (y0, y1), "-k", linewidth=linewidth)
         ax.plot((x0, x2), (y0, y2), "-k", linewidth=linewidth)
         ax.plot(x0, y0, ".k", markersize=markersize)

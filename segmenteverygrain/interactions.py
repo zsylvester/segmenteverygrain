@@ -17,6 +17,7 @@ import skimage
 from tqdm import tqdm
 # Local imports
 import segmenteverygrain
+from .segmenteverygrain import _REGIONPROPS_NEW_NAMES, _rename_regionprops_columns
 
 # Images larger than this will be downscaled
 # 4k resolution is (2160, 4096)
@@ -137,7 +138,9 @@ class Grain(object):
                 [poly], out_shape=image.shape[:2])
             # Calculate region properties
             data = pd.DataFrame(skimage.measure.regionprops_table(
-                rasterized, intensity_image=image, properties=props))
+                rasterized, intensity_image=image,
+                properties=[_REGIONPROPS_NEW_NAMES.get(p, p) for p in props]))
+            data = _rename_regionprops_columns(data)
             # Convert to row of pd.DataFrame
             if len(data):
                 data = data.iloc[0]
