@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>Installation &#8212; segmenteverygrain 0.5.0 documentation</title>
+    <title>Installation &#8212; segmenteverygrain 0.6.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
-    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -41,7 +41,7 @@
 <ol class="arabic simple">
 <li><p><strong>Google Colab</strong> — no installation required; good for a quick test drive.</p></li>
 <li><p><strong>Local conda environment (recommended)</strong> — clone the repository and create a
-conda environment from the provided environment files. This gives you the
+conda environment from the provided environment file. This gives you the
 notebooks, the example images, and the trained U-Net model in one go.</p></li>
 <li><p><strong>pip only</strong> — if you just need the library as a dependency in an existing
 environment.</p></li>
@@ -84,16 +84,18 @@ up SSH keys with GitHub. The HTTPS address above works without any setup.</p>
 </div>
 <p><strong>4. Create the conda environment.</strong>
 The environment files install all dependencies <em>and</em> the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code>
-package itself (from PyPI), plus JupyterLab for running the notebooks.</p>
-<p>On Linux or Windows:</p>
+package itself (from PyPI), plus JupyterLab for running the notebooks. Pick the
+file by hardware, not by operating system.</p>
+<p>On Apple Silicon Macs, or on any machine without an NVIDIA GPU:</p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>segmenteverygrain/environment.yml
 </pre></div>
 </div>
-<p>On macOS (Apple Silicon):</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>segmenteverygrain/environment_macos.yml
+<p>On Linux or Windows machines with an NVIDIA GPU (the NVIDIA driver must be
+installed; CUDA itself comes with the environment):</p>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>env<span class="w"> </span>create<span class="w"> </span>-f<span class="w"> </span>segmenteverygrain/environment_cuda.yml
 </pre></div>
 </div>
-<p>This step downloads several gigabytes of packages (TensorFlow, PyTorch, SAM 2),
+<p>This step downloads a few gigabytes of packages (PyTorch, SAM 2, JupyterLab),
 so it can take a while.</p>
 <p><strong>5. Activate the environment.</strong></p>
 <div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>conda<span class="w"> </span>activate<span class="w"> </span>segmenteverygrain
@@ -113,7 +115,7 @@ browser and run the cells from the top.</p>
 <h2>Model files<a class="headerlink" href="#model-files" title="Link to this heading">¶</a></h2>
 <p>Two trained models are needed to run the segmentation workflow:</p>
 <ul class="simple">
-<li><p><strong>U-Net model</strong> (<code class="docutils literal notranslate"><span class="pre">models/seg_model_smooth_labels.keras</span></code>, ~25 MB): included
+<li><p><strong>U-Net model</strong> (<code class="docutils literal notranslate"><span class="pre">models/seg_model_smooth_labels.pt</span></code>, ~9 MB): included
 in the repository, so nothing needs to be downloaded if you cloned it.</p></li>
 <li><p><strong>SAM 2.1 checkpoint</strong> (<code class="docutils literal notranslate"><span class="pre">models/sam2.1_hiera_large.pt</span></code>, ~860 MB): <em>not</em>
 included in the repository. The first cells of the
@@ -126,12 +128,13 @@ and place it in the <code class="docutils literal notranslate"><span class="pre"
 <section id="verifying-the-installation">
 <h2>Verifying the installation<a class="headerlink" href="#verifying-the-installation" title="Link to this heading">¶</a></h2>
 <p>With the <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> environment activated, run:</p>
-<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">&quot;import segmenteverygrain; import tensorflow as tf; import torch; print(&#39;segmenteverygrain OK&#39;); print(&#39;TensorFlow:&#39;, tf.__version__); print(&#39;PyTorch:&#39;, torch.__version__); print(&#39;CUDA available:&#39;, torch.cuda.is_available()); print(&#39;MPS available:&#39;, torch.backends.mps.is_available())&quot;</span>
+<div class="highlight-shell notranslate"><div class="highlight"><pre><span></span>python<span class="w"> </span>-c<span class="w"> </span><span class="s2">"import segmenteverygrain as seg; import torch; print('segmenteverygrain', seg.__version__, 'OK'); print('PyTorch:', torch.__version__); print('device:', seg.get_device())"</span>
 </pre></div>
 </div>
-<p>If this prints the version numbers without errors, the installation works. On
-Apple Silicon Macs, <code class="docutils literal notranslate"><span class="pre">MPS</span> <span class="pre">available:</span> <span class="pre">True</span></code> means SAM 2.1 will run on the GPU;
-on machines with an NVIDIA GPU, look for <code class="docutils literal notranslate"><span class="pre">CUDA</span> <span class="pre">available:</span> <span class="pre">True</span></code>.</p>
+<p>If this prints the version numbers without errors, the installation works.
+<code class="docutils literal notranslate"><span class="pre">device:</span> <span class="pre">mps</span></code> (Apple Silicon) or <code class="docutils literal notranslate"><span class="pre">device:</span> <span class="pre">cuda</span></code> (NVIDIA) means that both
+the U-Net and SAM 2.1 will run on the GPU; <code class="docutils literal notranslate"><span class="pre">device:</span> <span class="pre">cpu</span></code> means everything
+runs on the CPU, which works but is slower.</p>
 </section>
 <section id="installing-with-pip-only">
 <h2>Installing with pip only<a class="headerlink" href="#installing-with-pip-only" title="Link to this heading">¶</a></h2>
@@ -155,13 +158,18 @@ pip<span class="w"> </span>install<span class="w"> </span>-e<span class="w"> </s
 <section id="platform-notes">
 <h2>Platform notes<a class="headerlink" href="#platform-notes" title="Link to this heading">¶</a></h2>
 <ul class="simple">
-<li><p><strong>macOS (Apple Silicon):</strong> use <code class="docutils literal notranslate"><span class="pre">environment_macos.yml</span></code>. It pins
-<code class="docutils literal notranslate"><span class="pre">tensorflow&lt;=2.18.1</span></code> and adds <code class="docutils literal notranslate"><span class="pre">tensorflow-metal</span></code> so that the U-Net model
-can use the GPU; SAM 2.1 uses the GPU through PyTorch’s MPS backend. All code
-in the package auto-detects the available device (CUDA, MPS, or CPU).</p></li>
+<li><p><strong>All platforms:</strong> the only deep-learning framework is PyTorch, which the
+environment files install from conda-forge. All code in the package
+auto-detects the available device (CUDA, MPS, or CPU).</p></li>
+<li><p><strong>macOS (Apple Silicon):</strong> use <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>; both the U-Net and
+SAM 2.1 run on the GPU through PyTorch’s MPS backend, and nothing extra needs
+to be installed.</p></li>
+<li><p><strong>Linux and Windows with an NVIDIA GPU:</strong> use <code class="docutils literal notranslate"><span class="pre">environment_cuda.yml</span></code>,
+which requests the CUDA build of PyTorch (<code class="docutils literal notranslate"><span class="pre">pytorch-gpu</span></code>). If you already
+created the environment from <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code>, switch to the GPU build
+with <code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">conda-forge</span> <span class="pre">pytorch-gpu</span></code>. The official PyTorch
+<code class="docutils literal notranslate"><span class="pre">pip</span></code> wheels (<a class="reference external" href="https://pytorch.org/get-started/locally/">https://pytorch.org/get-started/locally/</a>) work as well.</p></li>
 <li><p><strong>Windows:</strong> run all commands in the Miniforge Prompt (or Anaconda Prompt).</p></li>
-<li><p><strong>Linux:</strong> <code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> installs the standard pip builds of TensorFlow
-and PyTorch; on machines with an NVIDIA GPU these use CUDA automatically.</p></li>
 </ul>
 </section>
 <section id="troubleshooting">
@@ -174,17 +182,27 @@ instead of <code class="docutils literal notranslate"><span class="pre">conda</s
 <li><p><code class="docutils literal notranslate"><span class="pre">FileNotFoundError</span></code> <strong>for model files when running the notebook:</strong> make
 sure you started JupyterLab from the repository folder and opened the
 notebook in place — the notebook refers to the models as
-<code class="docutils literal notranslate"><span class="pre">../models/seg_model_smooth_labels.keras</span></code>, relative to the <code class="docutils literal notranslate"><span class="pre">notebooks</span></code>
+<code class="docutils literal notranslate"><span class="pre">../models/seg_model_smooth_labels.pt</span></code>, relative to the <code class="docutils literal notranslate"><span class="pre">notebooks</span></code>
 folder.</p></li>
+<li><p><code class="docutils literal notranslate"><span class="pre">OMP:</span> <span class="pre">Error</span> <span class="pre">#15:</span> <span class="pre">Initializing</span> <span class="pre">libomp.dylib,</span> <span class="pre">but</span> <span class="pre">found</span> <span class="pre">libomp.dylib</span> <span class="pre">already</span>
+<span class="pre">initialized</span></code> <strong>(macOS):</strong> two copies of the OpenMP runtime are loaded,
+typically because PyTorch was installed with <code class="docutils literal notranslate"><span class="pre">pip</span></code> into a conda environment
+whose numpy/scipy come from conda-forge. Install PyTorch from conda-forge
+instead (<code class="docutils literal notranslate"><span class="pre">conda</span> <span class="pre">install</span> <span class="pre">-c</span> <span class="pre">conda-forge</span> <span class="pre">pytorch</span> <span class="pre">torchvision</span></code>, as
+<code class="docutils literal notranslate"><span class="pre">environment.yml</span></code> does), or import <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code> before <code class="docutils literal notranslate"><span class="pre">torch</span></code>
+in your scripts. Setting <code class="docutils literal notranslate"><span class="pre">KMP_DUPLICATE_LIB_OK=TRUE</span></code> silences the error but
+is not recommended.</p></li>
 <li><p><strong>The interactive editing window does not respond:</strong> the <code class="docutils literal notranslate"><span class="pre">GrainPlot</span></code>
 interface requires an interactive matplotlib backend. The notebook sets this
 up with the <code class="docutils literal notranslate"><span class="pre">%matplotlib</span> <span class="pre">qt</span></code> magic (PyQt is included in the conda
 environments); make sure that cell has been run.</p></li>
-<li><p><strong>Old U-Net models fail to load:</strong> as of v0.4.0, the U-Net model outputs raw
-logits, and models trained with v0.3.0 or earlier (e.g., <code class="docutils literal notranslate"><span class="pre">seg_model.keras</span></code>)
-are incompatible. Use <code class="docutils literal notranslate"><span class="pre">seg_model_smooth_labels.keras</span></code> or retrain your
-custom models. Similarly, models saved with Keras 2 do not load under the
-current Keras 3-based package.</p></li>
+<li><p><strong>Old U-Net models fail to load:</strong> the U-Net is now a PyTorch model
+(<code class="docutils literal notranslate"><span class="pre">.pt</span></code> file). A custom or fine-tuned Keras model (<code class="docutils literal notranslate"><span class="pre">.keras</span></code> file) can be
+converted once with
+<code class="docutils literal notranslate"><span class="pre">seg.convert_keras_model(&quot;my_model.keras&quot;,</span> <span class="pre">&quot;my_model.pt&quot;)</span></code> while Keras and
+TensorFlow are installed. This works for models from any previous version,
+including those trained with v0.3.0 or earlier that have the softmax built
+into the model.</p></li>
 </ul>
 </section>
 </section>

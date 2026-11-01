@@ -11,22 +11,34 @@ The notebook goes through the steps of loading the models, running the segmentat
 Loading the models
 ~~~~~~~~~~~~~~~~~~
 
-To load the U-Net model, you can use the 'load_model' function from Keras. The U-Net model is saved in the 'seg_model_smooth_labels.keras' file.
+The U-Net model is a PyTorch model saved in the 'seg_model_smooth_labels.pt' file. Load it with ``load_unet``, which places it on the GPU (CUDA or Apple-Silicon MPS) when one is available and on the CPU otherwise:
 
 .. code-block:: python
 
    import segmenteverygrain as seg
-   from keras.saving import load_model
-   model = load_model("seg_model_smooth_labels.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = seg.load_unet("seg_model_smooth_labels.pt")
 
 .. note::
 
-   As of v0.4.0, the U-Net model outputs raw logits (pre-softmax). Softmax is applied
-   automatically at inference time in ``predict_image_tile``. Models trained with v0.3.0
-   and earlier (e.g. ``seg_model.keras``) are **incompatible** with this version — use
-   ``seg_model_smooth_labels.keras`` or retrain your custom models.
+   The U-Net model outputs raw logits (pre-softmax). Softmax is applied
+   automatically at inference time in ``predict_image_tile``.
 
-This assumes that you are using Keras 3 and 'seg_model_smooth_labels.keras' was saved using Keras 3. Older models created with a ``segmenteverygrain`` version that was based on Keras 2 do not work with the latest version of the package.
+.. note::
+
+   **Converting a Keras model.** Earlier versions of ``segmenteverygrain`` used a
+   Keras U-Net saved as a ``.keras`` file. If you have a custom or fine-tuned Keras
+   model, convert it once (this requires ``keras`` and ``tensorflow`` to be installed)
+   and use the resulting ``.pt`` file from then on:
+
+   .. code-block:: python
+
+      seg.convert_keras_model("my_model.keras", "my_model.pt")
+      model = seg.load_unet("my_model.pt")
+
+   Keras models from any previous version can be converted, including those trained
+   with v0.3.0 or earlier that have the softmax built into the model (the converter
+   verifies the outputs accordingly). Passing a Keras model directly to the
+   segmentation functions still works for now but is deprecated.
 
 The SAM 2.1 model can be downloaded from this `link <https://huggingface.co/facebook/sam2.1-hiera-large/resolve/main/sam2.1_hiera_large.pt>`_. You can also download it programmatically:
 
@@ -60,11 +72,10 @@ To run the U-Net segmentation on an image and label the grains in the U-Net outp
 
    import numpy as np
    import matplotlib.pyplot as plt
-   from keras.utils import load_img
-   
-   # Load your image
+
+   # Load your image (as an RGB numpy array)
    fname = "path/to/your/image.jpg"
-   image = np.array(load_img(fname))
+   image = np.array(seg.load_img(fname))
    
    # Run U-Net prediction
    image_pred = seg.predict_image(image, model, I=256)
@@ -456,7 +467,7 @@ Extract standardized, square images of individual grains suitable for machine le
 Feature extraction
 ~~~~~~~~~~~~~~~~~~
 
-Extract deep learning features using pre-trained CNNs for clustering or classification:
+Extract deep learning features using pre-trained CNNs for clustering or classification. The networks are the ImageNet-trained ``torchvision`` models (VGG16, ResNet50 or InceptionV3); their weights are downloaded automatically on first use, and the extraction runs on the GPU when one is available:
 
 .. code-block:: python
 
@@ -464,6 +475,9 @@ Extract deep learning features using pre-trained CNNs for clustering or classifi
 
    # Extract VGG16 features (4096-dimensional)
    features, model = extract_vgg16_features(grain_images, model_name='VGG16')
+
+   # Reuse the loaded network for more grains later
+   more_features, _ = extract_vgg16_features(more_grain_images, model=model)
 
    # Or extract color-based features
    color_features = extract_color_features(grain_images, color_space='hsv')
@@ -557,17 +571,25 @@ The mask is an 8-bit image and should contain only three numbers: 0, 1, and 2. 0
 
 The ``patch_dir`` is the directory where the patches will be saved. A folder named 'Patches' will be created in this directory, and the patches will be saved in subfolders named 'images' and 'labels'.
 
-Next, training, validation, and test datasets are created from the patches:
+Next, training, validation, and test data loaders are created from the patches (60% / 25% / 15% split):
 
 .. code-block:: python
 
    train_dataset, val_dataset, test_dataset = seg.create_train_val_test_data(image_dir, mask_dir, augmentation=True)
 
+The training loader applies random flips, rotations, crop-and-zoom, and color
+augmentations to each patch. Patches are loaded in background processes;
+pass ``num_workers=0`` to load them in the main process instead.
+
 Now we are ready to load the existing model weights and to train the model:
 
 .. code-block:: python
 
-   model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model.keras', epochs=100)
+   model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, model_file='seg_model_smooth_labels.pt', epochs=100)
+
+Training runs on the GPU (CUDA or Apple-Silicon MPS) when one is available.
+A ``.keras`` model file can be passed as ``model_file`` as well; it is
+converted on the fly, which requires Keras and TensorFlow to be installed.
 
 You can also evaluate the model separately on any dataset to get per-class IoU scores:
 
@@ -582,13 +604,13 @@ If you are happy with the finetuned model, you will want to save it:
 
 .. code-block:: python
 
-   model.save('seg_model_finetuned.keras')
+   seg.save_unet(model, 'seg_model_finetuned.pt')
 
-If you want to use this new model to make predictions, you will need to load it with the custom loss function:
+If you want to use this new model to make predictions, load it with ``load_unet``:
 
 .. code-block:: python
 
-   model = load_model("seg_model_finetuned.keras", custom_objects={'weighted_crossentropy': seg.weighted_crossentropy})
+   model = seg.load_unet("seg_model_finetuned.pt")
 
 
 Training the U-Net model from scratch
@@ -600,7 +622,6 @@ If you want to train a U-Net model from scratch, you can use the `Train_Unet_mod
 
    import segmenteverygrain as seg
    model = seg.Unet() # create model
-   model.compile(optimizer=Adam(), loss=seg.weighted_crossentropy, metrics=["accuracy"])
 
 If you place the training images and masks in the 'images' directory (the filenames are supposed to terminate with '_image.png' and '_mask.png'), you can create the training dataset like this:
 
@@ -619,10 +640,17 @@ Then you can train and test the model:
 
    model = seg.create_and_train_model(train_dataset, val_dataset, test_dataset, epochs=200)
 
-The model can be saved using the Keras save method:
+To continue training an existing model (for example with a lower learning rate), use ``train_model`` directly; it returns the per-epoch loss and accuracy history:
 
 .. code-block:: python
 
-   model.save('seg_model.keras')
+   history = seg.train_model(model, train_dataset, val_dataset, epochs=50, learning_rate=1e-4)
+   seg.plot_training_history(history)
 
-The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as 'seg_model_smooth_labels.keras'.
+The model can be saved with ``save_unet``:
+
+.. code-block:: python
+
+   seg.save_unet(model, 'seg_model.pt')
+
+The U-Net model in the GitHub repository was trained using 66 images and the corresponding masks of a variety of grains, split into 61,013 patches of 256x256 pixels. 48 of these image-mask pairs are available at this Zenodo repository: https://zenodo.org/records/15786086. The model was trained for 200 epochs with a batch size of 32, using the Adam optimizer and a weighted cross-entropy loss function with label smoothing (0.1). The model is available in the repository as 'seg_model_smooth_labels.pt' (converted from the original Keras model).

@@ -5,11 +5,11 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>API Reference &#8212; segmenteverygrain 0.5.0 documentation</title>
+    <title>API Reference &#8212; segmenteverygrain 0.6.0 documentation</title>
     <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=5ecbeea2" />
     <link rel="stylesheet" type="text/css" href="_static/basic.css?v=686e5160" />
     <link rel="stylesheet" type="text/css" href="_static/alabaster.css?v=27fed22d" />
-    <script src="_static/documentation_options.js?v=1dd76d02"></script>
+    <script src="_static/documentation_options.js?v=8fa8b3e9"></script>
     <script src="_static/doctools.js?v=9bcbadda"></script>
     <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <link rel="index" title="Index" href="genindex.html" />
@@ -390,7 +390,7 @@ Segmented areas (covered by grain polygons) are shown as transparent.</p>
 
 <dl class="py method">
 <dt class="sig sig-object py" id="segmenteverygrain.Grain.draw_axes">
-<span class="sig-name descname"><span class="pre">draw_axes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Axes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list[&lt;module</span> <span class="pre">'matplotlib.artist'</span> <span class="pre">from</span> <span class="pre">'/opt/hostedtoolcache/Python/3.10.20/x64/lib/python3.10/site-packages/matplotlib/artist.py'&gt;]</span></span></span><a class="headerlink" href="#segmenteverygrain.Grain.draw_axes" title="Link to this definition">¶</a></dt>
+<span class="sig-name descname"><span class="pre">draw_axes</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Axes</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">scale</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">1.0</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">list[&lt;module</span> <span class="pre">'matplotlib.artist'</span> <span class="pre">from</span> <span class="pre">'/opt/hostedtoolcache/Python/3.10.22/x64/lib/python3.10/site-packages/matplotlib/artist.py'&gt;]</span></span></span><a class="headerlink" href="#segmenteverygrain.Grain.draw_axes" title="Link to this definition">¶</a></dt>
 <dd><p>Draw centroid and major/minor axes on the provided matplotlib axes.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -633,8 +633,9 @@ padding with zeros, and resizes it to the target size.</p>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
 <li><p><strong>grain_image</strong> (<em>numpy.ndarray</em>) – The extracted grain image (target_size, target_size, 3)</p></li>
-<li><p><strong>grain_mask</strong> (<em>numpy.ndarray</em>) – Binary mask of the grain (target_size, target_size)</p></li>
-<li><p><strong>grain_pred</strong> (<em>numpy.ndarray or None</em>) – The prediction for the grain region (target_size, target_size) if image_pred provided</p></li>
+<li><p><strong>grain_mask</strong> (<em>numpy.ndarray</em>) – Binary mask of the grain (target_size, target_size, 1), uint8</p></li>
+<li><p><strong>grain_pred</strong> (<em>numpy.ndarray or None</em>) – The prediction for the grain region (target_size, target_size, 1),
+float32, if image_pred provided</p></li>
 <li><p><strong>original_size</strong> (<em>int</em>) – The size of the square crop before resizing</p></li>
 </ul>
 </p>
@@ -676,7 +677,7 @@ square images for each grain suitable for classification or analysis tasks.</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">grain_images</span><span class="p">,</span> <span class="n">grain_masks</span><span class="p">,</span> <span class="n">grain_preds</span> <span class="o">=</span> <span class="n">extract_all_grains</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">all_grains</span><span class="p">,</span> <span class="n">image</span><span class="p">,</span> <span class="n">image_pred</span><span class="p">,</span> <span class="n">target_size</span><span class="o">=</span><span class="mi">224</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Extracted </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grain_images</span><span class="p">)</span><span class="si">}</span><span class="s2"> grains&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Extracted </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">grain_images</span><span class="p">)</span><span class="si">}</span><span class="s2"> grains"</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -712,28 +713,44 @@ The padding is distributed evenly on both sides.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.extract_vgg16_features">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">extract_vgg16_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'VGG16'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'fc2'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_preprocessing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.extract_vgg16_features" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">extract_vgg16_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grain_images</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'VGG16'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">layer_name</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">include_preprocessing</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verbose</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pretrained</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.extract_vgg16_features" title="Link to this definition">¶</a></dt>
 <dd><p>Extract deep learning features from grain images using a pre-trained CNN.</p>
-<p>Images are automatically resized to 224x224 if they are not already that size.</p>
+<p>The CNNs are the ImageNet-trained models from <code class="docutils literal notranslate"><span class="pre">torchvision</span></code> and run on
+the GPU (CUDA or Apple-Silicon MPS) when available. Images are
+automatically resized to the model’s input size (224x224, or 299x299 for
+InceptionV3) if they are not already that size.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>grain_images</strong> (<em>list</em><em> or </em><em>numpy.ndarray</em>) – List of grain images, each of shape (H, W, 3). Images will be
-automatically resized to 224x224 if necessary.</p></li>
-<li><p><strong>model_name</strong> (<em>str</em>) – Name of the pre-trained model to use (‘VGG16’, ‘ResNet50’, etc.)</p></li>
-<li><p><strong>layer_name</strong> (<em>str</em>) – Layer to extract features from. Options:
-- ‘fc2’ or -2: Second-to-last layer (default, 4096 features for VGG16)
-- ‘fc1’ or -3: Third-to-last layer
-- ‘flatten’: Flattened convolutional features</p></li>
-<li><p><strong>include_preprocessing</strong> (<em>bool</em>) – Whether to apply model-specific preprocessing (recommended)</p></li>
-<li><p><strong>batch_size</strong> (<em>int</em>) – Batch size for prediction (default: 32)</p></li>
-<li><p><strong>verbose</strong> (<em>int</em>) – Verbosity level for model.predict (default: 0)</p></li>
+<li><p><strong>grain_images</strong> (<em>list</em><em> or </em><em>numpy.ndarray</em>) – List of grain images, each of shape (H, W, 3), uint8 or float in
+0-255. Images will be automatically resized if necessary.</p></li>
+<li><p><strong>model_name</strong> (<em>str</em>) – Name of the pre-trained model to use: ‘VGG16’ (default), ‘ResNet50’
+or ‘InceptionV3’.</p></li>
+<li><p><strong>layer_name</strong> (<em>str</em><em> or </em><em>int</em><em>, </em><em>optional</em>) – Layer to extract features from. For VGG16 (default ‘fc2’):
+- ‘fc2’ or -2: second fully connected layer (4096 features)
+- ‘fc1’ or -3: first fully connected layer (4096 features)
+- ‘flatten’: flattened convolutional features (25088 features)
+- ‘predictions’ or -1: ImageNet class scores (1000 features)
+For ResNet50 and InceptionV3 (default ‘avg_pool’):
+- ‘avg_pool’ or -2: globally pooled convolutional features (2048)
+- ‘predictions’ or -1: ImageNet class scores (1000)</p></li>
+<li><p><strong>include_preprocessing</strong> (<em>bool</em>) – Whether to normalize the images with the ImageNet mean and standard
+deviation, as the models expect (recommended). When False the pixel
+values are only scaled to 0-1.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Number of images per forward pass (default: 32)</p></li>
+<li><p><strong>verbose</strong> (<em>int</em>) – If &gt; 0, show a progress bar over the batches (default: 0)</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em><em>, </em><em>optional</em>) – A feature extractor returned by a previous call, to reuse instead of
+building (and possibly downloading) the model again.</p></li>
+<li><p><strong>pretrained</strong> (<em>bool</em>) – Load the ImageNet weights (default True; the weights are downloaded
+by torchvision on first use). False gives a randomly initialized
+network, which is only useful for testing.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Device to run on; auto-detected when None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>features</strong> (<em>numpy.ndarray</em>) – Extracted features of shape (n_grains, n_features)</p></li>
-<li><p><strong>model</strong> (<em>keras.Model</em>) – The feature extraction model (useful for processing more grains later)</p></li>
+<li><p><strong>features</strong> (<em>numpy.ndarray</em>) – Extracted features of shape (n_grains, n_features), float32</p></li>
+<li><p><strong>model</strong> (<em>torch.nn.Module</em>) – The feature extraction model (useful for processing more grains later)</p></li>
 </ul>
 </p>
 </dd>
@@ -750,6 +767,10 @@ automatically resized to 224x224 if necessary.</p></li>
 <span class="go">(336, 4096)</span>
 </pre></div>
 </div>
+<p class="rubric">Notes</p>
+<p>Earlier versions used the Keras ImageNet models. The torchvision weights
+differ slightly, so features and cluster assignments are not identical to
+those obtained with earlier versions of <code class="docutils literal notranslate"><span class="pre">segmenteverygrain</span></code>.</p>
 </dd></dl>
 
 <dl class="py function">
@@ -788,18 +809,18 @@ Features per channel: mean, std, median, min, max, 25th percentile, 75th percent
 </dl>
 <p class="rubric">Examples</p>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Extract RGB color features</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">color_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">&#39;rgb&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">color_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">'rgb'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">color_features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="go">(336, 21)</span>
 </pre></div>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use HSV for better color discrimination</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">hsv_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">&#39;hsv&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">hsv_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">'hsv'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">cluster_grains</span><span class="p">(</span><span class="n">hsv_features</span><span class="p">,</span> <span class="n">n_clusters</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="kc">None</span><span class="p">)</span>
 </pre></div>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Use all color spaces for comprehensive features</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">all_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">&#39;all&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">all_features</span> <span class="o">=</span> <span class="n">extract_color_features</span><span class="p">(</span><span class="n">grain_images</span><span class="p">,</span> <span class="n">color_space</span><span class="o">=</span><span class="s1">'all'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="n">all_features</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
 <span class="go">(336, 63)</span>
 </pre></div>
@@ -835,7 +856,7 @@ Features per channel: mean, std, median, min, max, 25th percentile, 75th percent
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">labels</span><span class="p">,</span> <span class="n">reduced_feats</span><span class="p">,</span> <span class="n">pca</span><span class="p">,</span> <span class="n">kmeans</span> <span class="o">=</span> <span class="n">cluster_grains</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">features</span><span class="p">,</span> <span class="n">n_clusters</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">n_components</span><span class="o">=</span><span class="mi">25</span>
 <span class="gp">... </span><span class="p">)</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span><span class="si">}</span><span class="s2"> clusters&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Found </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">labels</span><span class="p">))</span><span class="si">}</span><span class="s2"> clusters"</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -942,8 +963,8 @@ Requires all_grains to be provided (default: False)</p></li>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># With colored borders</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">montage</span><span class="p">,</span> <span class="n">info</span> <span class="o">=</span> <span class="n">create_clustered_grain_montage</span><span class="p">(</span><span class="n">labels</span><span class="p">,</span> <span class="n">grain_images</span><span class="p">,</span> <span class="n">grid_cols</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">(</span><span class="n">figsize</span><span class="o">=</span><span class="p">(</span><span class="mi">20</span><span class="p">,</span> <span class="mi">15</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">montage</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">&#39;uint8&#39;</span><span class="p">))</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">&#39;off&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">montage</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="s1">'uint8'</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">axis</span><span class="p">(</span><span class="s1">'off'</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
 </div>
@@ -961,7 +982,7 @@ Requires all_grains to be provided (default: False)</p></li>
 </div>
 <div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="c1"># Print cluster info</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">cluster_id</span><span class="p">,</span> <span class="n">data</span> <span class="ow">in</span> <span class="n">info</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
-<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Cluster </span><span class="si">{</span><span class="n">cluster_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">&#39;n_grains&#39;</span><span class="p">]</span><span class="si">}</span><span class="s2"> grains&quot;</span><span class="p">)</span>
+<span class="gp">... </span>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Cluster </span><span class="si">{</span><span class="n">cluster_id</span><span class="si">}</span><span class="s2">: </span><span class="si">{</span><span class="n">data</span><span class="p">[</span><span class="s1">'n_grains'</span><span class="p">]</span><span class="si">}</span><span class="s2"> grains"</span><span class="p">)</span>
 </pre></div>
 </div>
 </dd></dl>
@@ -1000,7 +1021,7 @@ Example: {‘quartz’: ‘blue’, ‘feldspar’: ‘red’, ‘other’: ‘g
 <span class="gp">&gt;&gt;&gt; </span><span class="n">predictions</span> <span class="o">=</span> <span class="n">clf</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plot_classified_grains</span><span class="p">(</span>
 <span class="gp">... </span>    <span class="n">image</span><span class="p">,</span> <span class="n">all_grains</span><span class="p">,</span> <span class="n">predictions</span><span class="p">,</span>
-<span class="gp">... </span>    <span class="n">class_colors</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;quartz&#39;</span><span class="p">:</span> <span class="s1">&#39;blue&#39;</span><span class="p">,</span> <span class="s1">&#39;feldspar&#39;</span><span class="p">:</span> <span class="s1">&#39;red&#39;</span><span class="p">,</span> <span class="s1">&#39;other&#39;</span><span class="p">:</span> <span class="s1">&#39;green&#39;</span><span class="p">}</span>
+<span class="gp">... </span>    <span class="n">class_colors</span><span class="o">=</span><span class="p">{</span><span class="s1">'quartz'</span><span class="p">:</span> <span class="s1">'blue'</span><span class="p">,</span> <span class="s1">'feldspar'</span><span class="p">:</span> <span class="s1">'red'</span><span class="p">,</span> <span class="s1">'other'</span><span class="p">:</span> <span class="s1">'green'</span><span class="p">}</span>
 <span class="gp">... </span><span class="p">)</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
 </pre></div>
@@ -1128,7 +1149,7 @@ or Shift+Click to select/deselect individual grains.</p>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">selector</span><span class="o">.</span><span class="n">activate</span><span class="p">()</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="c1"># ... interact with the plot ...</span>
 <span class="gp">&gt;&gt;&gt; </span><span class="n">filtered_grains</span> <span class="o">=</span> <span class="n">selector</span><span class="o">.</span><span class="n">get_filtered_grains</span><span class="p">()</span>
-<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Kept </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_grains</span><span class="p">)</span><span class="si">}</span><span class="s2"> out of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_grains</span><span class="p">)</span><span class="si">}</span><span class="s2"> grains&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">"Kept </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">filtered_grains</span><span class="p">)</span><span class="si">}</span><span class="s2"> out of </span><span class="si">{</span><span class="nb">len</span><span class="p">(</span><span class="n">all_grains</span><span class="p">)</span><span class="si">}</span><span class="s2"> grains"</span><span class="p">)</span>
 </pre></div>
 </div>
 <dl class="py method">
@@ -1324,7 +1345,7 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 </dd>
 </dl>
 <p class="rubric">Examples</p>
-<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">labeler</span><span class="o">.</span><span class="n">save_labeled_images</span><span class="p">(</span><span class="s1">&#39;labeled_grains&#39;</span><span class="p">)</span>
+<div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">labeler</span><span class="o">.</span><span class="n">save_labeled_images</span><span class="p">(</span><span class="s1">'labeled_grains'</span><span class="p">)</span>
 <span class="go"># Creates:</span>
 <span class="go"># labeled_grains/quartz/grain_0.png</span>
 <span class="go"># labeled_grains/quartz/grain_5.png</span>
@@ -1354,12 +1375,13 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>im_tile</strong> (<em>3D array</em>) – The image tile for which the prediction will be done.</p></li>
-<li><p><strong>model</strong> – Tensorflow model used for semantic segmentation.</p></li>
+<li><p><strong>im_tile</strong> (<em>3D array</em>) – The image tile for which the prediction will be done, with pixel
+values scaled to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The U-Net model (see <a class="reference internal" href="#segmenteverygrain.load_unet" title="segmenteverygrain.load_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.load_unet()</span></code></a>).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>im_tile_pred</strong> – Predicted tile.</p>
+<dd class="field-even"><p><strong>im_tile_pred</strong> – Predicted tile (class probabilities).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>3D array</p>
@@ -1369,18 +1391,24 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.predict_image">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Link to this definition">¶</a></dt>
-<dd><p>Segmantic segmentation of the entire image using a Unet model.</p>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_image</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">I</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.predict_image" title="Link to this definition">¶</a></dt>
+<dd><p>Semantic segmentation of the entire image using a Unet model.</p>
+<p>The image is covered by overlapping <code class="docutils literal notranslate"><span class="pre">I</span> <span class="pre">x</span> <span class="pre">I</span></code> tiles (offset by half a tile
+in both directions); the per-tile predictions are blended with Hann
+window weights. Tiles are run through the model in batches.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image</strong> (<em>2D</em><em> or </em><em>3D array</em>) – The image that is being segmented. Can have one or more channels.</p></li>
-<li><p><strong>model</strong> – Tensorflow model used for semantic segmentation.</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The U-Net model (see <a class="reference internal" href="#segmenteverygrain.load_unet" title="segmenteverygrain.load_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.load_unet()</span></code></a>).</p></li>
 <li><p><strong>I</strong> (<em>int</em>) – Size of the square-shaped image tiles in pixels.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of tiles per forward pass. Defaults to 32; lower it if the
+GPU runs out of memory.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>image_pred</strong> – Semantic segmentation result for the input image.</p>
+<dd class="field-even"><p><strong>image_pred</strong> – Semantic segmentation result for the input image (float32 class
+probabilities, shape <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code>).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>3D array</p>
@@ -1396,7 +1424,8 @@ indexed the same way as the original grain_images/cluster_labels.</p>
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>fname</strong> (<em>str</em>) – The file path of the input image.</p></li>
-<li><p><strong>model</strong> (<em>tensorflow.keras.Model</em>) – The Unet model used for the preliminary grain prediction.</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The U-Net model used for the preliminary grain prediction (see
+<a class="reference internal" href="#segmenteverygrain.load_unet" title="segmenteverygrain.load_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.load_unet()</span></code></a>).</p></li>
 <li><p><strong>sam</strong> (<em>SAM2ImagePredictor</em><em>, </em><em>optional</em>) – The SAM model used for grain segmentation. Required when <code class="docutils literal notranslate"><span class="pre">use_sam=True</span></code>.</p></li>
 <li><p><strong>min_area</strong> (<em>int</em><em>, </em><em>optional</em>) – The minimum area threshold for valid grains.</p></li>
 <li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – The size of each patch. Defaults to 2000.</p></li>
@@ -1886,36 +1915,183 @@ The third subplot shows the input image with the label overlayed.</p>
 </section>
 <section id="model-training">
 <h3>Model Training<a class="headerlink" href="#model-training" title="Link to this heading">¶</a></h3>
+<dl class="py class">
+<dt class="sig sig-object py" id="segmenteverygrain.UNet">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">UNet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.UNet" title="Link to this definition">¶</a></dt>
+<dd><p>U-Net for semantic segmentation of grain images.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>in_channels</strong> (<em>int</em>) – Number of input image channels. Defaults to 3 (RGB).</p></li>
+<li><p><strong>num_classes</strong> (<em>int</em>) – Number of output classes. Defaults to 3 (background, grain, boundary).</p></li>
+<li><p><strong>base_filters</strong> (<em>int</em>) – Number of filters in the first encoder level; each deeper level
+doubles it. Defaults to 16.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">forward</span></code> expects a float tensor of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">C,</span> <span class="pre">H,</span> <span class="pre">W)</span></code> with values in
+<code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code> and <code class="docutils literal notranslate"><span class="pre">H</span></code>, <code class="docutils literal notranslate"><span class="pre">W</span></code> divisible by 16. It returns raw logits of shape
+<code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">num_classes,</span> <span class="pre">H,</span> <span class="pre">W)</span></code>; apply <code class="docutils literal notranslate"><span class="pre">softmax</span></code> over dimension 1 to obtain
+class probabilities. Use <a class="reference internal" href="#segmenteverygrain.predict_batch" title="segmenteverygrain.predict_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">predict_batch()</span></code></a> for a numpy, channels-last
+convenience wrapper.</p>
+<dl class="py property">
+<dt class="sig sig-object py" id="segmenteverygrain.UNet.config">
+<em class="property"><span class="pre">property</span><span class="w"> </span></em><span class="sig-name descname"><span class="pre">config</span></span><em class="property"><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="pre">dict</span></em><a class="headerlink" href="#segmenteverygrain.UNet.config" title="Link to this definition">¶</a></dt>
+<dd><p>Constructor arguments needed to rebuild this model.</p>
+</dd></dl>
+
+</dd></dl>
+
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.Unet">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">Unet</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.Unet" title="Link to this definition">¶</a></dt>
-<dd><p>Creates a U-Net model for image segmentation.</p>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">Unet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">in_channels</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_classes</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">3</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">base_filters</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">16</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></span><a class="headerlink" href="#segmenteverygrain.Unet" title="Link to this definition">¶</a></dt>
+<dd><p>Creates an (untrained) U-Net model for image segmentation.</p>
+<p>Thin wrapper around <a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">segmenteverygrain.unet.UNet</span></code></a>, kept for
+backward compatibility; see <a class="reference internal" href="#segmenteverygrain.train_model" title="segmenteverygrain.train_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.train_model()</span></code></a> for
+training it.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Returns<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>model</strong> – The U-Net model.</p>
+<dd class="field-odd"><p><strong>model</strong> – The U-Net model (PyTorch).</p>
 </dd>
 <dt class="field-even">Return type<span class="colon">:</span></dt>
-<dd class="field-even"><p>tensorflow.keras.Model</p>
+<dd class="field-even"><p><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet">UNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.load_unet">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">load_unet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">torch.device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></span><a class="headerlink" href="#segmenteverygrain.load_unet" title="Link to this definition">¶</a></dt>
+<dd><p>Load a <a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">UNet</span></code></a> saved with <a class="reference internal" href="#segmenteverygrain.save_unet" title="segmenteverygrain.save_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unet()</span></code></a>.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>path</strong> (<em>str</em>) – Path to the <code class="docutils literal notranslate"><span class="pre">.pt</span></code> file.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Device to place the model on. When None, a GPU (CUDA or MPS) is used
+if available, otherwise CPU.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The model in evaluation mode on the requested device.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet">UNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.save_unet">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">save_unet</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">None</span></span></span><a class="headerlink" href="#segmenteverygrain.save_unet" title="Link to this definition">¶</a></dt>
+<dd><p>Save a <a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">UNet</span></code></a> (weights and architecture configuration) to a file.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The model to save.</p></li>
+<li><p><strong>path</strong> (<em>str</em>) – Destination path; <code class="docutils literal notranslate"><span class="pre">.pt</span></code> is the conventional extension.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.convert_keras_model">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">convert_keras_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">keras_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pt_path</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">verify</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></span><a class="headerlink" href="#segmenteverygrain.convert_keras_model" title="Link to this definition">¶</a></dt>
+<dd><p>Convert a Keras <code class="docutils literal notranslate"><span class="pre">.keras</span></code> U-Net (created with <a class="reference internal" href="#segmenteverygrain.Unet" title="segmenteverygrain.Unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.Unet()</span></code></a>)
+into a PyTorch <a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">UNet</span></code></a>.</p>
+<p>Requires the <code class="docutils literal notranslate"><span class="pre">keras</span></code> package (and a Keras backend such as TensorFlow)
+to be installed, as the Keras file has to be read with Keras itself.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>keras_path</strong> (<em>str</em>) – Path to the <code class="docutils literal notranslate"><span class="pre">.keras</span></code> model file.</p></li>
+<li><p><strong>pt_path</strong> (<em>str</em><em>, </em><em>optional</em>) – If given, the converted model is saved to this path with
+<a class="reference internal" href="#segmenteverygrain.save_unet" title="segmenteverygrain.save_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">save_unet()</span></code></a>.</p></li>
+<li><p><strong>verify</strong> (<em>bool</em>) – When True (default), run a random input through both models and raise
+if the outputs differ by more than <code class="docutils literal notranslate"><span class="pre">1e-3</span></code>. Models whose last layer
+has a <code class="docutils literal notranslate"><span class="pre">softmax</span></code> activation (trained with segmenteverygrain v0.3.0 or
+earlier) are compared after applying softmax to the PyTorch logits.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p>Keras models trained with v0.3.0 or earlier include the softmax in the
+model, while later ones (and the PyTorch <a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><code class="xref py py-class docutils literal notranslate"><span class="pre">UNet</span></code></a>) output logits.
+Both convert the same way: the weights are identical, and
+<a class="reference internal" href="#segmenteverygrain.predict_batch" title="segmenteverygrain.predict_batch"><code class="xref py py-func docutils literal notranslate"><span class="pre">predict_batch()</span></code></a> applies the softmax to the logits of the converted
+model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Returns<span class="colon">:</span></dt>
+<dd class="field-odd"><p>The converted model in evaluation mode, on the CPU.</p>
+</dd>
+<dt class="field-even">Return type<span class="colon">:</span></dt>
+<dd class="field-even"><p><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet">UNet</a></p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.predict_batch">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">predict_batch</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">tiles</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">ndarray</span></span></span><a class="headerlink" href="#segmenteverygrain.predict_batch" title="Link to this definition">¶</a></dt>
+<dd><p>Run the U-Net on a batch of image tiles and return class probabilities.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – A model in evaluation mode (as returned by <a class="reference internal" href="#segmenteverygrain.load_unet" title="segmenteverygrain.load_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">load_unet()</span></code></a>).</p></li>
+<li><p><strong>tiles</strong> (<em>numpy.ndarray</em>) – Array of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code> (or <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code> for a single tile)
+with pixel values scaled to <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em>) – Number of tiles per forward pass. Defaults to 32.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Softmax probabilities of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">H,</span> <span class="pre">W,</span> <span class="pre">num_classes)</span></code> (or
+<code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">num_classes)</span></code> for a single tile), float32.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>numpy.ndarray</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.get_device">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">get_device</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">torch.device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.device</span></span></span><a class="headerlink" href="#segmenteverygrain.get_device" title="Link to this definition">¶</a></dt>
+<dd><p>Resolve the compute device, auto-detecting a GPU when none is specified.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Explicit device (<code class="docutils literal notranslate"><span class="pre">&quot;cuda&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;mps&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;cpu&quot;</span></code>, …). When None,
+CUDA is used if available, then Apple-Silicon MPS, otherwise CPU.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The resolved device.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>torch.device</p>
 </dd>
 </dl>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.weighted_crossentropy">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Link to this definition">¶</a></dt>
-<dd><p>Calculates the weighted cross-entropy loss between the true labels and predicted labels.</p>
-<p>Uses label smoothing to prevent overconfident predictions and improve
-generalization. Expects logits (pre-softmax) as y_pred.</p>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">weighted_crossentropy</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">y_true</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_pred</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.Tensor</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label_smoothing</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_weights</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Sequence</span><span class="p"><span class="pre">[</span></span><span class="pre">float</span><span class="p"><span class="pre">]</span></span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">(0.6,</span> <span class="pre">1.0,</span> <span class="pre">5.0)</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">torch.Tensor</span></span></span><a class="headerlink" href="#segmenteverygrain.weighted_crossentropy" title="Link to this definition">¶</a></dt>
+<dd><p>Weighted cross-entropy loss with label smoothing, computed from logits.</p>
+<p>Each pixel’s cross-entropy is multiplied by the weight of its true class;
+the default weights (0.6, 1.0, 5.0) emphasize grains and especially grain
+boundaries. Label smoothing is applied to the targets to prevent
+overconfident predictions.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>y_true</strong> (<em>tensor</em>) – True labels (one-hot encoded).</p></li>
-<li><p><strong>y_pred</strong> (<em>tensor</em>) – Predicted logits (pre-softmax).</p></li>
+<li><p><strong>y_true</strong> (<em>tensor</em>) – True labels, either class indices of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">H,</span> <span class="pre">W)</span></code> or one-hot
+encoded of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">C,</span> <span class="pre">H,</span> <span class="pre">W)</span></code>.</p></li>
+<li><p><strong>y_pred</strong> (<em>tensor</em>) – Predicted logits (pre-softmax) of shape <code class="docutils literal notranslate"><span class="pre">(N,</span> <span class="pre">C,</span> <span class="pre">H,</span> <span class="pre">W)</span></code>.</p></li>
 <li><p><strong>label_smoothing</strong> (<em>float</em>) – Label smoothing factor. 0.0 means no smoothing.</p></li>
+<li><p><strong>class_weights</strong> (<em>sequence</em><em> of </em><em>float</em>) – One weight per class.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>loss</strong> – Weighted cross-entropy loss.</p>
+<dd class="field-even"><p><strong>loss</strong> – Scalar loss (mean over all pixels).</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
 <dd class="field-odd"><p>tensor</p>
@@ -1925,13 +2101,15 @@ generalization. Expects logits (pre-softmax) as y_pred.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.patchify_training_data">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">patchify_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.patchify_training_data" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">patchify_training_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">input_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">patch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">256</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stride</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">128</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span></span><a class="headerlink" href="#segmenteverygrain.patchify_training_data" title="Link to this definition">¶</a></dt>
 <dd><p>Extracts patches from training images and labels, and saves them to the specified directory.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>input_dir</strong> (<em>str</em>) – The directory containing the input images and labels.</p></li>
 <li><p><strong>patch_dir</strong> (<em>str</em>) – The directory where the patches will be saved.</p></li>
+<li><p><strong>patch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Size of the square patches in pixels. Defaults to 256.</p></li>
+<li><p><strong>stride</strong> (<em>int</em><em>, </em><em>optional</em>) – Step between patches in pixels. Defaults to 128 (50% overlap).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -1944,7 +2122,6 @@ generalization. Expects logits (pre-softmax) as y_pred.</p>
 <p class="rubric">Notes</p>
 <ul class="simple">
 <li><p>The function expects the input directory to contain files with ‘image’ and ‘mask’ in their filenames.</p></li>
-<li><p>The patches are extracted with a size of 256x256 pixels and a stride of 128 pixels.</p></li>
 <li><p>The function creates subdirectories ‘images’ and ‘labels’ within the specified patch directory to save the patches.</p></li>
 <li><p>If the input directory does not exist or contains no matching files, the function will print a warning and return.</p></li>
 </ul>
@@ -1952,21 +2129,30 @@ generalization. Expects logits (pre-softmax) as y_pred.</p>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.create_train_val_test_data">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_train_val_test_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentation</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_train_val_test_data" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_train_val_test_data</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_dir</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentation</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">bool</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">True</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">32</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">num_workers</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">torch.utils.data.DataLoader</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.utils.data.DataLoader</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">torch.utils.data.DataLoader</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#segmenteverygrain.create_train_val_test_data" title="Link to this definition">¶</a></dt>
 <dd><p>Splits image and mask data into training, validation, and test datasets, with optional augmentation.</p>
+<p>The patches are split 60% / 25% / 15% (training / validation / test) with a
+fixed random seed, so repeated calls give the same split.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>image_dir</strong> (<em>str</em>) – Directory containing the image files.</p></li>
 <li><p><strong>mask_dir</strong> (<em>str</em>) – Directory containing the mask files.</p></li>
 <li><p><strong>augmentation</strong> (<em>bool</em><em>, </em><em>optional</em>) – If True, applies data augmentation to the training dataset (default is True).</p></li>
+<li><p><strong>batch_size</strong> (<em>int</em><em>, </em><em>optional</em>) – Batch size of the data loaders. Defaults to 32.</p></li>
+<li><p><strong>num_workers</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of background processes used to load and augment patches.
+When None (default), up to 4 workers are used on platforms where
+processes are forked (Linux) and 0 (loading in the main process) on
+macOS and Windows, where spawned worker processes import <code class="docutils literal notranslate"><span class="pre">torch</span></code>
+before SciPy and can abort with a duplicate-OpenMP-runtime error in
+conda environments. Set it explicitly to override.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>train_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for training.</p></li>
-<li><p><strong>val_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for validation.</p></li>
-<li><p><strong>test_dataset</strong> (<em>tf.data.Dataset</em>) – TensorFlow dataset for testing.</p></li>
+<li><p><strong>train_dataset</strong> (<em>torch.utils.data.DataLoader</em>) – Data loader for training (shuffled).</p></li>
+<li><p><strong>val_dataset</strong> (<em>torch.utils.data.DataLoader</em>) – Data loader for validation.</p></li>
+<li><p><strong>test_dataset</strong> (<em>torch.utils.data.DataLoader</em>) – Data loader for testing.</p></li>
 </ul>
 </p>
 </dd>
@@ -1974,42 +2160,91 @@ generalization. Expects logits (pre-softmax) as y_pred.</p>
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="segmenteverygrain.create_and_train_model">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_and_train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_file</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.create_and_train_model" title="Link to this definition">¶</a></dt>
-<dd><p>Create and train a U-Net model.</p>
+<dt class="sig sig-object py" id="segmenteverygrain.train_model">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">torch.device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#segmenteverygrain.train_model" title="Link to this definition">¶</a></dt>
+<dd><p>Train a U-Net with the Adam optimizer and <a class="reference internal" href="#segmenteverygrain.weighted_crossentropy" title="segmenteverygrain.weighted_crossentropy"><code class="xref py py-func docutils literal notranslate"><span class="pre">weighted_crossentropy()</span></code></a>.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model_file</strong> (<em>str</em>) – Path to the file containing the model weights.</p></li>
-<li><p><strong>train_dataset</strong> (<em>tf.data.Dataset</em>) – Training dataset.</p></li>
-<li><p><strong>val_dataset</strong> (<em>tf.data.Dataset</em>) – Validation dataset.</p></li>
-<li><p><strong>test_dataset</strong> (<em>tf.data.Dataset</em>) – Test dataset.</p></li>
-<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of epochs to train the model (default is 100).</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The model to train (modified in place).</p></li>
+<li><p><strong>train_dataset</strong> (<em>DataLoader</em>) – Training data loader (see <a class="reference internal" href="#segmenteverygrain.create_train_val_test_data" title="segmenteverygrain.create_train_val_test_data"><code class="xref py py-func docutils literal notranslate"><span class="pre">create_train_val_test_data()</span></code></a>).</p></li>
+<li><p><strong>val_dataset</strong> (<em>DataLoader</em><em>, </em><em>optional</em>) – Validation data loader, evaluated after every epoch.</p></li>
+<li><p><strong>epochs</strong> (<em>int</em>) – Number of epochs. Defaults to 100.</p></li>
+<li><p><strong>learning_rate</strong> (<em>float</em>) – Adam learning rate. Defaults to 1e-3.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Device to train on; auto-detected (CUDA, MPS, CPU) when None.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p><strong>model</strong> – Trained U-Net model.</p>
+<dd class="field-even"><p><strong>history</strong> – Per-epoch lists under the keys <code class="docutils literal notranslate"><span class="pre">&quot;loss&quot;</span></code>, <code class="docutils literal notranslate"><span class="pre">&quot;accuracy&quot;</span></code> and, when a
+validation loader is given, <code class="docutils literal notranslate"><span class="pre">&quot;val_loss&quot;</span></code> and <code class="docutils literal notranslate"><span class="pre">&quot;val_accuracy&quot;</span></code>.</p>
 </dd>
 <dt class="field-odd">Return type<span class="colon">:</span></dt>
-<dd class="field-odd"><p>tf.keras.Model</p>
+<dd class="field-odd"><p>dict</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.plot_training_history">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">plot_training_history</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">history</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">dict</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.plot_training_history" title="Link to this definition">¶</a></dt>
+<dd><p>Plot training (and validation) loss and accuracy per epoch.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>history</strong> (<em>dict</em>) – As returned by <a class="reference internal" href="#segmenteverygrain.train_model" title="segmenteverygrain.train_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">train_model()</span></code></a>.</p>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>The matplotlib figure and its two axes.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p>fig, axes</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="segmenteverygrain.create_and_train_model">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">create_and_train_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">train_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">val_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">test_dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">model_file</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">int</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">learning_rate</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">float</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">0.001</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">torch.device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></span><a class="headerlink" href="#segmenteverygrain.create_and_train_model" title="Link to this definition">¶</a></dt>
+<dd><p>Create (or load) a U-Net model, train it, and evaluate it on the test set.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>train_dataset</strong> (<em>DataLoader</em>) – Training data loader.</p></li>
+<li><p><strong>val_dataset</strong> (<em>DataLoader</em>) – Validation data loader.</p></li>
+<li><p><strong>test_dataset</strong> (<em>DataLoader</em>) – Test data loader.</p></li>
+<li><p><strong>model_file</strong> (<em>str</em><em>, </em><em>optional</em>) – Path to a saved model (<code class="docutils literal notranslate"><span class="pre">.pt</span></code>) whose weights are used as the starting
+point, e.g. for fine-tuning. A Keras <code class="docutils literal notranslate"><span class="pre">.keras</span></code> file is converted on
+the fly (requires Keras and TensorFlow). When None, a new model is
+trained from scratch.</p></li>
+<li><p><strong>epochs</strong> (<em>int</em><em>, </em><em>optional</em>) – Number of epochs to train the model (default is 100).</p></li>
+<li><p><strong>learning_rate</strong> (<em>float</em><em>, </em><em>optional</em>) – Adam learning rate (default is 1e-3).</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Device to train on; auto-detected when None.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p><strong>model</strong> – Trained U-Net model. Save it with <a class="reference internal" href="#segmenteverygrain.save_unet" title="segmenteverygrain.save_unet"><code class="xref py py-func docutils literal notranslate"><span class="pre">segmenteverygrain.save_unet()</span></code></a>.</p>
+</dd>
+<dt class="field-odd">Return type<span class="colon">:</span></dt>
+<dd class="field-odd"><p><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet">UNet</a></p>
 </dd>
 </dl>
 <p class="rubric">Notes</p>
-<p>The function will plot the training and validation loss and accuracy over epochs.</p>
+<p>The function plots the training and validation loss and accuracy over
+epochs and prints the test-set metrics (see <a class="reference internal" href="#segmenteverygrain.evaluate_model" title="segmenteverygrain.evaluate_model"><code class="xref py py-func docutils literal notranslate"><span class="pre">evaluate_model()</span></code></a>).</p>
 </dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="segmenteverygrain.evaluate_model">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">evaluate_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.evaluate_model" title="Link to this definition">¶</a></dt>
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">evaluate_model</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.unet.UNet"><span class="pre">UNet</span></a></span></em>, <em class="sig-param"><span class="n"><span class="pre">dataset</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">torch.utils.data.DataLoader</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">class_names</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">list</span><span class="p"><span class="pre">[</span></span><span class="pre">str</span><span class="p"><span class="pre">]</span></span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">str</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">torch.device</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">dict</span></span></span><a class="headerlink" href="#segmenteverygrain.evaluate_model" title="Link to this definition">¶</a></dt>
 <dd><p>Evaluate a trained U-Net model on a dataset, reporting overall accuracy,
 loss, and per-class IoU scores.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>model</strong> (<em>tf.keras.Model</em>) – The trained model.</p></li>
-<li><p><strong>dataset</strong> (<em>tf.data.Dataset</em>) – The dataset to evaluate on (e.g. the test dataset).</p></li>
+<li><p><strong>model</strong> (<a class="reference internal" href="#segmenteverygrain.UNet" title="segmenteverygrain.UNet"><em>UNet</em></a>) – The trained model.</p></li>
+<li><p><strong>dataset</strong> (<em>DataLoader</em>) – The dataset to evaluate on (e.g. the test dataset).</p></li>
 <li><p><strong>class_names</strong> (<em>list</em><em> of </em><em>str</em><em>, </em><em>optional</em>) – Names for each output class. Defaults to
 <code class="docutils literal notranslate"><span class="pre">[&quot;background&quot;,</span> <span class="pre">&quot;grain&quot;,</span> <span class="pre">&quot;boundary&quot;]</span></code>.</p></li>
+<li><p><strong>device</strong> (<em>str</em><em> or </em><em>torch.device</em><em>, </em><em>optional</em>) – Device to run on; defaults to the model’s device.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -2023,25 +2258,49 @@ and <code class="docutils literal notranslate"><span class="pre">&quot;per_class
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="segmenteverygrain.load_and_preprocess">
-<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">load_and_preprocess</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask_path</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">augmentations</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.load_and_preprocess" title="Link to this definition">¶</a></dt>
-<dd><p>Load and preprocess an image and its corresponding mask.</p>
+<dt class="sig sig-object py" id="segmenteverygrain.augment_pair">
+<span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">augment_pair</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">image</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">mask</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">ndarray</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">rng</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Generator</span><span class="w"> </span><span class="p"><span class="pre">|</span></span><span class="w"> </span><span class="pre">None</span></span><span class="w"> </span><span class="o"><span class="pre">=</span></span><span class="w"> </span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span> <span class="sig-return"><span class="sig-return-icon">&#x2192;</span> <span class="sig-return-typehint"><span class="pre">tuple</span><span class="p"><span class="pre">[</span></span><span class="pre">ndarray</span><span class="p"><span class="pre">,</span></span><span class="w"> </span><span class="pre">ndarray</span><span class="p"><span class="pre">]</span></span></span></span><a class="headerlink" href="#segmenteverygrain.augment_pair" title="Link to this definition">¶</a></dt>
+<dd><p>Randomly augment an image/mask pair.</p>
+<p>Geometric augmentations (random flips, 90-degree rotations, and a random
+crop-and-zoom with probability 0.5) are applied identically to the image
+and the mask. Color augmentations (brightness, contrast, saturation, hue,
+Gaussian noise, each with probability 0.5, and Gaussian blur with
+probability 0.3) are applied to the image only.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
-<li><p><strong>image_path</strong> (<em>str</em>) – The file path of the image.</p></li>
-<li><p><strong>mask_path</strong> (<em>str</em>) – The file path of the mask.</p></li>
-<li><p><strong>augmentations</strong> (<em>bool</em><em>, </em><em>optional</em>) – Whether to apply augmentations to the image. Defaults to False.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – Image of shape <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code>, float32, values in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>mask</strong> (<em>numpy.ndarray</em>) – Mask of shape <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W)</span></code> with integer class indices.</p></li>
+<li><p><strong>rng</strong> (<em>numpy.random.Generator</em><em>, </em><em>optional</em>) – Random number generator (a fresh one is used when None).</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
 <dd class="field-even"><p><ul class="simple">
-<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – the preprocessed image.</p></li>
-<li><p><strong>mask</strong> (<em>numpy.ndarray</em>) – the preprocessed mask.</p></li>
+<li><p><strong>image</strong> (<em>numpy.ndarray</em>) – Augmented image, float32 <code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W,</span> <span class="pre">3)</span></code> in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code>.</p></li>
+<li><p><strong>mask</strong> (<em>numpy.ndarray</em>) – Augmented mask, same dtype as the input.</p></li>
 </ul>
 </p>
 </dd>
 </dl>
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="segmenteverygrain.GrainPatchDataset">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">segmenteverygrain.</span></span><span class="sig-name descname"><span class="pre">GrainPatchDataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span><span class="p"><span class="pre">:</span></span><span class="w"> </span><span class="n"><span class="pre">Any</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#segmenteverygrain.GrainPatchDataset" title="Link to this definition">¶</a></dt>
+<dd><p>Dataset of image patches and their label masks stored as PNG files.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>image_files</strong> (<em>sequence</em><em> of </em><em>str</em>) – Paths to the image patches (RGB PNG).</p></li>
+<li><p><strong>mask_files</strong> (<em>sequence</em><em> of </em><em>str</em>) – Paths to the corresponding masks (8-bit PNG with values 0, 1, 2).</p></li>
+<li><p><strong>augment</strong> (<em>bool</em>) – Whether to apply <a class="reference internal" href="#segmenteverygrain.augment_pair" title="segmenteverygrain.augment_pair"><code class="xref py py-func docutils literal notranslate"><span class="pre">augment_pair()</span></code></a> to each sample.</p></li>
+</ul>
+</dd>
+</dl>
+<p class="rubric">Notes</p>
+<p><code class="docutils literal notranslate"><span class="pre">__getitem__</span></code> returns <code class="docutils literal notranslate"><span class="pre">(image,</span> <span class="pre">mask)</span></code> with <code class="docutils literal notranslate"><span class="pre">image</span></code> a float32 tensor
+of shape <code class="docutils literal notranslate"><span class="pre">(3,</span> <span class="pre">H,</span> <span class="pre">W)</span></code> in <code class="docutils literal notranslate"><span class="pre">[0,</span> <span class="pre">1]</span></code> and <code class="docutils literal notranslate"><span class="pre">mask</span></code> an int64 tensor of shape
+<code class="docutils literal notranslate"><span class="pre">(H,</span> <span class="pre">W)</span></code>.</p>
 </dd></dl>
 
 </section>
