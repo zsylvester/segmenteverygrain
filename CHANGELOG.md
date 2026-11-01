@@ -2,15 +2,91 @@
 
 All notable changes to `segmenteverygrain` are documented here.
 
-## [Unreleased]
+## [0.6.0]
+
+The deep-learning backend moved from TensorFlow/Keras to PyTorch. The U-Net,
+its training code, and the CNN feature extractors used for grain clustering
+are now implemented with `torch` and `torchvision`; SAM 2.1 already used
+PyTorch. Installation no longer requires TensorFlow or Keras, and a single
+framework serves all models. Segmentation results are unchanged: the shipped
+PyTorch U-Net reproduces the Keras model's predictions to within 1e-5.
+
+### Changed
+
+- **The U-Net model file is now a PyTorch checkpoint.** The shipped model is
+  `models/seg_model_smooth_labels.pt` (9 MB, replacing the 26 MB `.keras`
+  file) and is loaded with `seg.load_unet(path)` instead of
+  `keras.saving.load_model(path)`. The notebooks have been updated
+  accordingly. `seg.Unet()` returns the PyTorch `UNet` module.
+- **Custom or fine-tuned Keras models must be converted once**, in an
+  environment where Keras and TensorFlow are still installed:
+  `seg.convert_keras_model("my_model.keras", "my_model.pt")`. The converter
+  checks that the two models agree before writing the file. Only models
+  trained with v0.4.0 or later (logit outputs) can be converted. Passing a
+  Keras model object to the segmentation functions still works for now but
+  emits a `FutureWarning`; this fallback will be removed in a later release.
+- **Training API** (`create_train_val_test_data`, `create_and_train_model`,
+  `evaluate_model`, `patchify_training_data`, `weighted_crossentropy`) now
+  lives in the `training` submodule (re-exported at the package level) and is
+  built on PyTorch:
+  - `create_train_val_test_data` returns PyTorch `DataLoader`s (with
+    `batch_size` and `num_workers` arguments) instead of `tf.data` datasets;
+    the train/validation/test split is unchanged.
+  - `create_and_train_model` accepts `learning_rate` and `device` arguments
+    and a `.pt` (or, with Keras installed, `.keras`) starting model.
+  - `weighted_crossentropy` takes logits of shape `(N, 3, H, W)` and targets
+    as class indices `(N, H, W)` or one-hot `(N, 3, H, W)`; the class weights
+    and label smoothing are unchanged.
+  - `patchify_training_data` is implemented with numpy and returns the
+    image and label directories.
+  - `evaluate_model` returns a dictionary with `loss`, `accuracy`,
+    `mean_iou`, and `per_class_iou`.
+  - Trained models are saved with `seg.save_unet(model, "model.pt")`.
+- **`grain_utils.extract_vgg16_features` uses torchvision's ImageNet models**
+  (VGG16, ResNet50, InceptionV3) with the same preprocessing as before.
+  Features are not numerically identical to the Keras ones because the
+  pretrained weights differ, so previously computed feature vectors and
+  clusterings are not directly comparable to new ones. The `layer_name`
+  argument keeps the Keras names (`fc1`, `fc2`, `flatten`, `avg_pool`, ...).
+  The weights are downloaded by torchvision on first use.
+- `predict_image` returns `float32` probabilities and accepts a `batch_size`
+  argument; tiles are batched through the model instead of being predicted
+  one by one.
+- `interactions.load_image` and `seg.load_img` use Pillow instead of
+  `keras.utils.load_img`; `interactions.save_mask` writes the same 8-bit
+  grayscale PNG as before.
+- Environment files are split by hardware instead of operating system:
+  `environment.yml` (Apple Silicon via MPS, or CPU) and `environment_cuda.yml`
+  (NVIDIA GPUs via the conda-forge `pytorch-gpu` package). PyTorch is
+  installed from conda-forge so that it shares the environment's OpenMP
+  runtime with numpy/scipy. `environment_macos.yml` is removed.
+- CI tests on Python 3.10 and 3.12 with CPU-only PyTorch wheels.
 
 ### Added
 
+- `UNet` module, `load_unet`, `save_unet`, `predict_batch`, `get_device`
+  (CUDA, MPS or CPU auto-detection), and `convert_keras_model` in the new
+  `unet` submodule.
+- `train_model`, `plot_training_history`, `GrainPatchDataset`, and
+  `augment_pair` in the new `training` submodule.
 - `sam_segmentation` raises an informative `ValueError` when called with an
   empty prompt list, and `predict_large_image` emits a warning when no grains
   are detected in the image. Previously a failed U-Net prediction (e.g., a
   model that did not load correctly) could surface as a cryptic downstream
   error such as "attempt to get argmax of an empty sequence" (issue #10).
+
+### Removed
+
+- `tensorflow` and `keras` dependencies. `torchvision` is a new dependency.
+- `load_and_preprocess` (its work is done by `GrainPatchDataset`).
+
+### Fixed
+
+- `GrainPlot` and `plot_image_w_colorful_grains` work with matplotlib 3.11,
+  where `matplotlib.cm.get_cmap` was removed.
+- On macOS, importing the package no longer risks the duplicate OpenMP
+  runtime abort (`OMP: Error #15`) caused by loading TensorFlow and PyTorch
+  in the same process.
 
 ## [0.5.0]
 
