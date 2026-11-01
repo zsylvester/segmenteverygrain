@@ -84,6 +84,10 @@ PyTorch U-Net reproduces the Keras model's predictions to within 1e-5.
 
 - `GrainPlot` and `plot_image_w_colorful_grains` work with matplotlib 3.11,
   where `matplotlib.cm.get_cmap` was removed.
+- Region properties are requested under their current scikit-image names
+  (`axis_major_length`, `intensity_mean`, ...), which silences the
+  deprecation warnings of scikit-image 0.26. Grain summary columns keep
+  their existing names (`major_axis_length`, `mean_intensity-0`, ...).
 - On macOS, importing the package no longer risks the duplicate OpenMP
   runtime abort (`OMP: Error #15`) caused by loading TensorFlow and PyTorch
   in the same process.
